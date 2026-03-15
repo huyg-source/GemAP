@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>D&D Map Editor</title>
+<!-- Sword favicon — consistent tab identity for Gemini tagging -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    background: #1b1b1f;
+    color: #e0e0e0;
+    font-family: 'Roboto', 'Segoe UI', sans-serif;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* ── Top bar ── */
+#topbar {
+    background: #242528;
+    padding: 6px 14px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    border-bottom: 2px solid #c41e1e;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+#topbar h2 {
+    font-size: 15px; color: #c41e1e; white-space: nowrap;
+    font-family: 'Roboto Condensed', sans-serif;
+    font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+}
+.tb-group { display: flex; align-items: center; gap: 5px; }
+.tb-label { font-size: 10px; color: #7a7a8a; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.6px; font-family: 'Roboto Condensed', sans-serif; }
+.tb-input { width: 60px; background: #18181b; border: 1px solid #3a3a3e; color: #e0e0e0; padding: 4px 6px; border-radius: 4px; font-size: 12px; }
+.tb-input.wide { width: 160px; }
+.tb-btn { padding: 4px 10px; border: 1px solid #1565c2; background: #18181b; color: #e0e0e0; border-radius: 4px; cursor: pointer; font-size: 12px; }
+.tb-btn:hover { background: #1565c2; color: white; }
+
+/* ── Layout ── */
+#main { display: flex; flex: 1; min-height: 0; }
+
+/* ── Sidebar ── */
+#sidebar {
+    width: 170px;
+    background: #242528;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-right: 1px solid #3a3a3e;
+    flex-shrink: 0;
+    overflow-y: auto;
+    height: 100%;
+}
+.sec {
+    font-size: 10px; color: #4da6ff; text-transform: uppercase;
+    letter-spacing: 1.2px; margin-top: 4px;
+    font-family: 'Roboto Condensed', sans-serif; font-weight: 700;
+}
+
+.tool-btn {
+    padding: 6px 9px;
+    border: 1px solid #3a3a3e;
+    background: #18181b;
+    color: #c8c8c8;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    text-align: left;
+    width: 100%;
+    font-family: 'Roboto Condensed', sans-serif;
+    letter-spacing: 0.3px;
+    transition: border-color 0.15s, background 0.15s;
+}
+.tool-btn:hover { background: #1a2848; border-color: #1565c2; color: white; }
+.tool-btn.active { border-color: #c41e1e; background: #2a0808; color: white; }
+
+.btn { padding: 6px 9px; border: 1px solid #3a3a3e; background: #18181b; color: #c8c8c8; border-radius: 4px; cursor: pointer; font-size: 12px; width: 100%; transition: border-color 0.15s, background 0.15s; }
+.btn:hover { background: #1a2848; border-color: #1565c2; color: white; }
+.btn.save { background: #0d2040; border-color: #1565c2; color: #4da6ff; }
+.btn.save:hover { background: #1565c2; color: white; }
+
+hr { border: none; border-top: 1px solid #3a3a3e; }
+
+/* ── Color swatches ── */
+#swatches { display: flex; flex-wrap: wrap; gap: 4px; }
+.swatch {
+    width: 24px; height: 24px;
+    border-radius: 3px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    flex-shrink: 0;
+}
+.swatch:hover, .swatch.sel { border-color: #4da6ff; }
+#color-preview { width: 100%; height: 18px; border: 1px solid #3a3a3e; border-radius: 3px; margin-top: 3px; }
+input[type=color] { width: 100%; height: 24px; border: none; border-radius: 3px; cursor: pointer; background: none; padding: 0; }
+
+/* ── Map list ── */
+#map-list { border: 1px solid #3a3a3e; border-radius: 4px; overflow-y: auto; max-height: 110px; display: none; background: #18181b; }
+.map-item { padding: 5px 8px; cursor: pointer; font-size: 12px; }
+.map-item:hover { background: #1a2848; color: white; }
+
+/* ── Canvas area ── */
+#canvas-wrap {
+    flex: 1;
+    overflow: auto;
+    background: #111113;
+    position: relative;
+}
+canvas { display: block; cursor: crosshair; }
+
+/* ── Loading overlay ── */
+#loading-overlay {
+    display: none;
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 50;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+}
+#loading-overlay.active { display: flex; }
+.spinner {
+    width: 44px; height: 44px;
+    border: 4px solid rgba(255,255,255,0.12);
+    border-top-color: #1565c2;
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#loading-overlay span { color: #ccc; font-size: 13px; letter-spacing: 2px; font-family: 'Roboto Condensed', sans-serif; text-transform: uppercase; }
+
+/* ── Status bar ── */
+#statusbar {
+    background: #242528; padding: 3px 10px; font-size: 11px;
+    color: #5a5a6a; border-top: 1px solid #3a3a3e; flex-shrink: 0;
+    font-family: 'Roboto Condensed', sans-serif; letter-spacing: 0.3px;
+}
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div id="topbar">
+    <h2>⚔ D&D Map Editor</h2>
+    <div class="tb-group">
+        <span class="tb-label">Name</span>
+        <input class="tb-input wide" id="map-name" type="text" value="New Map">
+    </div>
+    <div class="tb-group" style="flex:1;min-width:180px;">
+        <span class="tb-label">Description</span>
+        <input class="tb-input" id="map-desc" type="text" value="" placeholder="Room description for AI..."
+            style="width:100%;max-width:400px;">
+    </div>
+    <div class="tb-group">
+        <span class="tb-label">Scale</span>
+        <input class="tb-input" id="scale" type="number" value="5" min="1" max="500">
+        <span class="tb-label">ft/sq</span>
+    </div>
+    <div class="tb-group">
+        <span class="tb-label">Grid</span>
+        <input class="tb-input" id="gcols" type="number" value="40" min="5" max="150">
+        <span class="tb-label">×</span>
+        <input class="tb-input" id="grows" type="number" value="40" min="5" max="150">
+        <button class="tb-btn" onclick="applyGrid()">Apply</button>
+    </div>
+    <div class="tb-group">
+        <span class="tb-label">Zoom</span>
+        <input type="range" id="zoom" min="14" max="72" value="32" step="2" oninput="onZoom(this.value)" style="width:90px;">
+        <span id="zoom-val" class="tb-label">32px</span>
+    </div>
+</div>
+
+<!-- Main -->
+<div id="main">
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+        <div class="sec">Tools</div>
+        <button class="tool-btn active" id="tool-wall"       onclick="setTool('wall')">🧱 Wall</button>
+        <button class="tool-btn"        id="tool-door"          onclick="setTool('door')">Door</button>
+        <button class="tool-btn"        id="tool-secret-door"   onclick="setTool('secret-door')" style="color:#aaa;border-color:#555;">Secret Door</button>
+        <button class="tool-btn"        id="tool-window"        onclick="setTool('window')">Window</button>
+        <button class="tool-btn"        id="tool-stairs-up"  onclick="setTool('stairs-up')">⬆ Stairs Up</button>
+        <button class="tool-btn"        id="tool-stairs-down" onclick="setTool('stairs-down')">⬇ Stairs Down</button>
+        <button class="tool-btn"        id="tool-fill"       onclick="setTool('fill')">🪣 Fill</button>
+        <button class="tool-btn"        id="tool-label"      onclick="setTool('label')">🔤 Label</button>
+        <button class="tool-btn"        id="tool-arc"        onclick="setTool('arc')" style="color:#e8832a;border-color:#e8832a;">Arc/Circle</button>
+        <button class="tool-btn"        id="tool-erase"      onclick="setTool('erase')">Erase</button>
+        <button class="tool-btn"        id="tool-pin"        onclick="setTool('pin')"    style="color:#f1c40f;border-color:#f1c40f;">Pin Point</button>
+        <button class="tool-btn"        id="tool-ai-room"    onclick="setTool('ai-room')" style="color:#2ecc71;border-color:#2ecc71;">[AI] Generate Room</button>
+        <button class="tool-btn"        id="tool-stitch"     onclick="setTool('stitch')" style="color:#9b59b6;border-color:#9b59b6;">Stitch Room</button>
+
+        <!-- AI Room panel -->
+        <div id="ai-panel" style="display:none;margin-top:4px;">
+            <div class="sec">AI Generation Prompt</div>
+            <textarea id="ai-desc" rows="5"
+                style="width:100%;background:#18181b;border:1px solid #3a3a3e;color:#e0e0e0;padding:5px;border-radius:4px;font-size:11px;resize:vertical;"
+                placeholder="e.g. 20x15 ft tavern, door south wall, fireplace NW corner — saved description is in the header"></textarea>
+            <div id="ai-origin-label" style="font-size:10px;color:#e94560;margin-top:4px;">
+                Click grid to set room origin
+            </div>
+            <button class="btn save" id="ai-generate-btn" onclick="generateRoom()" disabled
+                style="margin-top:4px;">Generate</button>
+            <div id="ai-status" style="font-size:10px;color:#888;margin-top:3px;"></div>
+        </div>
+
+        <!-- Stitch panel -->
+        <div id="stitch-panel" style="display:none;margin-top:4px;">
+            <div class="sec">Saved Map</div>
+            <div id="stitch-selected-map" style="font-size:11px;color:#9b59b6;font-style:italic;margin-bottom:4px;">None selected</div>
+            <button class="btn" onclick="openMapModal()" style="border-color:#9b59b6;color:#9b59b6;">Browse Maps...</button>
+            <div class="sec" style="margin-top:4px;">Connection Pin</div>
+            <select id="stitch-pin-sel" onchange="onStitchPinChange()"
+                style="width:100%;background:#18181b;border:1px solid #3a3a3e;color:#e0e0e0;padding:4px;border-radius:4px;font-size:11px;"
+                disabled>
+                <option value="">-- select pin --</option>
+            </select>
+            <div id="stitch-target-label" style="font-size:10px;color:#e94560;margin-top:4px;">
+                Click grid to set target
+            </div>
+            <button class="btn save" id="stitch-apply-btn" onclick="doStitch()" disabled
+                style="margin-top:4px;background:#3a1a6a;border-color:#9b59b6;">Stitch</button>
+            <div id="stitch-status" style="font-size:10px;color:#888;margin-top:3px;"></div>
+        </div>
+
+        <hr>
+        <div class="sec">Fill Color</div>
+        <div id="swatches"></div>
+        <div id="color-preview"></div>
+        <input type="color" id="custom-color" value="#aaaaaa" oninput="setFillColor(this.value)">
+
+        <hr>
+        <div class="sec">Map Files</div>
+        <button class="btn save" onclick="saveMap()">💾 Save</button>
+        <button class="btn" onclick="openMapModal('load')">Load...</button>
+        <button class="btn" onclick="clearMap()" style="margin-top:4px;color:#e94560;">🗑 Clear All</button>
+    </div>
+
+    <!-- Canvas -->
+    <div id="canvas-wrap">
+        <canvas id="mapCanvas"></canvas>
+        <div id="loading-overlay">
+            <div class="spinner"></div>
+            <span>Generating...</span>
+        </div>
+    </div>
+
+</div>
+<div id="statusbar">Ready — hover over the grid to draw</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// Constants & State
+// ═══════════════════════════════════════════════════════════
+const PAD = 24;
+
+const SWATCHES = [
+    { color: '#f5f0e8', title: 'Clear / Floor' },
+    { color: '#b0a898', title: 'Stone' },
+    { color: '#8B7355', title: 'Dirt / Earth' },
+    { color: '#6B8E6B', title: 'Grass' },
+    { color: '#4a90d9', title: 'Water' },
+    { color: '#d4a843', title: 'Sand / Gold' },
+    { color: '#2ecc71', title: 'Stairs Up' },
+    { color: '#e74c3c', title: 'Stairs Down / Lava' },
+    { color: '#9b59b6', title: 'Magic / Portal' },
+    { color: '#e8d5a3', title: 'Wood / Floor' },
+    { color: '#555577', title: 'Shadow / Void' },
+    { color: '#1a1a2e', title: 'Pit / Darkness' },
+];
+
+let mapData = {
+    name: 'New Map',
+    scale: 5,
+    cols: 40,
+    rows: 40,
+    description: '',
+    edges: {},   // "h:r,c" or "v:r,c" → tool string
+    cells: {},   // "r,c" → { color, label, type }
+    pins:  {},   // "r,c" → name string
+};
+
+let CELL = 32;
+let tool = 'wall';
+let fillColor = '#b0a898';
+let dragging = false;
+let drawMode = 'add';
+let hoverEdge = null;
+let hoverCell = null;
+let lastEdgeKey = null;
+
+// Arc tool state
+let arcCenter  = null;   // { row, col } cell coords of center
+let arcRadius  = 0;      // radius in cell units
+let arcDragging = false;
+
+// ═══════════════════════════════════════════════════════════
+// Canvas setup
+// ═══════════════════════════════════════════════════════════
+const canvas = document.getElementById('mapCanvas');
+const ctx    = canvas.getContext('2d');
+
+function resizeCanvas() {
+    canvas.width  = mapData.cols * CELL + PAD * 2;
+    canvas.height = mapData.rows * CELL + PAD * 2;
+    render();
+}
+
+// ═══════════════════════════════════════════════════════════
+// Coordinate helpers
+// ═══════════════════════════════════════════════════════════
+function canvasPos(e) {
+    const r = canvas.getBoundingClientRect();
+    const sx = canvas.width  / r.width;
+    const sy = canvas.height / r.height;
+    return { x: (e.clientX - r.left) * sx, y: (e.clientY - r.top) * sy };
+}
+
+function edgeKey(e)  { return `${e.type}:${e.row},${e.col}`; }
+function cellKey(r,c){ return `${r},${c}`; }
+
+function edgeCoords(edge) {
+    const ox = PAD, oy = PAD;
+    if (edge.type === 'h') {
+        return { x1: ox + edge.col * CELL, y1: oy + edge.row * CELL,
+                 x2: ox + (edge.col+1) * CELL, y2: oy + edge.row * CELL };
+    }
+    return { x1: ox + edge.col * CELL, y1: oy + edge.row * CELL,
+             x2: ox + edge.col * CELL, y2: oy + (edge.row+1) * CELL };
+}
+
+function snapEdge(mx, my) {
+    const gx = (mx - PAD) / CELL;
+    const gy = (my - PAD) / CELL;
+    if (gx < -0.5 || gy < -0.5 || gx > mapData.cols + 0.5 || gy > mapData.rows + 0.5) return null;
+
+    const col  = Math.floor(gx);
+    const row  = Math.floor(gy);
+    const fx   = gx - col;
+    const fy   = gy - row;
+    const dH   = Math.min(fy, 1 - fy);
+    const dV   = Math.min(fx, 1 - fx);
+
+    if (dH <= dV) {
+        const er = fy < 0.5 ? row : row + 1;
+        const ec = Math.min(Math.max(col, 0), mapData.cols - 1);
+        if (er < 0 || er > mapData.rows || ec < 0 || ec >= mapData.cols) return null;
+        return { type: 'h', row: er, col: ec };
+    } else {
+        const ec = fx < 0.5 ? col : col + 1;
+        const er = Math.min(Math.max(row, 0), mapData.rows - 1);
+        if (er < 0 || er >= mapData.rows || ec < 0 || ec > mapData.cols) return null;
+        return { type: 'v', row: er, col: ec };
+    }
+}
+
+function snapCell(mx, my) {
+    const col = Math.floor((mx - PAD) / CELL);
+    const row = Math.floor((my - PAD) / CELL);
+    if (row < 0 || row >= mapData.rows || col < 0 || col >= mapData.cols) return null;
+    return { row, col };
+}
+
+// ═══════════════════════════════════════════════════════════
+// Tool logic
+// ═══════════════════════════════════════════════════════════
+const CELL_TOOLS = new Set(['stairs-up', 'stairs-down', 'fill', 'label', 'erase-cell']);
+function isCellTool() { return CELL_TOOLS.has(tool) || (tool === 'erase' && hoverCell && !hoverEdge); }
+
+function applyEdge(edge) {
+    if (!edge) return;
+    const k = edgeKey(edge);
+    if (k === lastEdgeKey) return;
+    lastEdgeKey = k;
+    if (drawMode === 'remove' || tool === 'erase') {
+        delete mapData.edges[k];
+    } else {
+        mapData.edges[k] = tool;
+    }
+}
+
+async function applyCell(cell) {
+    if (!cell) return;
+    const k = cellKey(cell.row, cell.col);
+    if (tool === 'erase') { delete mapData.cells[k]; return; }
+    if (tool === 'label') {
+        const cur = mapData.cells[k] || {};
+        const lbl = await showPrompt('Room label:', cur.label || '');
+        if (lbl !== null) mapData.cells[k] = { ...cur, label: lbl };
+        return;
+    }
+    const colors = { 'stairs-up': '#2ecc71', 'stairs-down': '#e74c3c', 'fill': fillColor };
+    const existing = mapData.cells[k] || {};
+    mapData.cells[k] = { ...existing, color: colors[tool] || fillColor, type: tool };
+}
+
+// ═══════════════════════════════════════════════════════════
+// Mouse events
+// ═══════════════════════════════════════════════════════════
+canvas.addEventListener('mousedown', async e => {
+    const pos  = canvasPos(e);
+    const cell = snapCell(pos.x, pos.y);
+
+    // AI Room: click sets the origin
+    if (tool === 'ai-room') {
+        if (cell) {
+            aiOrigin = { row: cell.row, col: cell.col };
+            document.getElementById('ai-origin-label').textContent =
+                `Origin: col ${cell.col}, row ${cell.row}`;
+            document.getElementById('ai-generate-btn').disabled = false;
+            render();
+        }
+        return;
+    }
+
+    // Pin: click places a named connection point then auto-saves
+    if (tool === 'pin') {
+        if (cell) {
+            const k    = cellKey(cell.row, cell.col);
+            const cur  = mapData.pins[k] || '';
+            const name = await showPrompt('Name this connection point:', cur);
+            if (name !== null) {
+                if (name.trim()) mapData.pins[k] = name.trim();
+                else delete mapData.pins[k];
+                render();
+                autoSave();
+            }
+        }
+        return;
+    }
+
+    // Arc/Circle: mousedown sets center, drag sets radius
+    if (tool === 'arc') {
+        const gx = (pos.x - PAD) / CELL;
+        const gy = (pos.y - PAD) / CELL;
+        arcCenter   = { row: gy, col: gx };
+        arcRadius   = 0;
+        arcDragging = true;
+        return;
+    }
+
+    // Stitch: click sets the target cell
+    if (tool === 'stitch') {
+        if (cell) {
+            stitchTarget = { row: cell.row, col: cell.col };
+            document.getElementById('stitch-target-label').textContent =
+                `Target: col ${cell.col}, row ${cell.row}`;
+            onStitchPinChange();
+            render();
+        }
+        return;
+    }
+
+    dragging    = true;
+    lastEdgeKey = null;
+    const edge  = snapEdge(pos.x, pos.y);
+
+    if (edge && tool !== 'erase') {
+        drawMode = mapData.edges[edgeKey(edge)] === tool ? 'remove' : 'add';
+    } else {
+        drawMode = 'add';
+    }
+
+    if (isCellToolActive(pos)) {
+        await applyCell(cell);
+        render();
+        return;
+    }
+
+    applyEdge(edge);
+    render();
+});
+
+canvas.addEventListener('mousemove', e => {
+    const pos  = canvasPos(e);
+    hoverEdge  = snapEdge(pos.x, pos.y);
+    hoverCell  = snapCell(pos.x, pos.y);
+
+    if (arcDragging && arcCenter) {
+        const gx = (pos.x - PAD) / CELL;
+        const gy = (pos.y - PAD) / CELL;
+        arcRadius = Math.hypot(gx - arcCenter.col, gy - arcCenter.row);
+        updateStatus(pos);
+        render();
+        return;
+    }
+
+    if (dragging && !isCellToolActive(pos)) {
+        applyEdge(hoverEdge);
+    }
+    updateStatus(pos);
+    render();
+});
+
+canvas.addEventListener('mouseup', () => {
+    if (arcDragging && arcCenter && arcRadius > 0.5) {
+        placeCircle(arcCenter.row, arcCenter.col, arcRadius);
+        render();
+    }
+    arcDragging = false;
+    dragging    = false;
+});
+canvas.addEventListener('mouseleave', () => {
+    hoverEdge = null; hoverCell = null; dragging = false; arcDragging = false; render();
+});
+
+function isCellToolActive(pos) {
+    if (['stairs-up', 'stairs-down', 'fill', 'label'].includes(tool)) return true;
+    // Erase acts on cells when there is a fill under the cursor
+    if (tool === 'erase' && pos) {
+        const cell = snapCell(pos.x, pos.y);
+        if (cell && cellKey(cell.row, cell.col) in mapData.cells) return true;
+    }
+    return false;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Rendering
+// ═══════════════════════════════════════════════════════════
+function render() {
+    const ox = PAD, oy = PAD;
+    const W  = mapData.cols * CELL;
+    const H  = mapData.rows * CELL;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Map background (parchment)
+    ctx.fillStyle = '#f0ead8';
+    ctx.fillRect(ox, oy, W, H);
+
+    // Cell fills
+    for (const [k, cell] of Object.entries(mapData.cells)) {
+        if (!cell.color) continue;
+        const [r, c] = k.split(',').map(Number);
+        ctx.fillStyle = cell.color;
+        ctx.fillRect(ox + c*CELL + 1, oy + r*CELL + 1, CELL - 1, CELL - 1);
+    }
+
+    // Cell labels
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    for (const [k, cell] of Object.entries(mapData.cells)) {
+        if (!cell.label) continue;
+        const [r, c] = k.split(',').map(Number);
+        const fs = Math.max(7, Math.min(13, CELL * 0.32));
+        ctx.font      = `bold ${fs}px sans-serif`;
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillText(cell.label, ox + c*CELL + CELL/2, oy + r*CELL + CELL/2, CELL - 4);
+    }
+
+    // Grid lines
+    ctx.strokeStyle = '#c8bca0';
+    ctx.lineWidth   = 0.5;
+    ctx.setLineDash([]);
+    for (let r = 0; r <= mapData.rows; r++) {
+        ctx.beginPath(); ctx.moveTo(ox, oy + r*CELL); ctx.lineTo(ox+W, oy + r*CELL); ctx.stroke();
+    }
+    for (let c = 0; c <= mapData.cols; c++) {
+        ctx.beginPath(); ctx.moveTo(ox + c*CELL, oy); ctx.lineTo(ox + c*CELL, oy+H); ctx.stroke();
+    }
+
+    // Saved edges
+    for (const [k, t] of Object.entries(mapData.edges)) {
+        const [type, rc] = k.split(':');
+        const [r, c]     = rc.split(',').map(Number);
+        drawEdge({ type, row: r, col: c }, t, 1.0);
+    }
+
+    // Pins — gold diamonds with labels
+    for (const [k, name] of Object.entries(mapData.pins)) {
+        const [r, c] = k.split(',').map(Number);
+        const px = ox + c * CELL + CELL / 2;
+        const py = oy + r * CELL + CELL / 2;
+        ctx.fillStyle = '#f1c40f';
+        ctx.beginPath();
+        ctx.moveTo(px,     py - 7);
+        ctx.lineTo(px + 7, py);
+        ctx.lineTo(px,     py + 7);
+        ctx.lineTo(px - 7, py);
+        ctx.closePath();
+        ctx.fill();
+        ctx.font      = 'bold 9px sans-serif';
+        ctx.fillStyle = '#f1c40f';
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(name, px, py - 8);
+    }
+
+    drawArcPreview();
+
+    // Stitch target marker
+    if (tool === 'stitch' && stitchTarget) {
+        ctx.strokeStyle = '#9b59b6';
+        ctx.lineWidth   = 2;
+        ctx.setLineDash([4, 4]);
+        ctx.strokeRect(PAD + stitchTarget.col * CELL, PAD + stitchTarget.row * CELL, CELL, CELL);
+        ctx.setLineDash([]);
+    }
+
+    drawScaleLabel();
+
+    // AI Room origin marker
+    if (tool === 'ai-room' && aiOrigin) {
+        ctx.fillStyle = 'rgba(46,204,113,0.3)';
+        ctx.fillRect(PAD + aiOrigin.col*CELL, PAD + aiOrigin.row*CELL, CELL, CELL);
+        ctx.strokeStyle = '#2ecc71';
+        ctx.lineWidth   = 2;
+        ctx.setLineDash([4,4]);
+        ctx.strokeRect(PAD + aiOrigin.col*CELL, PAD + aiOrigin.row*CELL, CELL, CELL);
+        ctx.setLineDash([]);
+    }
+
+    // Hover highlight
+    if (hoverEdge && !['stairs-up','stairs-down','fill','label','ai-room'].includes(tool)) {
+        drawEdge(hoverEdge, tool, 0.38);
+    }
+    if (hoverCell && ['stairs-up','stairs-down','fill'].includes(tool)) {
+        ctx.fillStyle = 'rgba(233,69,96,0.2)';
+        ctx.fillRect(ox + hoverCell.col*CELL+1, oy + hoverCell.row*CELL+1, CELL-1, CELL-1);
+    }
+}
+
+function drawEdge(edge, type, alpha) {
+    const { x1, y1, x2, y2 } = edgeCoords(edge);
+    ctx.globalAlpha = alpha;
+    ctx.setLineDash([]);
+    ctx.lineCap = 'round';
+
+    const thick = Math.max(3, CELL * 0.11);
+
+    switch (type) {
+        case 'wall':
+            ctx.strokeStyle = '#2c1810';
+            ctx.lineWidth   = thick;
+            line(x1, y1, x2, y2);
+            break;
+
+        case 'door': {
+            const mx = (x1+x2)/2, my = (y1+y2)/2;
+            const dx = x2-x1,     dy = y2-y1;
+            const g  = 0.26;
+            ctx.strokeStyle = '#7B4F2E';
+            ctx.lineWidth   = thick;
+            line(x1, y1, mx - dx*g, my - dy*g);
+            line(mx + dx*g, my + dy*g, x2, y2);
+            // Door swing arc
+            const len   = Math.hypot(dx, dy) * g * 2;
+            const angle = Math.atan2(dy, dx);
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(mx - dx*g, my - dy*g, len, angle, angle + Math.PI/2);
+            ctx.stroke();
+            break;
+        }
+
+        case 'window': {
+            const perp = 2.5;
+            const nx = -(y2-y1) / CELL * perp;
+            const ny =  (x2-x1) / CELL * perp;
+            ctx.strokeStyle = '#4a90d9';
+            ctx.lineWidth   = Math.max(1.5, thick * 0.55);
+            line(x1+nx, y1+ny, x2+nx, y2+ny);
+            line(x1-nx, y1-ny, x2-nx, y2-ny);
+            break;
+        }
+
+        case 'secret-door': {
+            // Draw as wall with dashed center section and "S" tick
+            const mx = (x1+x2)/2, my = (y1+y2)/2;
+            const dx = x2-x1,     dy = y2-y1;
+            const g  = 0.28;
+            ctx.strokeStyle = '#2c1810';
+            ctx.lineWidth   = thick;
+            // Solid ends
+            line(x1, y1, mx - dx*g, my - dy*g);
+            line(mx + dx*g, my + dy*g, x2, y2);
+            // Dashed center gap
+            ctx.setLineDash([3, 3]);
+            line(mx - dx*g, my - dy*g, mx + dx*g, my + dy*g);
+            ctx.setLineDash([]);
+            // Perpendicular tick mark
+            const len = Math.hypot(dx, dy) * 0.18;
+            const px = -(dy / Math.hypot(dx, dy)) * len;
+            const py =  (dx / Math.hypot(dx, dy)) * len;
+            ctx.lineWidth = 1.5;
+            line(mx - px, my - py, mx + px, my + py);
+            break;
+        }
+
+        case 'erase':
+            ctx.strokeStyle = '#e94560';
+            ctx.lineWidth   = thick;
+            ctx.setLineDash([5, 5]);
+            line(x1, y1, x2, y2);
+            ctx.setLineDash([]);
+            break;
+
+        default:
+            ctx.strokeStyle = '#999';
+            ctx.lineWidth   = thick;
+            ctx.setLineDash([3, 3]);
+            line(x1, y1, x2, y2);
+            ctx.setLineDash([]);
+    }
+
+    ctx.globalAlpha = 1;
+    ctx.setLineDash([]);
+}
+
+function drawArcPreview() {
+    if (!arcDragging || !arcCenter || arcRadius < 0.5) return;
+    const cx = PAD + arcCenter.col * CELL;
+    const cy = PAD + arcCenter.row * CELL;
+    ctx.strokeStyle = '#e8832a';
+    ctx.lineWidth   = 1.5;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.arc(cx, cy, arcRadius * CELL, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Center crosshair
+    ctx.strokeStyle = '#e8832a';
+    ctx.lineWidth   = 1;
+    line(cx - 6, cy, cx + 6, cy);
+    line(cx, cy - 6, cx, cy + 6);
+}
+
+function placeCircle(cr, cc, r) {
+    function isInside(row, col) {
+        const dr = (row + 0.5) - cr;
+        const dc = (col + 0.5) - cc;
+        return Math.sqrt(dr * dr + dc * dc) < r;
+    }
+    const minR = Math.floor(cr - r) - 1;
+    const maxR = Math.ceil(cr + r) + 1;
+    const minC = Math.floor(cc - r) - 1;
+    const maxC = Math.ceil(cc + r) + 1;
+
+    for (let row = minR; row <= maxR; row++) {
+        for (let col = minC; col <= maxC; col++) {
+            if (row < 0 || row >= mapData.rows || col < 0 || col >= mapData.cols) continue;
+            const inside = isInside(row, col);
+            // Right neighbor → vertical edge between col and col+1
+            if (col + 1 < mapData.cols && inside !== isInside(row, col + 1)) {
+                mapData.edges[`v:${row},${col + 1}`] = 'wall';
+            }
+            // Bottom neighbor → horizontal edge between row and row+1
+            if (row + 1 < mapData.rows && inside !== isInside(row + 1, col)) {
+                mapData.edges[`h:${row + 1},${col}`] = 'wall';
+            }
+        }
+    }
+}
+
+function drawScaleLabel() {
+    const scale  = parseInt(document.getElementById('scale').value) || 5;
+    const barLen = 5 * CELL;   // 5 squares wide
+    const bx = PAD;
+    const by = PAD + mapData.rows * CELL + 6;
+
+    ctx.strokeStyle = '#444';
+    ctx.lineWidth   = 1.5;
+    ctx.lineCap     = 'round';
+    ctx.setLineDash([]);
+
+    // Horizontal bar with end ticks
+    ctx.beginPath(); ctx.moveTo(bx, by + 4); ctx.lineTo(bx + barLen, by + 4); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(bx, by);       ctx.lineTo(bx, by + 8);           ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(bx+barLen, by); ctx.lineTo(bx+barLen, by + 8);   ctx.stroke();
+
+    ctx.fillStyle    = '#666';
+    ctx.font         = 'bold 11px sans-serif';
+    ctx.textAlign    = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(`${5 * scale} ft`, bx + barLen + 6, by);
+    ctx.fillText(`1 sq = ${scale} ft`, bx, by + 10);
+}
+
+function line(x1, y1, x2, y2) {
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+}
+
+// ═══════════════════════════════════════════════════════════
+// Controls
+// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// AI Room
+// ═══════════════════════════════════════════════════════════
+const COLOR_TYPE_MAP = {
+    '#f5f0e8': 'floor',
+    '#b0a898': 'stone',
+    '#4a90d9': 'water',
+    '#2ecc71': 'stairs-up',
+    '#c0392b': 'stairs-down',
+    '#e74c3c': 'stairs-down',
+    '#9b59b6': 'magic',
+    '#e8832a': 'fireplace',
+};
+
+let aiOrigin = null;
+
+async function generateRoom() {
+    const desc = document.getElementById('ai-desc').value.trim();
+    if (!desc) { alert('Enter a room description first.'); return; }
+    if (!aiOrigin) { alert('Click on the grid to set the room origin first.'); return; }
+
+    document.getElementById('ai-status').textContent    = 'Asking Gemini...';
+    document.getElementById('ai-generate-btn').disabled = true;
+    document.getElementById('loading-overlay').classList.add('active');
+
+    const scale = parseInt(document.getElementById('scale').value) || 5;
+    try {
+        const res  = await fetch('/gemini-room', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description: desc, scale, start_col: aiOrigin.col, start_row: aiOrigin.row }),
+        });
+        const json = await res.json();
+        if (!json.ok) throw new Error(json.error);
+
+        const d = json.data;
+        // Merge into mapData
+        for (const e of (d.edges || [])) {
+            mapData.edges[`${e.type}:${e.row},${e.col}`] = e.tool;
+        }
+        for (const c of (d.cells || [])) {
+            const k = cellKey(c.row, c.col);
+            mapData.cells[k] = { color: c.color, label: c.label || '', type: COLOR_TYPE_MAP[c.color] || 'fill' };
+        }
+        document.getElementById('ai-status').textContent = d.summary || 'Done.';
+        // Auto-populate description from AI prompt if not already set
+        const descEl = document.getElementById('map-desc');
+        if (!descEl.value.trim()) descEl.value = desc;
+        render();
+    } catch (err) {
+        document.getElementById('ai-status').textContent = 'Error: ' + err.message;
+    } finally {
+        document.getElementById('ai-generate-btn').disabled = false;
+        document.getElementById('loading-overlay').classList.remove('active');
+    }
+}
+
+function setTool(t) {
+    tool = t;
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById(`tool-${t}`);
+    if (btn) btn.classList.add('active');
+
+    document.getElementById('ai-panel').style.display     = (t === 'ai-room') ? 'block' : 'none';
+    document.getElementById('stitch-panel').style.display = (t === 'stitch')  ? 'block' : 'none';
+
+    if (t === 'ai-room') {
+        if (!aiOrigin) {
+            aiOrigin = { row: 10, col: 10 };
+            document.getElementById('ai-origin-label').textContent = 'Origin: col 10, row 10 (default)';
+            document.getElementById('ai-generate-btn').disabled = false;
+        }
+    } else {
+        aiOrigin = null;
+    }
+
+    if (t === 'stitch') {
+        stitchTarget  = null;
+        stitchMapData = null;
+        document.getElementById('stitch-status').textContent      = '';
+        document.getElementById('stitch-target-label').textContent = 'Click grid to set target';
+        document.getElementById('stitch-apply-btn').disabled       = true;
+        document.getElementById('stitch-selected-map').textContent = 'None selected';
+        document.getElementById('stitch-pin-sel').innerHTML        = '<option value="">-- select pin --</option>';
+        document.getElementById('stitch-pin-sel').disabled         = true;
+    }
+}
+
+function setFillColor(color) {
+    fillColor = color;
+    document.getElementById('color-preview').style.background = color;
+    document.querySelectorAll('.swatch').forEach(s => s.classList.toggle('sel', s.dataset.color === color));
+}
+
+function onZoom(v) {
+    CELL = parseInt(v);
+    document.getElementById('zoom-val').textContent = v + 'px';
+    resizeCanvas();
+}
+
+function applyGrid() {
+    mapData.cols = Math.max(5,  parseInt(document.getElementById('gcols').value) || 40);
+    mapData.rows = Math.max(5,  parseInt(document.getElementById('grows').value) || 40);
+    resizeCanvas();
+}
+
+function updateStatus(pos) {
+    const col    = Math.floor((pos.x - PAD) / CELL);
+    const row    = Math.floor((pos.y - PAD) / CELL);
+    const inGrid = col >= 0 && col < mapData.cols && row >= 0 && row < mapData.rows;
+    const loc    = inGrid ? `col ${col}, row ${row}  |  ` : '';
+    document.getElementById('statusbar').textContent =
+        `${loc}Tool: ${tool}  |  Edges: ${Object.keys(mapData.edges).length}  |  Cells: ${Object.keys(mapData.cells).length}`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Save / Load
+// ═══════════════════════════════════════════════════════════
+async function resolveMapName() {
+    let name = document.getElementById('map-name').value.trim();
+    if (!name || name === 'New Map') {
+        name = await showPrompt('Enter a unique name for this map:');
+        if (!name || !name.trim()) return null;
+        name = name.trim();
+        document.getElementById('map-name').value = name;
+    }
+    return name;
+}
+
+function syncMapData() {
+    mapData.scale       = parseInt(document.getElementById('scale').value) || 5;
+    mapData.cols        = parseInt(document.getElementById('gcols').value) || 40;
+    mapData.rows        = parseInt(document.getElementById('grows').value) || 40;
+    mapData.description = document.getElementById('map-desc').value.trim();
+}
+
+async function saveMap() {
+    const name = resolveMapName();
+    if (!name) return;
+    mapData.name = name;
+    syncMapData();
+    const res  = await fetch('/save', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(mapData) });
+    const data = await res.json();
+    document.getElementById('statusbar').textContent = data.ok ? `Saved → ${name}` : 'Save failed.';
+}
+
+async function autoSave() {
+    const name = resolveMapName();
+    if (!name) return;
+    mapData.name = name;
+    syncMapData();
+    const res  = await fetch('/save', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(mapData) });
+    const data = await res.json();
+    document.getElementById('statusbar').textContent = data.ok ? `Auto-saved → ${name}` : 'Auto-save failed.';
+}
+
+async function toggleMapList() {
+    const el = document.getElementById('map-list');
+    if (el.style.display !== 'none') { el.style.display = 'none'; return; }
+    const res  = await fetch('/maps');
+    const maps = await res.json();
+    el.innerHTML = maps.length
+        ? maps.map(m => `<div class="map-item" onclick="loadMap('${m}')">${m}</div>`).join('')
+        : '<div class="map-item" style="color:#555">No saved maps</div>';
+    el.style.display = 'block';
+}
+
+async function loadMap(name) {
+    const res = await fetch(`/load/${encodeURIComponent(name)}`);
+    if (!res.ok) return;
+    mapData = await res.json();
+    if (!mapData.pins)        mapData.pins        = {};
+    if (!mapData.description) mapData.description = '';
+    document.getElementById('map-name').value = mapData.name        || name;
+    document.getElementById('map-desc').value = mapData.description || '';
+    document.getElementById('scale').value    = mapData.scale       || 5;
+    document.getElementById('gcols').value    = mapData.cols;
+    document.getElementById('grows').value    = mapData.rows;
+    closeMapModal();
+    resizeCanvas();
+}
+
+async function clearMap() {
+    if (!await showConfirm('Clear all walls, fills, labels and pins?')) return;
+    mapData.edges       = {};
+    mapData.cells       = {};
+    mapData.pins        = {};
+    mapData.description = '';
+    document.getElementById('map-desc').value  = '';
+    document.getElementById('map-name').value  = 'New Map';
+    render();
+}
+
+// ═══════════════════════════════════════════════════════════
+// Ethereal Voice — custom prompt dialog
+// ═══════════════════════════════════════════════════════════
+function showPrompt(message, defaultVal = '') {
+    return new Promise(resolve => {
+        const modal  = document.getElementById('ethereal-modal');
+        const input  = document.getElementById('ethereal-input');
+        const msgEl  = document.getElementById('ethereal-message');
+        const okBtn  = document.getElementById('ethereal-ok');
+        const canBtn = document.getElementById('ethereal-cancel');
+
+        msgEl.textContent       = message;
+        input.value             = defaultVal;
+        modal.style.display     = 'flex';
+        setTimeout(() => { input.focus(); input.select(); }, 50);
+
+        function confirm() { cleanup(); resolve(input.value); }
+        function cancel()  { cleanup(); resolve(null); }
+        function onKey(e)  { if (e.key === 'Enter') confirm(); if (e.key === 'Escape') cancel(); }
+
+        function cleanup() {
+            modal.style.display = 'none';
+            okBtn.removeEventListener('click', confirm);
+            canBtn.removeEventListener('click', cancel);
+            input.removeEventListener('keydown', onKey);
+        }
+
+        okBtn.addEventListener('click', confirm);
+        canBtn.addEventListener('click', cancel);
+        input.addEventListener('keydown', onKey);
+    });
+}
+
+function showConfirm(message) {
+    return new Promise(resolve => {
+        const modal  = document.getElementById('ethereal-modal');
+        const input  = document.getElementById('ethereal-input');
+        const msgEl  = document.getElementById('ethereal-message');
+        const okBtn  = document.getElementById('ethereal-ok');
+        const canBtn = document.getElementById('ethereal-cancel');
+
+        msgEl.textContent       = message;
+        input.style.display     = 'none';
+        okBtn.textContent       = 'Yes';
+        canBtn.textContent      = 'No';
+        modal.style.display     = 'flex';
+
+        function confirm() { cleanup(); resolve(true); }
+        function cancel()  { cleanup(); resolve(false); }
+        function onKey(e)  { if (e.key === 'Enter') confirm(); if (e.key === 'Escape') cancel(); }
+
+        function cleanup() {
+            modal.style.display = 'none';
+            input.style.display = '';
+            okBtn.textContent   = 'Confirm';
+            canBtn.textContent  = 'Cancel';
+            okBtn.removeEventListener('click', confirm);
+            canBtn.removeEventListener('click', cancel);
+            document.removeEventListener('keydown', onKey);
+        }
+
+        okBtn.addEventListener('click', confirm);
+        canBtn.addEventListener('click', cancel);
+        document.addEventListener('keydown', onKey);
+        setTimeout(() => okBtn.focus(), 50);
+    });
+}
+
+// ═══════════════════════════════════════════════════════════
+// Stitch
+// ═══════════════════════════════════════════════════════════
+let stitchTarget  = null;
+let stitchMapData = null;
+
+async function openMapModal(mode = 'stitch') {
+    const modal = document.getElementById('map-preview-modal');
+    const grid  = document.getElementById('map-preview-grid');
+    const title = document.getElementById('map-modal-title');
+    if (title) title.textContent = mode === 'load' ? 'Load Map' : 'Select Map to Stitch';
+    grid.innerHTML = '<div style="color:#888;font-size:12px;padding:10px;">Loading maps...</div>';
+    modal.style.display = 'block';
+
+    const res  = await fetch('/maps');
+    const maps = await res.json();
+
+    if (maps.length === 0) {
+        grid.innerHTML = '<div style="color:#888;font-size:12px;padding:10px;">No saved maps found.</div>';
+        return;
+    }
+
+    grid.innerHTML = '';
+    for (const name of maps) {
+        const mr = await fetch(`/load/${encodeURIComponent(name)}`);
+        if (!mr.ok) continue;
+        const data = await mr.json();
+        if (!data.pins) data.pins = {};
+
+        const TCELL = 3, TPAD = 4;
+        const tw = data.cols * TCELL + TPAD * 2;
+        const th = data.rows * TCELL + TPAD * 2;
+        const tc = document.createElement('canvas');
+        tc.width  = tw;
+        tc.height = th;
+        const tctx = tc.getContext('2d');
+
+        // Background
+        tctx.fillStyle = '#f0ead8';
+        tctx.fillRect(TPAD, TPAD, data.cols * TCELL, data.rows * TCELL);
+
+        // Cells
+        for (const [k, cell] of Object.entries(data.cells || {})) {
+            if (!cell.color) continue;
+            const [r, c] = k.split(',').map(Number);
+            tctx.fillStyle = cell.color;
+            tctx.fillRect(TPAD + c * TCELL, TPAD + r * TCELL, TCELL, TCELL);
+        }
+
+        // Edges
+        for (const [k, t] of Object.entries(data.edges || {})) {
+            const [type, rc] = k.split(':');
+            const [r, c]     = rc.split(',').map(Number);
+            tctx.strokeStyle = t === 'wall' ? '#2c1810' : t === 'door' ? '#7B4F2E' : '#4a90d9';
+            tctx.lineWidth   = t === 'wall' ? 1.5 : 1;
+            tctx.beginPath();
+            if (type === 'h') {
+                tctx.moveTo(TPAD + c * TCELL,       TPAD + r * TCELL);
+                tctx.lineTo(TPAD + (c + 1) * TCELL, TPAD + r * TCELL);
+            } else {
+                tctx.moveTo(TPAD + c * TCELL, TPAD + r * TCELL);
+                tctx.lineTo(TPAD + c * TCELL, TPAD + (r + 1) * TCELL);
+            }
+            tctx.stroke();
+        }
+
+        // Pins
+        for (const [k] of Object.entries(data.pins)) {
+            const [r, c] = k.split(',').map(Number);
+            tctx.fillStyle = '#f1c40f';
+            tctx.fillRect(TPAD + c * TCELL, TPAD + r * TCELL, 3, 3);
+        }
+
+        // Card
+        const card = document.createElement('div');
+        card.style.cssText = 'cursor:pointer;background:#18181b;border:2px solid #3a3a3e;border-radius:6px;padding:8px;text-align:center;width:150px;box-sizing:border-box;transition:border-color 0.15s;';
+        card.onmouseover = () => card.style.borderColor = '#1565c2';
+        card.onmouseout  = () => card.style.borderColor = '#3a3a3e';
+        card.onclick     = () => { closeMapModal(); mode === 'load' ? loadMap(name) : selectStitchMap(name, data); };
+
+        tc.style.cssText = 'max-width:134px;max-height:90px;display:block;margin:0 auto;border:1px solid #333;';
+
+        const lbl = document.createElement('div');
+        lbl.textContent  = name;
+        lbl.style.cssText = 'color:#ccc;font-size:11px;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+
+        const pinCount = Object.keys(data.pins).length;
+        const pinInfo  = document.createElement('div');
+        pinInfo.textContent  = `${pinCount} pin${pinCount !== 1 ? 's' : ''}`;
+        pinInfo.style.cssText = 'color:#f1c40f;font-size:10px;margin-top:2px;';
+
+        card.appendChild(tc);
+        card.appendChild(lbl);
+        card.appendChild(pinInfo);
+        grid.appendChild(card);
+    }
+}
+
+function closeMapModal() {
+    document.getElementById('map-preview-modal').style.display = 'none';
+}
+
+function selectStitchMap(name, data) {
+    closeMapModal();
+    stitchMapData = data;
+    if (!stitchMapData.pins) stitchMapData.pins = {};
+    document.getElementById('stitch-selected-map').textContent = name;
+
+    const pinSel  = document.getElementById('stitch-pin-sel');
+    const entries = Object.entries(stitchMapData.pins);
+    if (entries.length === 0) {
+        pinSel.innerHTML = '<option value="">-- no pins in this map --</option>';
+        pinSel.disabled  = true;
+        document.getElementById('stitch-status').textContent = 'This map has no pins.';
+        return;
+    }
+    pinSel.innerHTML = '<option value="">-- select pin --</option>' +
+        entries.map(([k, n]) => `<option value="${k}">${n} (${k})</option>`).join('');
+    pinSel.disabled  = false;
+    document.getElementById('stitch-status').textContent = '';
+}
+
+function onStitchPinChange() {
+    const pinVal = document.getElementById('stitch-pin-sel').value;
+    document.getElementById('stitch-apply-btn').disabled = !(stitchTarget && pinVal);
+}
+
+function doStitch() {
+    if (!stitchTarget || !stitchMapData) return;
+    const pinKey = document.getElementById('stitch-pin-sel').value;
+    if (!pinKey) return;
+
+    const [pinRow, pinCol] = pinKey.split(',').map(Number);
+    const dr = stitchTarget.row - pinRow;
+    const dc = stitchTarget.col - pinCol;
+
+    for (const [k, t] of Object.entries(stitchMapData.edges || {})) {
+        const [type, rc] = k.split(':');
+        const [r, c]     = rc.split(',').map(Number);
+        mapData.edges[`${type}:${r + dr},${c + dc}`] = t;
+    }
+    for (const [k, cell] of Object.entries(stitchMapData.cells || {})) {
+        const [r, c] = k.split(',').map(Number);
+        mapData.cells[`${r + dr},${c + dc}`] = cell;
+    }
+    for (const [k, name] of Object.entries(stitchMapData.pins || {})) {
+        const [r, c] = k.split(',').map(Number);
+        mapData.pins[`${r + dr},${c + dc}`] = name;
+    }
+
+    document.getElementById('stitch-status').textContent = 'Stitched!';
+    render();
+}
+
+// ═══════════════════════════════════════════════════════════
+// Init — build color swatches
+// ═══════════════════════════════════════════════════════════
+const swatchContainer = document.getElementById('swatches');
+SWATCHES.forEach(({ color, title }) => {
+    const d = document.createElement('div');
+    d.className    = 'swatch';
+    d.style.background = color;
+    d.dataset.color    = color;
+    d.title            = title;
+    d.addEventListener('click', () => {
+        setFillColor(color);
+        document.getElementById('custom-color').value = color;
+        if (!['fill','stairs-up','stairs-down'].includes(tool)) setTool('fill');
+    });
+    swatchContainer.appendChild(d);
+});
+
+setFillColor('#b0a898');
+resizeCanvas();
+</script>
+<!-- Ethereal Voice prompt modal -->
+<div id="ethereal-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.72);z-index:400;align-items:center;justify-content:center;">
+    <div style="background:#242528;border:1px solid #1565c2;border-radius:8px;min-width:320px;max-width:440px;box-shadow:0 8px 40px rgba(0,0,0,0.7);">
+        <div style="background:#1b1b1f;border-bottom:2px solid #c41e1e;padding:10px 16px;border-radius:7px 7px 0 0;display:flex;align-items:center;gap:8px;">
+            <span style="color:#c41e1e;font-size:15px;">⚔</span>
+            <span style="color:#c0c0c0;font-family:'Roboto Condensed',sans-serif;font-weight:700;letter-spacing:2px;font-size:12px;">An <span style="text-transform:uppercase;">ETHERAL VOICE</span> says</span>
+        </div>
+        <div style="padding:16px;">
+            <div id="ethereal-message" style="color:#e0e0e0;font-size:13px;margin-bottom:10px;font-family:'Roboto',sans-serif;line-height:1.5;"></div>
+            <input id="ethereal-input" type="text"
+                style="width:100%;background:#18181b;border:1px solid #1565c2;color:#e0e0e0;padding:8px 10px;border-radius:4px;font-size:13px;outline:none;font-family:'Roboto',sans-serif;">
+            <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end;">
+                <button id="ethereal-cancel" style="padding:6px 18px;background:#18181b;border:1px solid #3a3a3e;color:#c8c8c8;border-radius:4px;cursor:pointer;font-family:'Roboto Condensed',sans-serif;letter-spacing:0.5px;font-size:12px;">Cancel</button>
+                <button id="ethereal-ok"     style="padding:6px 18px;background:#0d2040;border:1px solid #1565c2;color:#4da6ff;border-radius:4px;cursor:pointer;font-family:'Roboto Condensed',sans-serif;letter-spacing:0.5px;font-size:12px;">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Map preview modal -->
+<div id="map-preview-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:200;overflow:auto;">
+    <div style="background:#242528;margin:40px auto;max-width:720px;border-radius:8px;padding:20px;border:1px solid #1565c2;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <h3 id="map-modal-title" style="color:#4da6ff;font-size:13px;margin:0;font-family:'Roboto Condensed',sans-serif;letter-spacing:1.5px;text-transform:uppercase;">Select Map to Stitch</h3>
+            <button onclick="closeMapModal()" style="background:none;border:none;color:#888;cursor:pointer;font-size:20px;line-height:1;">&#x2715;</button>
+        </div>
+        <div id="map-preview-grid" style="display:flex;flex-wrap:wrap;gap:12px;"></div>
+    </div>
+</div>
+
+</body>
+</html>

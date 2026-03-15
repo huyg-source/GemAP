@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D&D Library — Bestiary &amp; Spells</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:      #1a1a2e; --panel:   #16213e; --panel2:  #0f3460;
+    --border:  #2a2a4a; --text:    #e0e0e0; --text-dim: #888;
+    --gold:    #c9a84c; --red:     #8b0000; --red-lt:  #e05c5c;
+    --accent:  #4a90d9; --green:   #4caf50; --green-lt:#81c784;
+    --parch:   #f5e6c8; --parch-dk:#e8d5a3;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Roboto Condensed', sans-serif;
+    background: var(--bg); color: var(--text);
+    height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+  }
+
+  /* ── Topbar ── */
+  #topbar {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--panel); border-bottom: 2px solid var(--red);
+    padding: 8px 16px; height: 52px; flex-shrink: 0;
+  }
+  .logo { font-weight: 700; font-size: 1.1rem; color: var(--red-lt); letter-spacing: .05em; white-space: nowrap; }
+  .logo span { color: var(--gold); }
+  .tab-btn {
+    padding: 6px 18px; border-radius: 4px 4px 0 0;
+    border: 1px solid var(--border); border-bottom: none;
+    background: transparent; color: var(--text-dim); cursor: pointer;
+    font-family: inherit; font-size: .95rem; transition: color .15s, background .15s;
+  }
+  .tab-btn.active { background: var(--panel2); color: var(--gold); border-color: var(--accent); }
+  .tab-btn:hover:not(.active) { color: var(--text); background: var(--border); }
+
+  /* ── Layout ── */
+  #main { display: flex; flex: 1; min-height: 0; }
+
+  /* ── List pane ── */
+  #list-pane {
+    width: 300px; min-width: 220px; flex-shrink: 0;
+    background: var(--panel); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+  }
+  #list-search { padding: 10px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; }
+  #list-search input, #list-search select {
+    width: 100%; padding: 6px 8px; border-radius: 4px;
+    border: 1px solid var(--border); background: var(--panel2);
+    color: var(--text); font-family: inherit; font-size: .9rem;
+  }
+  #list-filters { display: flex; gap: 6px; }
+  #list-filters select { flex: 1; }
+  #list-items { flex: 1; overflow-y: auto; }
+  .list-item {
+    padding: 8px 12px; border-bottom: 1px solid var(--border);
+    cursor: pointer; transition: background .1s; display: flex; align-items: center; gap: 8px;
+  }
+  .list-item:hover { background: var(--panel2); }
+  .list-item.selected { background: var(--panel2); border-left: 3px solid var(--accent); }
+  .list-item-name { flex: 1; font-size: .9rem; }
+  .list-item-meta { font-size: .75rem; color: var(--text-dim); }
+  .list-footer { padding: 8px 10px; border-top: 1px solid var(--border); display: flex; gap: 6px; }
+
+  /* ── Edit pane ── */
+  #edit-pane {
+    flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden;
+  }
+  #edit-toolbar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 14px; border-bottom: 1px solid var(--border);
+    background: var(--panel); flex-shrink: 0;
+  }
+  #edit-title { font-size: 1.05rem; font-weight: 700; color: var(--gold); flex: 1; }
+  #edit-form-wrap { flex: 1; overflow-y: auto; padding: 16px; }
+
+  /* ── Form ── */
+  .form-section { margin-bottom: 18px; }
+  .form-section-title {
+    font-size: .8rem; font-weight: 700; color: var(--accent);
+    text-transform: uppercase; letter-spacing: .08em;
+    margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid var(--border);
+  }
+  .form-grid { display: grid; gap: 8px; }
+  .form-grid-2 { grid-template-columns: 1fr 1fr; }
+  .form-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .form-grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  .form-grid-6 { grid-template-columns: repeat(6, 1fr); }
+  .form-field { display: flex; flex-direction: column; gap: 3px; }
+  .form-field label { font-size: .75rem; color: var(--text-dim); }
+  .form-field input, .form-field select, .form-field textarea {
+    padding: 5px 7px; border-radius: 4px;
+    border: 1px solid var(--border); background: var(--panel2);
+    color: var(--text); font-family: inherit; font-size: .88rem;
+  }
+  .form-field textarea { resize: vertical; min-height: 80px; }
+  .form-field input:focus, .form-field select:focus, .form-field textarea:focus {
+    outline: none; border-color: var(--accent);
+  }
+  .form-field-full { grid-column: 1 / -1; }
+  .checkbox-row { display: flex; align-items: center; gap: 6px; font-size: .88rem; }
+  .checkbox-row input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; }
+
+  /* ── Image area ── */
+  #mob-image-area { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 14px; }
+  #mob-image-preview {
+    width: 100px; height: 100px; border-radius: 6px;
+    border: 1px solid var(--border); object-fit: cover;
+    background: var(--panel2); flex-shrink: 0;
+  }
+  #mob-image-placeholder {
+    width: 100px; height: 100px; border-radius: 6px;
+    border: 1px dashed var(--border); background: var(--panel2);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-dim); font-size: .75rem; text-align: center;
+    flex-shrink: 0;
+  }
+  .image-actions { display: flex; flex-direction: column; gap: 6px; }
+
+  /* ── Buttons ── */
+  .btn {
+    padding: 5px 14px; border-radius: 4px; border: 1px solid var(--border);
+    background: var(--panel2); color: var(--text); cursor: pointer;
+    font-family: inherit; font-size: .88rem; transition: background .15s, border-color .15s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--border); }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #3a7bc8; }
+  .btn-success { background: #2e7d32; border-color: var(--green); color: #fff; }
+  .btn-success:hover { background: #1b5e20; }
+  .btn-danger  { background: #6d0000; border-color: var(--red-lt); color: var(--red-lt); }
+  .btn-danger:hover  { background: #8b0000; }
+  .btn-gold { background: transparent; border-color: var(--gold); color: var(--gold); }
+  .btn-gold:hover { background: rgba(201,168,76,.15); }
+  .btn-sm { padding: 3px 10px; font-size: .8rem; }
+
+  /* ── Status / toast ── */
+  #status-bar {
+    padding: 6px 14px; font-size: .82rem; min-height: 28px;
+    border-top: 1px solid var(--border); background: var(--panel); flex-shrink: 0;
+    color: var(--text-dim);
+  }
+  #status-bar.ok  { color: var(--green-lt); }
+  #status-bar.err { color: var(--red-lt); }
+
+  /* ── Source manager (spells) ── */
+  #source-manager { display: none; }
+  #source-manager.open { display: block; }
+  .source-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 0; border-bottom: 1px solid var(--border);
+    font-size: .88rem;
+  }
+  .source-row .src-name { flex: 1; }
+  .source-row .src-count { color: var(--text-dim); font-size: .8rem; }
+  .toggle-switch { position: relative; display: inline-block; width: 38px; height: 20px; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+    background: #444; border-radius: 20px; transition: .2s;
+  }
+  .toggle-slider:before {
+    position: absolute; content: ""; height: 14px; width: 14px;
+    left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .2s;
+  }
+  .toggle-switch input:checked + .toggle-slider { background: var(--green); }
+  .toggle-switch input:checked + .toggle-slider:before { transform: translateX(18px); }
+
+  /* ── Spells classes multi-select ── */
+  .classes-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .class-chip {
+    padding: 2px 10px; border-radius: 12px; font-size: .78rem;
+    border: 1px solid var(--border); cursor: pointer; user-select: none;
+    transition: background .1s, border-color .1s;
+  }
+  .class-chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* ── Campaign override panel ── */
+  .override-panel {
+    border: 1px solid var(--gold); border-radius: 6px;
+    padding: 12px 14px; margin-bottom: 18px;
+    background: rgba(201,168,76,.07);
+  }
+  .override-panel-title {
+    font-size: .8rem; font-weight: 700; color: var(--gold);
+    text-transform: uppercase; letter-spacing: .08em;
+    margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+  }
+  .override-badge {
+    font-size: .7rem; background: var(--gold); color: #000;
+    border-radius: 10px; padding: 1px 7px; font-weight: 700; letter-spacing: 0;
+  }
+  .override-active { border-color: var(--green); background: rgba(76,175,80,.07); }
+  .override-active .override-panel-title { color: var(--green-lt); }
+  .override-active .override-badge { background: var(--green); }
+
+  /* empty state */
+  #edit-empty {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    color: var(--text-dim); font-size: 1rem; font-style: italic;
+  }
+
+  /* loading spinner */
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- ── Topbar ── -->
+<div id="topbar">
+  <div class="logo">D&amp;D <span>Library</span></div>
+  <button class="tab-btn active" id="tab-bestiary" onclick="switchTab('bestiary')">&#x1F409; Bestiary</button>
+  <button class="tab-btn"        id="tab-spells"   onclick="switchTab('spells')">&#x2728; Spells</button>
+  <button class="tab-btn"        id="tab-usage"    onclick="switchTab('usage')">&#x1F4CA; Usage</button>
+  <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+    <label style="font-size:.8rem;color:var(--text-dim);white-space:nowrap;">Campaign:</label>
+    <select id="campaign-select" onchange="onCampaignChange()" style="padding:4px 8px;border-radius:4px;border:1px solid var(--border);background:var(--panel2);color:var(--text);font-family:inherit;font-size:.85rem;">
+      <option value="">— Master (no campaign) —</option>
+    </select>
+    <span id="tb-count" style="font-size:.8rem;color:var(--text-dim);"></span>
+    <a href="/dm/" class="btn btn-sm" style="text-decoration:none;">&#x2190; DM Session</a>
+  </div>
+</div>
+
+<!-- ── Main ── -->
+<div id="main">
+
+  <!-- List pane -->
+  <div id="list-pane">
+    <div id="list-search">
+      <input id="search-input" type="text" placeholder="Search…" oninput="onSearch()">
+      <div id="list-filters" style="display:none;">
+        <!-- spell filters injected here -->
+      </div>
+    </div>
+    <div id="list-items">
+      <div style="padding:20px;color:var(--text-dim);text-align:center;">Loading…</div>
+    </div>
+    <div class="list-footer">
+      <button class="btn btn-success btn-sm" style="flex:1;" onclick="newEntry()">+ New</button>
+      <button class="btn btn-sm" onclick="refreshList()" title="Refresh list">&#x21BA;</button>
+    </div>
+  </div>
+
+  <!-- Edit pane -->
+  <div id="edit-pane">
+    <div id="edit-toolbar">
+      <span id="edit-title">Select an entry to edit</span>
+      <button class="btn btn-sm" id="btn-save"   onclick="saveEntry()"   style="display:none;">&#x1F4BE; Save</button>
+      <button class="btn btn-danger btn-sm" id="btn-delete" onclick="deleteEntry()" style="display:none;">&#x1F5D1; Delete</button>
+    </div>
+    <div id="edit-form-wrap" style="display:none;">
+      <!-- Bestiary form -->
+      <div id="form-bestiary">
+
+        <!-- Image -->
+        <div class="form-section">
+          <div class="form-section-title">Portrait</div>
+          <div id="mob-image-area">
+            <div id="mob-image-placeholder">No Image</div>
+            <img id="mob-image-preview" src="" alt="" style="display:none;">
+            <div class="image-actions">
+              <label class="btn btn-sm" style="cursor:pointer;">
+                Upload <input type="file" id="mob-img-file" accept="image/*" style="display:none;" onchange="uploadMobImage()">
+              </label>
+              <button class="btn btn-gold btn-sm" onclick="generateMobImage()" id="btn-gen-img">&#x2728; Generate</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Campaign Override -->
+        <div id="mob-override-panel" class="override-panel" style="display:none;">
+          <div class="override-panel-title">
+            &#x1F3AD; Campaign Override <span id="mob-override-badge" class="override-badge" style="display:none;">Active</span>
+          </div>
+          <div class="form-grid form-grid-2" style="margin-bottom:10px;">
+            <div class="form-field form-field-full"><label>Override Description (leave blank to use master)</label><textarea id="m-ov-desc" rows="3"></textarea></div>
+            <div class="form-field form-field-full"><label>Override GM Notes (leave blank to use master)</label><textarea id="m-ov-notes" rows="2"></textarea></div>
+          </div>
+          <div id="mob-ov-image-area" style="margin-bottom:10px;">
+            <div style="font-size:.75rem;color:var(--text-dim);margin-bottom:6px;">Override Portrait (replaces master image for this campaign)</div>
+            <div style="display:flex;gap:10px;align-items:flex-start;">
+              <div id="mob-ov-img-placeholder" style="width:80px;height:80px;border-radius:6px;border:1px dashed var(--border);background:var(--panel2);display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--text-dim);text-align:center;flex-shrink:0;">No Override</div>
+              <img id="mob-ov-img-preview" src="" alt="" style="display:none;width:80px;height:80px;border-radius:6px;border:1px solid var(--border);object-fit:cover;flex-shrink:0;">
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <label class="btn btn-sm" style="cursor:pointer;">Upload <input type="file" id="mob-ov-img-file" accept="image/*" style="display:none;" onchange="uploadMobOverrideImage()"></label>
+                <button class="btn btn-gold btn-sm" onclick="generateMobOverrideImage()">&#x2728; Generate</button>
+                <button class="btn btn-sm" id="mob-ov-clear-img-btn" onclick="clearMobOverrideImage()" style="display:none;">&#x2715; Clear</button>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-gold btn-sm" onclick="saveMobOverride()">&#x1F4BE; Save Override</button>
+            <button class="btn btn-danger btn-sm" id="mob-ov-delete-btn" onclick="clearMobOverride()" style="display:none;">&#x1F5D1; Clear Override</button>
+          </div>
+        </div>
+
+        <!-- Identity -->
+        <div class="form-section">
+          <div class="form-section-title">Identity</div>
+          <div class="form-grid form-grid-3">
+            <div class="form-field"><label>Name *</label><input id="m-name" type="text" placeholder="Goblin"></div>
+            <div class="form-field"><label>Size</label>
+              <select id="m-size">
+                <option value="">—</option>
+                <option>Tiny</option><option>Small</option><option>Medium</option>
+                <option>Large</option><option>Huge</option><option>Gargantuan</option>
+              </select>
+            </div>
+            <div class="form-field"><label>Type</label><input id="m-type" type="text" placeholder="Humanoid"></div>
+            <div class="form-field"><label>Alignment</label><input id="m-align" type="text" placeholder="Neutral Evil"></div>
+            <div class="form-field"><label>Source</label><input id="m-source" type="text" placeholder="SRD"></div>
+            <div class="form-field"><label>Challenge</label><input id="m-cr" type="text" placeholder="1/4"></div>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="form-section">
+          <div class="form-section-title">Combat Stats</div>
+          <div class="form-grid form-grid-4">
+            <div class="form-field"><label>AC</label><input id="m-ac" type="number" min="0" placeholder="13"></div>
+            <div class="form-field"><label>HP Formula</label><input id="m-hp-formula" type="text" placeholder="2d6"></div>
+            <div class="form-field"><label>HP Avg</label><input id="m-hp-avg" type="number" min="0" placeholder="7"></div>
+            <div class="form-field"><label>XP</label><input id="m-xp" type="number" min="0" placeholder="50"></div>
+            <div class="form-field"><label>Speed</label><input id="m-speed" type="text" placeholder="30 ft."></div>
+            <div class="form-field"><label>Melee Mod</label><input id="m-melee-mod" type="text" placeholder="+4"></div>
+            <div class="form-field"><label>Ranged Mod</label><input id="m-ranged-mod" type="text" placeholder="+4"></div>
+            <div class="form-field"><label>Languages</label><input id="m-languages" type="text" placeholder="Common, Goblin"></div>
+          </div>
+        </div>
+
+        <!-- Ability Scores -->
+        <div class="form-section">
+          <div class="form-section-title">Ability Scores</div>
+          <div class="form-grid form-grid-6">
+            <div class="form-field"><label>STR</label><input id="m-str" type="number" min="1" max="30" placeholder="8"></div>
+            <div class="form-field"><label>DEX</label><input id="m-dex" type="number" min="1" max="30" placeholder="14"></div>
+            <div class="form-field"><label>CON</label><input id="m-con" type="number" min="1" max="30" placeholder="10"></div>
+            <div class="form-field"><label>INT</label><input id="m-int" type="number" min="1" max="30" placeholder="10"></div>
+            <div class="form-field"><label>WIS</label><input id="m-wis" type="number" min="1" max="30" placeholder="8"></div>
+            <div class="form-field"><label>CHA</label><input id="m-cha" type="number" min="1" max="30" placeholder="8"></div>
+          </div>
+        </div>
+
+        <!-- Attacks -->
+        <div class="form-section">
+          <div class="form-section-title">Attacks</div>
+          <div class="form-grid form-grid-3">
+            <div class="form-field"><label>Attack 1 Name</label><input id="m-atk1" type="text" placeholder="Scimitar"></div>
+            <div class="form-field"><label>Attack 1 Range</label><input id="m-atk1-range" type="text" placeholder="5 ft."></div>
+            <div class="form-field"><label>Attack 1 Damage</label><input id="m-atk1-dmg" type="text" placeholder="1d6+2 slashing"></div>
+            <div class="form-field"><label>Attack 2 Name</label><input id="m-atk2" type="text" placeholder="Javelin"></div>
+            <div class="form-field"><label>Attack 2 Range</label><input id="m-atk2-range" type="text" placeholder="30/120 ft."></div>
+            <div class="form-field"><label>Attack 2 Damage</label><input id="m-atk2-dmg" type="text" placeholder="1d6+2 piercing"></div>
+            <div class="form-field"><label>Attack 3 Name</label><input id="m-atk3" type="text"></div>
+            <div class="form-field"><label>Attack 3 Range</label><input id="m-atk3-range" type="text"></div>
+            <div class="form-field"><label>Attack 3 Damage</label><input id="m-atk3-dmg" type="text"></div>
+          </div>
+        </div>
+
+        <!-- Description / Notes -->
+        <div class="form-section">
+          <div class="form-section-title">Description &amp; Notes</div>
+          <div class="form-grid">
+            <div class="form-field form-field-full"><label>Description</label><textarea id="m-desc" rows="4"></textarea></div>
+            <div class="form-field form-field-full"><label>GM Notes</label><textarea id="m-notes" rows="3"></textarea></div>
+          </div>
+        </div>
+
+      </div><!-- /form-bestiary -->
+
+      <!-- Spells form -->
+      <div id="form-spells" style="display:none;">
+
+        <!-- Campaign Override -->
+        <div id="spell-override-panel" class="override-panel" style="display:none;">
+          <div class="override-panel-title">
+            &#x1F3AD; Campaign Override <span id="spell-override-badge" class="override-badge" style="display:none;">Active</span>
+          </div>
+          <div style="display:flex;gap:18px;margin-bottom:10px;">
+            <label class="checkbox-row"><input type="checkbox" id="s-ov-enabled-check" onchange="document.getElementById('s-ov-enabled').value=this.checked?'1':'0'"> Enabled for this campaign</label>
+            <input type="hidden" id="s-ov-enabled" value="">
+            <button class="btn btn-sm" onclick="document.getElementById('s-ov-enabled').value='';document.getElementById('s-ov-enabled-check').indeterminate=true;" title="Use master value">Use master</button>
+          </div>
+          <div class="form-grid" style="margin-bottom:10px;">
+            <div class="form-field form-field-full"><label>Override Description (leave blank to use master)</label><textarea id="s-ov-desc" rows="4"></textarea></div>
+            <div class="form-field form-field-full"><label>Override Notes (leave blank to use master)</label><textarea id="s-ov-notes" rows="2"></textarea></div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-gold btn-sm" onclick="saveSpellOverride()">&#x1F4BE; Save Override</button>
+            <button class="btn btn-danger btn-sm" id="spell-ov-delete-btn" onclick="clearSpellOverride()" style="display:none;">&#x1F5D1; Clear Override</button>
+          </div>
+        </div>
+
+        <!-- Source manager toggle -->
+        <div style="margin-bottom:14px;">
+          <button class="btn btn-sm btn-gold" onclick="toggleSourceManager()">&#x2699; Manage Sources</button>
+          <div id="source-manager" style="margin-top:10px;max-height:220px;overflow-y:auto;padding:0 4px;"></div>
+        </div>
+
+        <!-- Identity -->
+        <div class="form-section">
+          <div class="form-section-title">Identity</div>
+          <div class="form-grid form-grid-4">
+            <div class="form-field" style="grid-column:span 2;"><label>Name *</label><input id="s-name" type="text" placeholder="Fireball"></div>
+            <div class="form-field"><label>Level (0=cantrip)</label>
+              <select id="s-level">
+                <option value="0">Cantrip</option>
+                <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+              </select>
+            </div>
+            <div class="form-field"><label>School</label>
+              <select id="s-school">
+                <option value="">—</option>
+                <option>Abjuration</option><option>Conjuration</option><option>Divination</option>
+                <option>Enchantment</option><option>Evocation</option><option>Illusion</option>
+                <option>Necromancy</option><option>Transmutation</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Casting -->
+        <div class="form-section">
+          <div class="form-section-title">Casting</div>
+          <div class="form-grid form-grid-3">
+            <div class="form-field"><label>Casting Time</label><input id="s-cast-time" type="text" placeholder="1 action"></div>
+            <div class="form-field"><label>Range</label><input id="s-range" type="text" placeholder="150 feet"></div>
+            <div class="form-field"><label>Components</label><input id="s-components" type="text" placeholder="V, S, M"></div>
+            <div class="form-field"><label>Duration</label><input id="s-duration" type="text" placeholder="Instantaneous"></div>
+            <div class="form-field"><label>Save Type</label><input id="s-save" type="text" placeholder="DEX"></div>
+            <div class="form-field"><label>Source</label><input id="s-source" type="text" placeholder="SRD"></div>
+          </div>
+          <div style="display:flex;gap:18px;margin-top:8px;">
+            <label class="checkbox-row"><input type="checkbox" id="s-concentration"> Concentration</label>
+            <label class="checkbox-row"><input type="checkbox" id="s-ritual"> Ritual</label>
+            <label class="checkbox-row"><input type="checkbox" id="s-enabled" checked> Enabled</label>
+          </div>
+        </div>
+
+        <!-- Classes -->
+        <div class="form-section">
+          <div class="form-section-title">Classes</div>
+          <div class="classes-grid" id="s-classes-grid">
+            <!-- chips injected by JS -->
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="form-section">
+          <div class="form-section-title">Description</div>
+          <div class="form-field">
+            <textarea id="s-desc" rows="8"></textarea>
+          </div>
+        </div>
+
+      </div><!-- /form-spells -->
+    </div><!-- /edit-form-wrap -->
+
+    <div id="edit-empty">Select an entry or click <strong style="margin:0 4px;">+ New</strong> to create one.</div>
+  </div><!-- /edit-pane -->
+
+  <!-- Usage pane (replaces list+edit when active) -->
+  <div id="usage-pane" style="display:none; flex:1; flex-direction:column; overflow:hidden;">
+    <div style="padding:12px 16px; border-bottom:1px solid var(--border); background:var(--panel); display:flex; align-items:center; gap:12px; flex-shrink:0;">
+      <span style="font-weight:700; color:var(--gold);">API Usage Log</span>
+      <button class="btn btn-sm" onclick="loadUsage()">&#x21BA; Refresh</button>
+      <span id="usage-totals" style="font-size:.82rem; color:var(--text-dim); margin-left:8px;"></span>
+    </div>
+    <div style="flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:20px;">
+
+      <!-- By-type breakdown -->
+      <div>
+        <div class="form-section-title">Call Type Breakdown (all time)</div>
+        <table id="usage-type-table" style="width:100%; border-collapse:collapse; font-size:.85rem;">
+          <thead>
+            <tr style="color:var(--text-dim); border-bottom:1px solid var(--border);">
+              <th style="text-align:left; padding:4px 8px;">Type</th>
+              <th style="text-align:left; padding:4px 8px;">Model</th>
+              <th style="text-align:right; padding:4px 8px;">Calls</th>
+              <th style="text-align:right; padding:4px 8px;">Prompt Tokens</th>
+              <th style="text-align:right; padding:4px 8px;">Output Tokens</th>
+              <th style="text-align:right; padding:4px 8px;">Total Tokens</th>
+            </tr>
+          </thead>
+          <tbody id="usage-type-body"><tr><td colspan="6" style="padding:12px;color:var(--text-dim);">Loading…</td></tr></tbody>
+        </table>
+      </div>
+
+      <!-- Per-session table -->
+      <div>
+        <div class="form-section-title">Per Session (most recent first)</div>
+        <table id="usage-session-table" style="width:100%; border-collapse:collapse; font-size:.85rem;">
+          <thead>
+            <tr style="color:var(--text-dim); border-bottom:1px solid var(--border);">
+              <th style="text-align:left; padding:4px 8px;">Session</th>
+              <th style="text-align:right; padding:4px 8px;">Calls</th>
+              <th style="text-align:right; padding:4px 8px;">Prompt</th>
+              <th style="text-align:right; padding:4px 8px;">Output</th>
+              <th style="text-align:right; padding:4px 8px;">Total Tokens</th>
+              <th style="text-align:left; padding:4px 8px;">First Call</th>
+              <th style="text-align:left; padding:4px 8px;">Last Call</th>
+            </tr>
+          </thead>
+          <tbody id="usage-session-body"><tr><td colspan="7" style="padding:12px;color:var(--text-dim);">Loading…</td></tr></tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<div id="status-bar">Ready</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────────
+let _tab        = 'bestiary';   // 'bestiary' | 'spells'
+let _selected   = null;         // currently loaded entry
+let _dirty      = false;
+let _searchTimer = null;
+
+const DND_CLASSES = [
+  'Artificer','Bard','Cleric','Druid','Fighter','Monk',
+  'Paladin','Ranger','Rogue','Sorcerer','Warlock','Wizard'
+];
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  buildClassChips();
+  buildSpellFilters();
+  loadCampaigns();
+  loadList();
+});
+
+// ── Tab switching ──────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  _tab = tab;
+  _selected = null;
+  document.getElementById('tab-bestiary').classList.toggle('active', tab === 'bestiary');
+  document.getElementById('tab-spells').classList.toggle('active',   tab === 'spells');
+  document.getElementById('tab-usage').classList.toggle('active',    tab === 'usage');
+
+  const isUsage = tab === 'usage';
+  document.getElementById('list-pane').style.display    = isUsage ? 'none' : '';
+  document.getElementById('edit-pane').style.display    = isUsage ? 'none' : '';
+  document.getElementById('usage-pane').style.display   = isUsage ? 'flex' : 'none';
+
+  if (isUsage) { loadUsage(); return; }
+
+  document.getElementById('list-filters').style.display = tab === 'spells' ? 'flex' : 'none';
+  document.getElementById('search-input').value = '';
+  hideForm();
+  loadList();
+}
+
+// ── Usage tab ──────────────────────────────────────────────────────────────────
+async function loadUsage() {
+  document.getElementById('usage-type-body').innerHTML    = '<tr><td colspan="6" style="padding:12px;color:var(--text-dim);">Loading…</td></tr>';
+  document.getElementById('usage-session-body').innerHTML = '<tr><td colspan="7" style="padding:12px;color:var(--text-dim);">Loading…</td></tr>';
+
+  const [totalsRes, typeRes, sessionRes] = await Promise.all([
+    fetch('/gm/usage/totals'),
+    fetch('/gm/usage/by-type'),
+    fetch('/gm/usage/sessions'),
+  ]);
+  const totals   = await totalsRes.json();
+  const byType   = await typeRes.json();
+  const sessions = await sessionRes.json();
+
+  // Totals banner
+  document.getElementById('usage-totals').textContent =
+    `All time: ${fmt(totals.calls)} calls  |  ${fmt(totals.prompt_tokens)} prompt + ${fmt(totals.output_tokens)} output = ${fmt(totals.total_tokens)} tokens`;
+
+  // By-type table
+  const tbody1 = document.getElementById('usage-type-body');
+  if (!byType.length) {
+    tbody1.innerHTML = '<tr><td colspan="6" style="padding:12px;color:var(--text-dim);">No data yet.</td></tr>';
+  } else {
+    tbody1.innerHTML = byType.map(r => `
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:5px 8px;">${escHtml(r.call_type)}</td>
+        <td style="padding:5px 8px;color:var(--text-dim);font-size:.8rem;">${escHtml(r.model)}</td>
+        <td style="padding:5px 8px;text-align:right;">${fmt(r.calls)}</td>
+        <td style="padding:5px 8px;text-align:right;color:#7ab4e0;">${fmt(r.prompt_tokens)}</td>
+        <td style="padding:5px 8px;text-align:right;color:#81c784;">${fmt(r.output_tokens)}</td>
+        <td style="padding:5px 8px;text-align:right;font-weight:700;">${fmt(r.total_tokens)}</td>
+      </tr>`).join('');
+  }
+
+  // Per-session table
+  const tbody2 = document.getElementById('usage-session-body');
+  if (!sessions.length) {
+    tbody2.innerHTML = '<tr><td colspan="7" style="padding:12px;color:var(--text-dim);">No sessions logged yet.</td></tr>';
+  } else {
+    tbody2.innerHTML = sessions.map(r => `
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:5px 8px;font-size:.8rem;font-family:monospace;color:var(--gold);">${escHtml(r.session_key||'—')}</td>
+        <td style="padding:5px 8px;text-align:right;">${fmt(r.calls)}</td>
+        <td style="padding:5px 8px;text-align:right;color:#7ab4e0;">${fmt(r.prompt_tokens)}</td>
+        <td style="padding:5px 8px;text-align:right;color:#81c784;">${fmt(r.output_tokens)}</td>
+        <td style="padding:5px 8px;text-align:right;font-weight:700;">${fmt(r.total_tokens)}</td>
+        <td style="padding:5px 8px;font-size:.78rem;color:var(--text-dim);">${fmtDate(r.first_call)}</td>
+        <td style="padding:5px 8px;font-size:.78rem;color:var(--text-dim);">${fmtDate(r.last_call)}</td>
+      </tr>`).join('');
+  }
+}
+
+function fmt(n) {
+  return n ? Number(n).toLocaleString() : '0';
+}
+function fmtDate(iso) {
+  if (!iso) return '—';
+  try { return new Date(iso).toLocaleString(undefined, {dateStyle:'short', timeStyle:'short'}); }
+  catch { return iso; }
+}
+
+// ── List ───────────────────────────────────────────────────────────────────────
+function onSearch() {
+  clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(loadList, 200);
+}
+
+async function loadList() {
+  const q = document.getElementById('search-input').value.trim();
+  let url, items;
+  if (_tab === 'bestiary') {
+    url = `/gm/api/mobs?q=${encodeURIComponent(q)}&limit=2000`;
+    const r = await fetch(url);
+    items = await r.json();
+    renderBestiaryList(items);
+  } else {
+    const level      = document.getElementById('sf-level')?.value  || '';
+    const school     = document.getElementById('sf-school')?.value || '';
+    const source     = document.getElementById('sf-source')?.value || '';
+    const charClass  = document.getElementById('sf-class')?.value  || '';
+    url = `/gm/api/spells?q=${encodeURIComponent(q)}&limit=500`
+        + (level      ? `&level=${level}`                           : '')
+        + (school     ? `&school=${encodeURIComponent(school)}`     : '')
+        + (source     ? `&source=${encodeURIComponent(source)}`     : '')
+        + (charClass  ? `&class=${encodeURIComponent(charClass)}`   : '');
+    const r = await fetch(url);
+    items = await r.json();
+    renderSpellList(items);
+  }
+}
+
+async function refreshList() { await loadList(); setStatus('List refreshed'); }
+
+function renderBestiaryList(mobs) {
+  const el = document.getElementById('list-items');
+  document.getElementById('tb-count').textContent = `${mobs.length} mobs`;
+  if (!mobs.length) { el.innerHTML = '<div style="padding:20px;color:var(--text-dim);text-align:center;">No results</div>'; return; }
+  el.innerHTML = mobs.map(m => `
+    <div class="list-item${_selected?.name===m.name?' selected':''}" onclick="selectMob('${escAttr(m.name)}')">
+      <div>
+        <div class="list-item-name">${escHtml(m.name)}</div>
+        <div class="list-item-meta">${m.size||''} ${m.mob_type||''} CR ${m.challenge||'?'}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderSpellList(spells) {
+  const el = document.getElementById('list-items');
+  document.getElementById('tb-count').textContent = `${spells.length} spells`;
+  if (!spells.length) { el.innerHTML = '<div style="padding:20px;color:var(--text-dim);text-align:center;">No results</div>'; return; }
+  el.innerHTML = spells.map(s => `
+    <div class="list-item${_selected?.id===s.id?' selected':''}" onclick="selectSpell(${s.id})">
+      <div>
+        <div class="list-item-name" style="${s.enabled?'':'opacity:.45;'}">${escHtml(s.name)}</div>
+        <div class="list-item-meta">Lvl ${s.level} ${s.school||''} ${s.source||''}</div>
+      </div>
+    </div>`).join('');
+}
+
+function buildSpellFilters() {
+  const container = document.getElementById('list-filters');
+  container.innerHTML = `
+    <select id="sf-level" onchange="loadList()" style="flex:1;">
+      <option value="">All levels</option>
+      <option value="0">Cantrip</option>
+      ${[1,2,3,4,5,6,7,8,9].map(n=>`<option value="${n}">Level ${n}</option>`).join('')}
+    </select>
+    <select id="sf-school" onchange="loadList()" style="flex:1;">
+      <option value="">All schools</option>
+      ${['Abjuration','Conjuration','Divination','Enchantment','Evocation','Illusion','Necromancy','Transmutation']
+        .map(s=>`<option>${s}</option>`).join('')}
+    </select>
+    <select id="sf-class" onchange="loadList()" style="flex:1;">
+      <option value="">All classes</option>
+      ${DND_CLASSES.map(c=>`<option value="${c}">${c}</option>`).join('')}
+    </select>`;
+}
+
+// ── Select entry ───────────────────────────────────────────────────────────────
+async function selectMob(name) {
+  const cidParam = _campaignId ? `?campaign_id=${_campaignId}` : '';
+  const r   = await fetch(`/gm/api/mobs/${encodeURIComponent(name)}${cidParam}`);
+  const mob = await r.json();
+  _selected = mob;
+  showBestiaryForm(mob);
+  applyMobOverrideUI(mob);
+  highlightSelected();
+}
+
+async function selectSpell(id) {
+  const cidParam = _campaignId ? `?campaign_id=${_campaignId}` : '';
+  const r     = await fetch(`/gm/api/spells/${id}${cidParam}`);
+  const spell = await r.json();
+  _selected = spell;
+  showSpellForm(spell);
+  applySpellOverrideUI(spell);
+  highlightSelected();
+}
+
+function highlightSelected() {
+  document.querySelectorAll('.list-item').forEach(el => el.classList.remove('selected'));
+  if (!_selected) return;
+  const items = document.querySelectorAll('.list-item');
+  items.forEach(el => {
+    if (_tab === 'bestiary' && el.onclick?.toString().includes(`'${_selected.name.replace(/'/g,"\\'")}' `)) el.classList.add('selected');
+    if (_tab === 'spells'   && el.onclick?.toString().includes(`selectSpell(${_selected.id})`)) el.classList.add('selected');
+  });
+  // simpler: re-render
+  if (_tab === 'bestiary') {
+    document.querySelectorAll('.list-item').forEach(el => {
+      const nameEl = el.querySelector('.list-item-name');
+      if (nameEl && nameEl.textContent === _selected.name) el.classList.add('selected');
+    });
+  } else {
+    document.querySelectorAll('.list-item').forEach(el => {
+      const nameEl = el.querySelector('.list-item-name');
+      if (nameEl && nameEl.textContent.trim() === _selected.name) el.classList.add('selected');
+    });
+  }
+}
+
+// ── New entry ──────────────────────────────────────────────────────────────────
+function newEntry() {
+  _selected = null;
+  if (_tab === 'bestiary') {
+    showBestiaryForm({});
+    applyMobOverrideUI({});
+  } else {
+    showSpellForm({});
+    applySpellOverrideUI({});
+  }
+}
+
+// ── Bestiary form ──────────────────────────────────────────────────────────────
+function showBestiaryForm(mob) {
+  showForm('bestiary');
+  document.getElementById('edit-title').textContent = mob.name ? `Editing: ${mob.name}` : 'New Mob';
+  document.getElementById('m-name').value        = mob.name          || '';
+  document.getElementById('m-size').value        = mob.size          || '';
+  document.getElementById('m-type').value        = mob.mob_type      || '';
+  document.getElementById('m-align').value       = mob.alignment     || '';
+  document.getElementById('m-source').value      = mob.source        || '';
+  document.getElementById('m-cr').value          = mob.challenge     || '';
+  document.getElementById('m-ac').value          = mob.ac            ?? '';
+  document.getElementById('m-hp-formula').value  = mob.hp_formula    || '';
+  document.getElementById('m-hp-avg').value      = mob.hp_avg        ?? '';
+  document.getElementById('m-xp').value          = mob.xp            ?? '';
+  document.getElementById('m-speed').value       = mob.speed         || '';
+  document.getElementById('m-melee-mod').value   = mob.melee_mod     || '';
+  document.getElementById('m-ranged-mod').value  = mob.ranged_mod    || '';
+  document.getElementById('m-languages').value   = mob.languages     || '';
+  document.getElementById('m-str').value         = mob.str           ?? 10;
+  document.getElementById('m-dex').value         = mob.dex           ?? 10;
+  document.getElementById('m-con').value         = mob.con           ?? 10;
+  document.getElementById('m-int').value         = mob.int           ?? 10;
+  document.getElementById('m-wis').value         = mob.wis           ?? 10;
+  document.getElementById('m-cha').value         = mob.cha           ?? 10;
+  document.getElementById('m-atk1').value        = mob.attack1       || '';
+  document.getElementById('m-atk1-range').value  = mob.attack1_range || '';
+  document.getElementById('m-atk1-dmg').value    = mob.attack1_dmg   || '';
+  document.getElementById('m-atk2').value        = mob.attack2       || '';
+  document.getElementById('m-atk2-range').value  = mob.attack2_range || '';
+  document.getElementById('m-atk2-dmg').value    = mob.attack2_dmg   || '';
+  document.getElementById('m-atk3').value        = mob.attack3       || '';
+  document.getElementById('m-atk3-range').value  = mob.attack3_range || '';
+  document.getElementById('m-atk3-dmg').value    = mob.attack3_dmg   || '';
+  document.getElementById('m-desc').value        = mob.description   || '';
+  document.getElementById('m-notes').value       = mob.notes         || '';
+  // Image
+  setMobImagePreview(mob.image_path ? `/mob-images/${mob.image_path}` : null);
+}
+
+function setMobImagePreview(url) {
+  const img  = document.getElementById('mob-image-preview');
+  const ph   = document.getElementById('mob-image-placeholder');
+  if (url) {
+    img.src = url; img.style.display = ''; ph.style.display = 'none';
+  } else {
+    img.style.display = 'none'; ph.style.display = '';
+  }
+}
+
+function collectBestiaryForm() {
+  return {
+    name:         document.getElementById('m-name').value.trim(),
+    size:         document.getElementById('m-size').value,
+    mob_type:     document.getElementById('m-type').value.trim(),
+    alignment:    document.getElementById('m-align').value.trim(),
+    source:       document.getElementById('m-source').value.trim(),
+    challenge:    document.getElementById('m-cr').value.trim(),
+    ac:           parseInt(document.getElementById('m-ac').value)        || 0,
+    hp_formula:   document.getElementById('m-hp-formula').value.trim(),
+    hp_avg:       parseInt(document.getElementById('m-hp-avg').value)    || 0,
+    xp:           parseInt(document.getElementById('m-xp').value)        || 0,
+    speed:        document.getElementById('m-speed').value.trim(),
+    melee_mod:    document.getElementById('m-melee-mod').value.trim(),
+    ranged_mod:   document.getElementById('m-ranged-mod').value.trim(),
+    languages:    document.getElementById('m-languages').value.trim(),
+    str:          parseInt(document.getElementById('m-str').value)       || 10,
+    dex:          parseInt(document.getElementById('m-dex').value)       || 10,
+    con:          parseInt(document.getElementById('m-con').value)       || 10,
+    int:          parseInt(document.getElementById('m-int').value)       || 10,
+    wis:          parseInt(document.getElementById('m-wis').value)       || 10,
+    cha:          parseInt(document.getElementById('m-cha').value)       || 10,
+    attack1:      document.getElementById('m-atk1').value.trim(),
+    attack1_range:document.getElementById('m-atk1-range').value.trim(),
+    attack1_dmg:  document.getElementById('m-atk1-dmg').value.trim(),
+    attack2:      document.getElementById('m-atk2').value.trim(),
+    attack2_range:document.getElementById('m-atk2-range').value.trim(),
+    attack2_dmg:  document.getElementById('m-atk2-dmg').value.trim(),
+    attack3:      document.getElementById('m-atk3').value.trim(),
+    attack3_range:document.getElementById('m-atk3-range').value.trim(),
+    attack3_dmg:  document.getElementById('m-atk3-dmg').value.trim(),
+    description:  document.getElementById('m-desc').value.trim(),
+    notes:        document.getElementById('m-notes').value.trim(),
+  };
+}
+
+// ── Spell form ─────────────────────────────────────────────────────────────────
+function buildClassChips() {
+  const grid = document.getElementById('s-classes-grid');
+  grid.innerHTML = DND_CLASSES.map(c =>
+    `<div class="class-chip" data-class="${c}" onclick="toggleClass(this)">${c}</div>`
+  ).join('');
+}
+
+function showSpellForm(spell) {
+  showForm('spells');
+  document.getElementById('edit-title').textContent = spell.name ? `Editing: ${spell.name}` : 'New Spell';
+  document.getElementById('s-name').value        = spell.name          || '';
+  document.getElementById('s-level').value       = spell.level         ?? 0;
+  document.getElementById('s-school').value      = spell.school        || '';
+  document.getElementById('s-cast-time').value   = spell.casting_time  || '';
+  document.getElementById('s-range').value       = spell.spell_range   || '';
+  document.getElementById('s-components').value  = spell.components    || '';
+  document.getElementById('s-duration').value    = spell.duration      || '';
+  document.getElementById('s-save').value        = spell.save_type     || '';
+  document.getElementById('s-source').value      = spell.source        || 'SRD';
+  document.getElementById('s-concentration').checked = !!spell.concentration;
+  document.getElementById('s-ritual').checked        = !!spell.ritual;
+  document.getElementById('s-enabled').checked       = spell.enabled !== 0;
+  document.getElementById('s-desc').value        = spell.description   || '';
+  // Classes
+  let classes = [];
+  try { classes = typeof spell.classes === 'string' ? JSON.parse(spell.classes) : (spell.classes || []); } catch {}
+  document.querySelectorAll('.class-chip').forEach(chip => {
+    chip.classList.toggle('on', classes.includes(chip.dataset.class));
+  });
+}
+
+function toggleClass(chip) { chip.classList.toggle('on'); }
+
+function collectSpellForm() {
+  const classes = [...document.querySelectorAll('.class-chip.on')].map(c => c.dataset.class);
+  return {
+    name:          document.getElementById('s-name').value.trim(),
+    level:         parseInt(document.getElementById('s-level').value)  || 0,
+    school:        document.getElementById('s-school').value,
+    casting_time:  document.getElementById('s-cast-time').value.trim(),
+    range:         document.getElementById('s-range').value.trim(),
+    components:    document.getElementById('s-components').value.trim(),
+    duration:      document.getElementById('s-duration').value.trim(),
+    save_type:     document.getElementById('s-save').value.trim(),
+    source:        document.getElementById('s-source').value.trim() || 'SRD',
+    concentration: document.getElementById('s-concentration').checked,
+    ritual:        document.getElementById('s-ritual').checked,
+    enabled:       document.getElementById('s-enabled').checked ? 1 : 0,
+    description:   document.getElementById('s-desc').value.trim(),
+    classes,
+  };
+}
+
+// ── Save / Delete ──────────────────────────────────────────────────────────────
+async function saveEntry() {
+  let data, url;
+  if (_tab === 'bestiary') {
+    data = collectBestiaryForm();
+    if (!data.name) { setStatus('Name is required', true); return; }
+    url = '/gm/api/mobs';
+  } else {
+    data = collectSpellForm();
+    if (!data.name) { setStatus('Name is required', true); return; }
+    url = '/gm/api/spells';
+  }
+  setStatus('Saving… <span class="spinner"></span>');
+  const r   = await fetch(url, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+  const res = await r.json();
+  if (res.ok) {
+    _selected = res.mob || res.spell;
+    document.getElementById('edit-title').textContent = `Editing: ${_selected.name}`;
+    setStatus(`Saved: ${_selected.name}`);
+    await loadList();
+  } else {
+    setStatus(res.error || 'Save failed', true);
+  }
+}
+
+async function deleteEntry() {
+  if (!_selected) return;
+  if (!confirm(`Delete "${_selected.name}"? This cannot be undone.`)) return;
+  let url;
+  if (_tab === 'bestiary') url = `/gm/api/mobs/${encodeURIComponent(_selected.name)}`;
+  else                     url = `/gm/api/spells/${_selected.id}`;
+  const r   = await fetch(url, { method: 'DELETE' });
+  const res = await r.json();
+  if (res.ok) {
+    setStatus(`Deleted: ${_selected.name}`);
+    _selected = null;
+    hideForm();
+    await loadList();
+  } else {
+    setStatus(res.error || 'Delete failed', true);
+  }
+}
+
+// ── Mob image ──────────────────────────────────────────────────────────────────
+async function uploadMobImage() {
+  const name = document.getElementById('m-name').value.trim();
+  if (!name) { setStatus('Save the mob first (name required)', true); return; }
+  const file = document.getElementById('mob-img-file').files[0];
+  if (!file) return;
+  const fd = new FormData();
+  fd.append('name', name); fd.append('file', file);
+  setStatus('Uploading…');
+  const r   = await fetch('/mobs/image/upload', { method: 'POST', body: fd });
+  const res = await r.json();
+  if (res.ok) { setMobImagePreview(res.url); setStatus('Image uploaded'); }
+  else        { setStatus(res.error || 'Upload failed', true); }
+}
+
+async function generateMobImage() {
+  const name = document.getElementById('m-name').value.trim();
+  if (!name) { setStatus('Save the mob first (name required)', true); return; }
+  const btn = document.getElementById('btn-gen-img');
+  btn.disabled = true; btn.textContent = '⏳ Generating…';
+  setStatus('Generating image via Imagen… this may take 10–20 s');
+  try {
+    const r   = await fetch('/mobs/image/suggest', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({name}) });
+    const res = await r.json();
+    if (res.ok) { setMobImagePreview(res.url + '?t=' + Date.now()); setStatus('Image generated'); }
+    else        { setStatus(res.error || 'Generation failed', true); }
+  } finally {
+    btn.disabled = false; btn.textContent = '✨ Generate';
+  }
+}
+
+// ── Source manager ─────────────────────────────────────────────────────────────
+async function toggleSourceManager() {
+  const el = document.getElementById('source-manager');
+  if (el.classList.contains('open')) { el.classList.remove('open'); return; }
+  el.classList.add('open');
+  el.innerHTML = '<div style="color:var(--text-dim)">Loading…</div>';
+  const r       = await fetch('/gm/api/spell-sources');
+  const sources = await r.json();
+  el.innerHTML = sources.map(s => `
+    <div class="source-row">
+      <label class="toggle-switch">
+        <input type="checkbox" ${s.enabled_count > 0 ? 'checked' : ''} onchange="toggleSource('${escAttr(s.source)}', this.checked)">
+        <span class="toggle-slider"></span>
+      </label>
+      <span class="src-name">${escHtml(s.source)}</span>
+      <span class="src-count">${s.enabled_count}/${s.total} enabled</span>
+    </div>`).join('');
+}
+
+async function toggleSource(source, enabled) {
+  await fetch('/spells/sources/toggle', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({source, enabled})
+  });
+  setStatus(`Source "${source}" ${enabled ? 'enabled' : 'disabled'}`);
+  await loadList();
+  await toggleSourceManager(); await toggleSourceManager(); // refresh panel
+}
+
+// ── UI helpers ─────────────────────────────────────────────────────────────────
+function showForm(which) {
+  document.getElementById('edit-empty').style.display       = 'none';
+  document.getElementById('edit-form-wrap').style.display   = '';
+  document.getElementById('form-bestiary').style.display    = which === 'bestiary' ? '' : 'none';
+  document.getElementById('form-spells').style.display      = which === 'spells'   ? '' : 'none';
+  document.getElementById('btn-save').style.display         = '';
+  document.getElementById('btn-delete').style.display       = _selected ? '' : 'none';
+}
+
+function hideForm() {
+  document.getElementById('edit-empty').style.display     = '';
+  document.getElementById('edit-form-wrap').style.display = 'none';
+  document.getElementById('btn-save').style.display       = 'none';
+  document.getElementById('btn-delete').style.display     = 'none';
+  document.getElementById('edit-title').textContent       = 'Select an entry to edit';
+}
+
+function setStatus(msg, isError = false) {
+  const el = document.getElementById('status-bar');
+  el.innerHTML  = msg;
+  el.className  = isError ? 'err' : 'ok';
+  if (!isError) setTimeout(() => { if (el.className === 'ok') el.className = ''; }, 4000);
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function escAttr(s) {
+  return String(s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+}
+
+// ── Campaign selector ──────────────────────────────────────────────────────────
+let _campaignId = null;
+
+async function loadCampaigns() {
+  const r  = await fetch('/campaigns');
+  const cs = await r.json();
+  const sel = document.getElementById('campaign-select');
+  cs.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id; opt.textContent = c.name;
+    sel.appendChild(opt);
+  });
+  // Pre-select from URL param if present
+  const urlCid = new URLSearchParams(window.location.search).get('campaign_id');
+  if (urlCid) { sel.value = urlCid; onCampaignChange(); }
+}
+
+function onCampaignChange() {
+  const val = document.getElementById('campaign-select').value;
+  _campaignId = val ? parseInt(val) : null;
+  // Re-load current entry with override data if something is selected
+  if (_selected) {
+    if (_tab === 'bestiary') selectMob(_selected.name);
+    else if (_tab === 'spells') selectSpell(_selected.id);
+  }
+  // Show/hide override panels based on whether a campaign is chosen
+  document.getElementById('mob-override-panel').style.display   = _campaignId ? '' : 'none';
+  document.getElementById('spell-override-panel').style.display = _campaignId ? '' : 'none';
+}
+
+// ── Mob override helpers ───────────────────────────────────────────────────────
+function applyMobOverrideUI(mob) {
+  const panel = document.getElementById('mob-override-panel');
+  panel.style.display = _campaignId ? '' : 'none';
+  if (!_campaignId) return;
+
+  const ov = mob._override || {};
+  const hasOverride = !!mob._override;
+
+  panel.classList.toggle('override-active', hasOverride);
+  document.getElementById('mob-override-badge').style.display = hasOverride ? '' : 'none';
+  document.getElementById('mob-ov-delete-btn').style.display  = hasOverride ? '' : 'none';
+
+  document.getElementById('m-ov-desc').value  = ov.description || '';
+  document.getElementById('m-ov-notes').value = ov.notes       || '';
+
+  // Override image preview
+  if (ov.image_path) {
+    setMobOverrideImagePreview(`/mob-images/${ov.image_path}`);
+    document.getElementById('mob-ov-clear-img-btn').style.display = '';
+  } else {
+    setMobOverrideImagePreview(null);
+    document.getElementById('mob-ov-clear-img-btn').style.display = 'none';
+  }
+}
+
+function setMobOverrideImagePreview(url) {
+  const img = document.getElementById('mob-ov-img-preview');
+  const ph  = document.getElementById('mob-ov-img-placeholder');
+  if (url) { img.src = url; img.style.display = ''; ph.style.display = 'none'; }
+  else      { img.style.display = 'none'; ph.style.display = ''; }
+}
+
+async function saveMobOverride() {
+  if (!_selected || !_campaignId) return;
+  const payload = {
+    campaign_id: _campaignId,
+    description: document.getElementById('m-ov-desc').value.trim()  || null,
+    notes:       document.getElementById('m-ov-notes').value.trim() || null,
+  };
+  const r   = await fetch(`/gm/api/mobs/${encodeURIComponent(_selected.name)}/override`,
+    { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+  const res = await r.json();
+  if (res.ok) {
+    setStatus('Campaign override saved');
+    await selectMob(_selected.name);
+  } else { setStatus(res.error || 'Save failed', true); }
+}
+
+async function clearMobOverride() {
+  if (!_selected || !_campaignId) return;
+  if (!confirm('Clear all campaign overrides for this mob?')) return;
+  const r   = await fetch(`/gm/api/mobs/${encodeURIComponent(_selected.name)}/override?campaign_id=${_campaignId}`,
+    { method: 'DELETE' });
+  const res = await r.json();
+  if (res.ok) { setStatus('Override cleared'); await selectMob(_selected.name); }
+  else { setStatus(res.error || 'Clear failed', true); }
+}
+
+async function uploadMobOverrideImage() {
+  if (!_selected || !_campaignId) return;
+  const name = _selected.name;
+  const file = document.getElementById('mob-ov-img-file').files[0];
+  if (!file) return;
+  const slug = name.toLowerCase().replace(/[^\w]/g, '_') + `_c${_campaignId}`;
+  const fd   = new FormData();
+  fd.append('name', `${name}_c${_campaignId}`); fd.append('file', file);
+  // Upload to generic mob-image upload, then update override record
+  setStatus('Uploading override image…');
+  const r   = await fetch('/mobs/image/upload', { method: 'POST', body: fd });
+  const res = await r.json();
+  if (!res.ok) { setStatus(res.error || 'Upload failed', true); return; }
+  // Save override image_path
+  const r2   = await fetch(`/gm/api/mobs/${encodeURIComponent(name)}/override`,
+    { method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ campaign_id: _campaignId, image_path: res.image_path }) });
+  const res2 = await r2.json();
+  if (res2.ok) {
+    setMobOverrideImagePreview(res.url);
+    document.getElementById('mob-ov-clear-img-btn').style.display = '';
+    setStatus('Override image uploaded');
+    await selectMob(_selected.name);
+  } else { setStatus(res2.error || 'Override save failed', true); }
+}
+
+async function generateMobOverrideImage() {
+  if (!_selected || !_campaignId) return;
+  const name = _selected.name;
+  const btn  = document.querySelector('#mob-override-panel .btn-gold');
+  btn.disabled = true; btn.textContent = '⏳ Generating…';
+  setStatus('Generating campaign override image…');
+  try {
+    // Generate via existing suggest endpoint (saves to master path), then copy to override
+    const r   = await fetch('/mobs/image/suggest', { method: 'POST',
+      headers: {'Content-Type':'application/json'}, body: JSON.stringify({name}) });
+    const res = await r.json();
+    if (!res.ok) { setStatus(res.error || 'Generation failed', true); return; }
+    // Save the generated path as override
+    const r2   = await fetch(`/gm/api/mobs/${encodeURIComponent(name)}/override`,
+      { method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ campaign_id: _campaignId, image_path: res.image_path }) });
+    const res2 = await r2.json();
+    if (res2.ok) {
+      setMobOverrideImagePreview(res.url + '?t=' + Date.now());
+      document.getElementById('mob-ov-clear-img-btn').style.display = '';
+      setStatus('Override image generated');
+      await selectMob(_selected.name);
+    }
+  } finally { btn.disabled = false; btn.textContent = '✨ Generate'; }
+}
+
+async function clearMobOverrideImage() {
+  if (!_selected || !_campaignId) return;
+  await fetch(`/gm/api/mobs/${encodeURIComponent(_selected.name)}/override`,
+    { method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ campaign_id: _campaignId, image_path: '' }) });
+  setMobOverrideImagePreview(null);
+  document.getElementById('mob-ov-clear-img-btn').style.display = 'none';
+  setStatus('Override image cleared');
+}
+
+// ── Spell override helpers ─────────────────────────────────────────────────────
+function applySpellOverrideUI(spell) {
+  const panel = document.getElementById('spell-override-panel');
+  panel.style.display = _campaignId ? '' : 'none';
+  if (!_campaignId) return;
+
+  const ov = spell._override || {};
+  const hasOverride = !!spell._override;
+
+  panel.classList.toggle('override-active', hasOverride);
+  document.getElementById('spell-override-badge').style.display = hasOverride ? '' : 'none';
+  document.getElementById('spell-ov-delete-btn').style.display  = hasOverride ? '' : 'none';
+
+  document.getElementById('s-ov-desc').value  = ov.description || '';
+  document.getElementById('s-ov-notes').value = ov.notes       || '';
+
+  const enabledEl = document.getElementById('s-ov-enabled');
+  const checkEl   = document.getElementById('s-ov-enabled-check');
+  if (ov.enabled !== null && ov.enabled !== undefined) {
+    enabledEl.value       = ov.enabled;
+    checkEl.checked       = !!ov.enabled;
+    checkEl.indeterminate = false;
+  } else {
+    enabledEl.value       = '';
+    checkEl.indeterminate = true;
+  }
+}
+
+async function saveSpellOverride() {
+  if (!_selected || !_campaignId) return;
+  const enabledVal = document.getElementById('s-ov-enabled').value;
+  const payload = {
+    campaign_id: _campaignId,
+    enabled:     enabledVal !== '' ? parseInt(enabledVal) : null,
+    description: document.getElementById('s-ov-desc').value.trim()  || null,
+    notes:       document.getElementById('s-ov-notes').value.trim() || null,
+  };
+  const r   = await fetch(`/gm/api/spells/${_selected.id}/override`,
+    { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+  const res = await r.json();
+  if (res.ok) { setStatus('Campaign override saved'); await selectSpell(_selected.id); }
+  else { setStatus(res.error || 'Save failed', true); }
+}
+
+async function clearSpellOverride() {
+  if (!_selected || !_campaignId) return;
+  if (!confirm('Clear all campaign overrides for this spell?')) return;
+  const r   = await fetch(`/gm/api/spells/${_selected.id}/override?campaign_id=${_campaignId}`,
+    { method: 'DELETE' });
+  const res = await r.json();
+  if (res.ok) { setStatus('Override cleared'); await selectSpell(_selected.id); }
+  else { setStatus(res.error || 'Clear failed', true); }
+}
+</script>
+</body>
+</html>

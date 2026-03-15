@@ -1,0 +1,2641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Player Session</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #1b1b1f;
+      --panel:    #242528;
+      --panel2:   #2c2d31;
+      --border:   #3a3b40;
+      --input-bg: #1b1b1f;
+      --text:     #e8e8ec;
+      --text-dim: #9a9ba5;
+      --blue:     #1565c2;
+      --blue-lt:  #4fc3f7;
+      --red:      #c41e1e;
+      --red-lt:   #ef5350;
+      --gold:     #c9a84c;
+      --green:    #2ecc71;
+      --green-lt: #4caf50;
+      --yellow-lt:#ffb300;
+    }
+
+    html, body { height: 100%; overflow: hidden; font-family: 'Roboto', sans-serif; background: var(--bg); color: var(--text); }
+
+    /* ── Top Bar ── */
+    #status-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 14px; height: 52px;
+      background: var(--panel); border-bottom: 2px solid var(--red);
+      flex-shrink: 0; flex-wrap: wrap; gap: 6px;
+    }
+    .status-left {
+      display: flex; align-items: center; gap: 10px;
+      font-family: 'Roboto Condensed', sans-serif; font-weight: 700;
+      font-size: .95rem; letter-spacing: .04em;
+    }
+    .status-left .logo-mark { color: var(--red-lt); }
+    .status-left .logo-mark span { color: var(--gold); }
+    #sb-char   { color: var(--text); font-weight: 700; }
+    #sb-campaign { color: var(--text-dim); font-weight: 400; font-size: .85rem; }
+    .status-sep { color: var(--border); font-weight: 300; }
+    .status-right {
+      display: flex; align-items: center; gap: 10px;
+    }
+    #round-status-badge {
+      padding: 3px 10px; border-radius: 10px;
+      font-family: 'Roboto Condensed', sans-serif;
+      font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+      background: var(--panel2); border: 1px solid var(--border); color: var(--text-dim);
+    }
+    #round-status-badge.open   { background: #0d2a0d; border-color: var(--green-lt); color: var(--green-lt); }
+    #round-status-badge.closed { background: var(--panel2); border-color: var(--border); color: var(--text-dim); }
+    #conn-indicator {
+      width: 9px; height: 9px; border-radius: 50%;
+      background: var(--red-lt); display: inline-block; transition: background .3s;
+    }
+    #conn-indicator.connected { background: var(--green-lt); }
+    #conn-label { font-size: .75rem; color: var(--text-dim); }
+    #session-status { font-size: .75rem; font-weight: 600; }
+    #session-status.active  { color: var(--green-lt); }
+    #session-status.waiting { color: var(--yellow-lt); }
+
+    /* ── Panel title (shared style) ── */
+    .panel-title {
+      font-family: 'Roboto Condensed', sans-serif; font-size: .75rem; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase; color: var(--blue-lt);
+      padding: 8px 12px 6px; border-bottom: 1px solid var(--border);
+      background: var(--panel2); flex-shrink: 0;
+    }
+
+    /* ── Main Layout ── */
+    #main {
+      display: flex; flex: 1; overflow: hidden;
+      height: calc(100vh - 52px);
+    }
+
+    /* ── Left Panel ── */
+    #left-panel {
+      width: 270px; min-width: 270px;
+      background: var(--panel); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    /* Character card — mirrors GM party card style */
+    #char-card {
+      padding: 10px 12px; border-bottom: 1px solid var(--border);
+      background: var(--panel2); flex: 1; min-height: 0; overflow-y: auto;
+    }
+    #char-card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 4px; }
+    #char-name {
+      font-family: 'Roboto Condensed', sans-serif;
+      font-size: 1.0rem; font-weight: 700; color: var(--text);
+    }
+    #char-subline { font-size: .7rem; color: var(--text-dim); margin-bottom: 6px; }
+    #char-inv-btn {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 4px;
+      color: var(--text-dim); font-size: .68rem; padding: 3px 7px; cursor: pointer;
+      font-family: 'Roboto', sans-serif; white-space: nowrap; flex-shrink: 0;
+    }
+    #char-inv-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+    /* HP Bar */
+    .hp-label-row {
+      display: flex; justify-content: space-between;
+      font-size: .68rem; color: var(--text-dim); margin-bottom: 4px;
+    }
+    #hp-text { font-size: .75rem; font-weight: 700; color: var(--text); }
+    #hp-bar-track { background: #111; border-radius: 3px; height: 5px; overflow: hidden; margin-bottom: 6px; }
+    #hp-bar-fill {
+      height: 100%; border-radius: 3px;
+      background: var(--green); transition: width .4s, background .4s; width: 100%;
+    }
+    #hp-bar-fill.low  { background: #e67e22; }
+    #hp-bar-fill.crit { background: var(--red-lt); }
+
+    /* Vitals row (AC / Speed / Gold) */
+    #vitals-row {
+      display: flex; gap: 8px; font-size: .7rem; margin-bottom: 6px;
+    }
+    .vital-item { color: var(--text-dim); }
+    .vital-item span { color: var(--text); font-weight: 600; }
+
+    /* Ability grid — 6 cols matching GM style */
+    #ability-grid {
+      display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; margin-bottom: 4px;
+    }
+    .ability-cell { text-align: center; background: var(--bg); border-radius: 3px; padding: 3px 0; }
+    .ability-label { font-size: .52rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: .04em; }
+    .ability-val   { font-size: .8rem; font-weight: 700; color: var(--blue-lt); }
+    .ability-mod   { font-size: .62rem; color: var(--gold); }
+
+    /* ── Inventory / Spells Float Panel ── */
+    #inv-panel {
+      position: fixed; top: 60px; right: 18px; z-index: 190;
+      width: 680px; height: calc(100vh - 80px);
+      background: var(--panel); border: 1px solid var(--gold);
+      border-radius: 8px; display: none; flex-direction: column;
+      box-shadow: 0 8px 32px rgba(0,0,0,.6);
+      resize: both; overflow: hidden; min-width: 400px; min-height: 360px;
+    }
+    #inv-panel.open { display: flex; }
+    #inv-panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 12px; background: var(--panel2);
+      border-bottom: 1px solid var(--border); flex-shrink: 0; cursor: move;
+    }
+    #inv-panel-title {
+      font-family: 'Roboto Condensed', sans-serif; font-size: .82rem;
+      font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--gold);
+    }
+    .inv-panel-btns { display: flex; gap: 6px; align-items: center; }
+    #inv-popout-btn, #inv-close-btn {
+      background: none; border: none; color: var(--text-dim);
+      font-size: .85rem; cursor: pointer; line-height: 1; padding: 0 2px;
+    }
+    #inv-popout-btn:hover, #inv-close-btn:hover { color: var(--text); }
+
+    /* Inner tabs */
+    #inv-tabs {
+      display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .inv-tab {
+      padding: 7px 18px; background: none; border: none;
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+      color: var(--text-dim); cursor: pointer;
+      font-family: 'Roboto Condensed', sans-serif;
+      font-size: .72rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+      transition: color .15s, border-color .15s;
+    }
+    .inv-tab:hover { color: var(--text); }
+    .inv-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+    /* Tab panes */
+    .inv-tab-pane {
+      display: none; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; padding: 10px 12px;
+    }
+    .inv-tab-pane.active { display: flex; }
+
+    /* Equipment layout */
+    .eq-layout { display: flex; gap: 12px; flex: 1; min-height: 0; }
+    .eq-slots-panel { display: flex; flex-direction: column; gap: 8px; flex: 0 0 auto; }
+    .eq-slot-grid { display: grid; grid-template-columns: repeat(3, 90px); gap: 5px; }
+    .eq-slot-placeholder { min-height: 52px; }
+    .eq-slot {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+      min-height: 52px; padding: 4px 6px;
+      display: flex; flex-direction: column; gap: 3px;
+      transition: border-color .15s, background .15s;
+    }
+    .eq-slot.dragover  { border-color: var(--gold); background: #1a1600; }
+    .eq-slot-label { font-size: .58rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); font-family: 'Roboto Condensed', sans-serif; font-weight: 700; flex-shrink: 0; }
+    .eq-slot-item  { font-size: .76rem; color: var(--text); display: flex; align-items: center; gap: 3px; min-height: 22px; overflow: hidden; border-radius: 3px; transition: opacity .15s; }
+    .eq-slot-item.dragging { opacity: .35; }
+    .eq-slot-item span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .eq-slot-clear { background: transparent; border: none; color: var(--text-dim); cursor: pointer; font-size: .8rem; padding: 0 1px; line-height: 1; flex-shrink: 0; }
+    .eq-slot-clear:hover { color: var(--gold); }
+    .eq-buckets { display: flex; gap: 8px; flex-shrink: 0; }
+    .eq-bucket {
+      flex: 1; min-height: 48px; border: 2px dashed var(--border); border-radius: 6px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      font-size: .7rem; color: var(--text-dim); text-align: center; cursor: default;
+      transition: border-color .15s, background .15s; padding: 4px;
+    }
+    .eq-bucket small { font-size: .58rem; color: var(--text-dim); display: block; margin-top: 2px; }
+    .eq-bucket.dragover { border-color: var(--blue-lt); background: #0a1020; }
+    .eq-available-panel { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 6px; }
+    .eq-avail-label {
+      font-family: 'Roboto Condensed', sans-serif; font-size: .68rem; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase; color: var(--blue-lt);
+      border-bottom: 1px solid var(--border); padding-bottom: 3px; flex-shrink: 0;
+    }
+    #p-eq-avail-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; min-height: 0; }
+    #p-eq-avail-list::-webkit-scrollbar { width: 3px; }
+    #p-eq-avail-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .eq-avail-item {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+      padding: 5px 8px; cursor: grab; user-select: none; font-size: .8rem;
+      transition: border-color .15s;
+    }
+    .eq-avail-item:hover  { border-color: var(--blue); }
+    .eq-avail-item.dragging { opacity: .35; }
+    .eq-avail-item .ai-name { flex: 1; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .eq-avail-item .ai-qty  { color: var(--text-dim); font-size: .72rem; flex-shrink: 0; }
+    .eq-avail-item .ai-del  { background: transparent; border: none; color: var(--text-dim); cursor: pointer; font-size: .9rem; padding: 0 2px; flex-shrink: 0; }
+    .eq-avail-item .ai-del:hover { color: var(--red-lt); }
+    .eq-avail-item .ai-name-input {
+      flex: 1; min-width: 0; background: transparent; border: 1px solid transparent;
+      border-radius: 3px; padding: 1px 3px; color: var(--text); font-size: .8rem; cursor: text;
+    }
+    .eq-avail-item .ai-name-input:hover, .eq-avail-item .ai-name-input:focus { border-color: var(--border); outline: none; }
+    .eq-avail-item .ai-qty-input { width: 42px; text-align: center; font-size: .75rem; padding: 1px 3px; background: var(--bg); border: 1px solid var(--border); border-radius: 3px; color: var(--text); }
+    .eq-avail-item .ai-note-input { width: 90px; font-size: .7rem; padding: 1px 4px; background: var(--bg); border: 1px solid var(--border); border-radius: 3px; color: var(--text-dim); }
+    #p-eq-avail-filter { width: 100%; box-sizing: border-box; margin-bottom: 4px; font-size: .75rem; flex-shrink: 0; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text); padding: 5px 8px; }
+    #p-eq-avail-filter:focus { outline: none; border-color: var(--gold); }
+    .eq-add-form { display: flex; gap: 5px; flex-shrink: 0; margin-top: auto; padding-top: 6px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+    .eq-add-form input { background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text); padding: 5px 8px; font-size: .8rem; font-family: inherit; }
+    .eq-add-form input:focus { outline: none; border-color: var(--gold); }
+
+    /* Carried tab */
+    #p-inv-carried-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; min-height: 0; }
+    .inv-item-row {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+      padding: 5px 8px; font-size: .8rem;
+    }
+    .inv-item-name { flex: 1; background: transparent; border: 1px solid transparent; border-radius: 3px; padding: 1px 3px; color: var(--text); font-size: .8rem; }
+    .inv-item-name:hover, .inv-item-name:focus { border-color: var(--border); outline: none; }
+    .inv-item-qty  { width: 52px; text-align: center; background: var(--bg); border: 1px solid var(--border); border-radius: 3px; color: var(--text); font-size: .78rem; padding: 2px 4px; }
+    .inv-item-note { flex: 1.2; background: var(--bg); border: 1px solid var(--border); border-radius: 3px; color: var(--text-dim); font-size: .75rem; padding: 2px 6px; }
+    .inv-del-btn { background: transparent; border: none; color: var(--text-dim); cursor: pointer; font-size: .9rem; padding: 0 2px; }
+    .inv-del-btn:hover { color: var(--red-lt); }
+    .inv-add-row { display: flex; gap: 5px; flex-shrink: 0; padding-top: 8px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+    .inv-add-row input { background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text); padding: 5px 8px; font-size: .8rem; font-family: inherit; }
+    .inv-add-row input:focus { outline: none; border-color: var(--gold); }
+    .inv-empty { color: var(--text-dim); font-style: italic; font-size: .78rem; padding: 10px 0; text-align: center; }
+
+    /* Spells tab */
+    .spell-section-label {
+      font-family: 'Roboto Condensed', sans-serif; font-size: .68rem; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase; color: var(--blue-lt);
+      border-bottom: 1px solid var(--border); padding-bottom: 3px; margin-bottom: 6px; flex-shrink: 0;
+    }
+    #p-spellbook-list { flex: 1; overflow-y: auto; min-height: 0; display: flex; flex-direction: column; gap: 3px; }
+    #p-spellbook-list::-webkit-scrollbar { width: 3px; }
+    #p-spellbook-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .spell-entry {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+      padding: 5px 10px; font-size: .8rem;
+    }
+    .spell-entry .se-name { color: var(--text); flex: 1; }
+    .spell-entry .se-level { font-size: .65rem; color: var(--text-dim); background: var(--panel2); padding: 1px 6px; border-radius: 8px; flex-shrink: 0; }
+    .spell-entry .se-del { background: transparent; border: none; color: var(--text-dim); cursor: pointer; font-size: .9rem; padding: 0 2px; }
+    .spell-entry .se-del:hover { color: var(--red-lt); }
+    .spell-add-row { display: flex; gap: 6px; padding-top: 8px; border-top: 1px solid var(--border); flex-shrink: 0; flex-wrap: wrap; }
+    .spell-add-row input, .spell-add-row select { background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text); padding: 5px 8px; font-size: .8rem; font-family: inherit; }
+    .spell-add-row input:focus, .spell-add-row select:focus { outline: none; border-color: var(--gold); }
+
+    /* Item & spell autocomplete dropdown */
+    .mi-ac-wrap { position: relative; flex: 2; min-width: 0; }
+    .mi-ac-wrap input { width: 100%; box-sizing: border-box; }
+    .p-mi-dropdown {
+      position: fixed; z-index: 9000;
+      background: var(--panel2); border: 1px solid var(--border); border-radius: 0 0 6px 6px;
+      max-height: 200px; overflow-y: auto; display: none;
+    }
+    .p-mi-dropdown.open { display: block; }
+    .p-mi-option {
+      padding: 6px 10px; cursor: pointer; font-size: .78rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .p-mi-option:last-child { border-bottom: none; }
+    .p-mi-option:hover, .p-mi-option.active { background: var(--panel); }
+    .p-mi-opt-name { font-weight: 600; color: var(--text); }
+    .p-mi-opt-meta { color: var(--text-dim); font-size: .68rem; margin-top: 1px; }
+
+    /* Spell search results */
+    .p-spell-search-row { display: flex; gap: 6px; flex-shrink: 0; flex-wrap: wrap; }
+    .p-spell-search-row input, .p-spell-search-row select {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+      color: var(--text); padding: 5px 8px; font-size: .78rem; font-family: inherit;
+    }
+    .p-spell-search-row input:focus, .p-spell-search-row select:focus { outline: none; border-color: var(--gold); }
+    #p-spell-results {
+      flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; min-height: 60px;
+    }
+    .p-spell-ref-row {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+      padding: 5px 8px; font-size: .78rem;
+    }
+    .p-sr-lvl { font-size: .62rem; color: var(--text-dim); background: var(--panel2); padding: 1px 5px; border-radius: 8px; flex-shrink: 0; white-space: nowrap; }
+    .p-sr-name { font-weight: 600; color: var(--text); flex: 1; }
+    .p-sr-school { font-size: .7rem; color: var(--text-dim); flex-shrink: 0; }
+    .p-spell-add-btn { padding: 3px 9px; background: var(--gold); color: #111; border: none; border-radius: 4px; cursor: pointer; font-size: .72rem; font-weight: 700; flex-shrink: 0; }
+    .p-spell-add-btn:hover { opacity: .85; }
+    .p-spell-add-btn.added { background: var(--panel2); color: var(--text-dim); cursor: default; }
+
+    /* Save row */
+    .inv-save-row { display: flex; justify-content: flex-end; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--border); flex-shrink: 0; }
+    .inv-save-btn {
+      padding: 6px 18px; border-radius: 4px; border: none; cursor: pointer;
+      font-size: .82rem; font-weight: 700; font-family: 'Roboto', sans-serif;
+    }
+    .inv-save-btn.primary { background: var(--gold); color: #111; }
+    .inv-save-btn.primary:hover { background: #b8921f; }
+    .inv-save-btn.secondary { background: var(--panel2); color: var(--text-dim); border: 1px solid var(--border); }
+    .inv-save-btn.secondary:hover { background: var(--border); color: var(--text); }
+
+    /* Spell / Inventory lists */
+    .list-placeholder {
+      color: var(--text-dim); font-style: italic;
+      font-size: .78rem; padding: 10px 0; text-align: center;
+    }
+    .spell-item, .inv-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 5px 8px; border-radius: 4px;
+      border: 1px solid var(--border); margin-bottom: 4px;
+      background: var(--bg);
+    }
+    .spell-item .spell-name, .inv-item .inv-name { font-size: .8rem; color: var(--text); }
+    .spell-item .spell-level {
+      font-size: .68rem; color: var(--text-dim);
+      background: var(--panel2); padding: 1px 6px; border-radius: 8px;
+    }
+    .inv-item .inv-qty { font-size: .7rem; color: var(--gold); font-weight: 600; }
+
+    /* Party section — pinned comms pane at bottom of left panel */
+    #party-section {
+      border-top: 1px solid var(--border); padding: 0 0 8px;
+      flex-shrink: 0; min-height: 80px;
+    }
+    #party-chat-toggle {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; background: none; border: none; border-bottom: 1px solid var(--border);
+      padding: 7px 12px; cursor: pointer; transition: background .15s;
+    }
+    #party-chat-toggle:hover { background: var(--panel2); }
+    #party-chat-toggle .pct-label {
+      font-family: 'Roboto Condensed', sans-serif;
+      font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+      color: var(--text-dim);
+    }
+    #party-chat-toggle:hover .pct-label { color: var(--gold); }
+    #party-chat-toggle .pct-right {
+      display: flex; align-items: center; gap: 6px;
+    }
+    #party-chat-indicator {
+      font-size: .65rem; color: var(--text-dim); transition: color .15s;
+    }
+    #party-chat-toggle.active .pct-label { color: var(--gold); }
+    #party-chat-toggle.active #party-chat-indicator { color: var(--gold); }
+    #party-badges { display: flex; flex-wrap: wrap; gap: 5px; padding: 7px 12px 0; }
+    .party-badge {
+      background: var(--panel2); border: 1px solid var(--border); border-radius: 12px;
+      padding: 2px 9px; font-size: .72rem; color: var(--text);
+      cursor: pointer; transition: border-color .15s, color .15s; white-space: nowrap;
+    }
+    .party-badge:hover { border-color: var(--blue-lt); color: var(--blue-lt); }
+
+    /* ── Right Panel ── */
+    #right-panel {
+      flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0;
+    }
+
+    /* Map + Initiative row */
+    #map-init-row {
+      display: flex; height: 420px; min-height: 420px; flex-shrink: 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* Map */
+    #map-section {
+      flex: 1; background: var(--bg); position: relative; overflow: hidden;
+    }
+    #map-canvas { display: none; position: absolute; inset: 0; cursor: grab; }
+    #map-canvas.panning { cursor: grabbing; }
+    #map-zoom-hint {
+      position: absolute; bottom: 6px; right: 8px;
+      font-size: .65rem; color: rgba(255,255,255,0.28);
+      pointer-events: none; user-select: none; letter-spacing: .02em;
+    }
+    #map-scene-desc {
+      position: absolute; top: 0; left: 0; right: 0;
+      padding: 5px 10px; font-size: .72rem; font-style: italic;
+      color: rgba(220,210,180,0.82); background: rgba(0,0,0,0.52);
+      pointer-events: none; display: none;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    #map-placeholder {
+      position: absolute; inset: 0; display: flex;
+      align-items: center; justify-content: center;
+      color: var(--text-dim); font-style: italic; font-size: .82rem;
+      pointer-events: none;
+    }
+
+    /* Initiative Tracker */
+    #init-panel {
+      width: 180px; min-width: 180px; flex-shrink: 0;
+      background: var(--panel); border-left: 1px solid var(--border);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    #init-panel .panel-title { font-size: .68rem; padding: 6px 10px 5px; }
+    #init-round {
+      font-size: .68rem; color: var(--text-dim);
+      padding: 3px 10px 4px; border-bottom: 1px solid var(--border);
+      background: var(--panel2);
+      font-family: 'Roboto Condensed', sans-serif; letter-spacing: .04em;
+    }
+    #init-round span { color: var(--gold); font-weight: 700; }
+    #init-list {
+      flex: 1; overflow-y: auto; padding: 4px 0;
+    }
+    #init-list::-webkit-scrollbar { width: 3px; }
+    #init-list::-webkit-scrollbar-thumb { background: var(--border); }
+    .init-entry {
+      display: flex; align-items: center; gap: 6px;
+      padding: 4px 10px; font-size: .75rem;
+      border-left: 3px solid transparent;
+      transition: background .15s;
+    }
+    .init-entry.active {
+      background: #1a2a1a; border-left-color: var(--green-lt);
+    }
+    .init-entry.active .init-name { color: var(--green-lt); font-weight: 700; }
+    .init-entry.is-npc .init-name { color: var(--red-lt); }
+    .init-entry.is-ko  { opacity: .45; }
+    .init-entry.is-ko  .init-name { text-decoration: line-through; }
+    .init-num  { font-size: .68rem; color: var(--text-dim); min-width: 18px; text-align: right; }
+    .init-name { flex: 1; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .init-badge {
+      font-size: .55rem; padding: 1px 4px; border-radius: 3px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .04em; flex-shrink: 0;
+    }
+    .init-badge.pc  { background: #0d2a4a; color: var(--blue-lt); border: 1px solid var(--blue); }
+    .init-badge.npc { background: #2a0d0d; color: var(--red-lt);  border: 1px solid var(--red); }
+    .init-badge.ko  { background: #1a1a1a; color: #555; border: 1px solid #333; }
+    #init-empty {
+      color: var(--text-dim); font-style: italic; font-size: .75rem;
+      padding: 12px 10px; text-align: center;
+    }
+
+    /* Map resize handle */
+    #map-resizer {
+      height: 6px; flex-shrink: 0; cursor: row-resize;
+      background: var(--border);
+      transition: background .15s;
+    }
+    #map-resizer:hover, #map-resizer.dragging { background: var(--blue-lt); }
+
+    /* Narrative Feed */
+    #narrative-section {
+      flex: 1; overflow-y: auto; padding: 10px 14px;
+      display: flex; flex-direction: column; gap: 8px;
+      background: var(--bg);
+    }
+    #narrative-section::-webkit-scrollbar { width: 5px; }
+    #narrative-section::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .narrative-entry {
+      background: var(--panel); border: 1px solid var(--border);
+      border-left: 3px solid var(--gold);
+      border-radius: 5px; padding: 9px 12px;
+      animation: fadeIn .3s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    .narrative-date {
+      font-size: .65rem; color: var(--text-dim); margin-bottom: 4px;
+      text-transform: uppercase; letter-spacing: .06em; font-style: italic;
+    }
+    .narrative-text { font-size: .88rem; line-height: 1.6; color: var(--text); }
+    .narrative-actions-toggle {
+      font-size: .68rem; color: var(--text-dim); cursor: pointer; margin-top: 5px;
+      display: inline-block; border: none; background: none; padding: 0;
+      font-family: inherit;
+    }
+    .narrative-actions-toggle:hover { color: var(--text); }
+    .narrative-actions-list {
+      margin-top: 5px; padding: 5px 8px; background: var(--bg);
+      border-radius: 3px; font-size: .72rem; color: var(--text-dim);
+    }
+    .narrative-empty {
+      color: var(--text-dim); font-style: italic; text-align: center; padding: 20px;
+      font-size: .85rem;
+    }
+
+    /* Turn Panel */
+    #turn-panel {
+      border-top: 2px solid var(--border); padding: 10px 14px;
+      background: var(--panel); flex-shrink: 0; display: none;
+    }
+    #turn-waiting {
+      display: flex; align-items: center; gap: 8px;
+      color: var(--text-dim); font-size: .8rem; font-style: italic; padding: 4px 0;
+    }
+    #turn-acting-name {
+      color: var(--gold); font-weight: 700; font-style: normal;
+    }
+    #turn-active-ui { display: none; }
+    #turn-header {
+      font-family: 'Roboto Condensed', sans-serif;
+      font-size: .82rem; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--green-lt); margin-bottom: 7px;
+      animation: pulseGreen 1.5s ease-in-out infinite;
+    }
+    @keyframes pulseGreen {
+      0%, 100% { opacity: 1; } 50% { opacity: .65; }
+    }
+    #turn-action-area {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 4px; color: var(--text); padding: 7px 10px;
+      font-size: .85rem; resize: none; font-family: 'Roboto', sans-serif;
+      transition: border-color .2s; height: 58px;
+    }
+    #turn-action-area:focus { outline: none; border-color: var(--green-lt); }
+    #turn-action-area:disabled { opacity: .5; cursor: not-allowed; }
+    #turn-submit-btn {
+      margin-top: 7px; background: var(--green); border: none;
+      color: #fff; padding: 6px 16px; border-radius: 4px;
+      font-family: 'Roboto', sans-serif; font-size: .82rem; font-weight: 700;
+      cursor: pointer; transition: background .15s;
+    }
+    #turn-submit-btn:hover:not(:disabled) { background: var(--green-lt); }
+    #turn-submit-btn:disabled { opacity: .4; cursor: not-allowed; }
+    #turn-submitted-msg {
+      display: none; margin-top: 6px;
+      font-size: .75rem; color: var(--green-lt); font-style: italic;
+    }
+
+    /* ── DM Float Panel ── */
+    #dm-panel {
+      position: fixed; bottom: 60px; right: 360px; z-index: 200;
+      width: 300px; height: 380px;
+      background: var(--panel); border: 1px solid var(--blue);
+      border-radius: 8px; display: none; flex-direction: column;
+      box-shadow: 0 8px 32px rgba(0,0,0,.6);
+      resize: both; overflow: hidden; min-width: 240px; min-height: 200px;
+    }
+    #dm-panel.open { display: flex; }
+
+    #dm-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 12px; background: var(--panel2);
+      border-bottom: 1px solid var(--border); flex-shrink: 0; cursor: move;
+    }
+    #dm-title {
+      font-family: 'Roboto Condensed', sans-serif; font-size: .82rem;
+      font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--blue-lt);
+    }
+    .dm-header-btns { display: flex; gap: 6px; align-items: center; }
+    #dm-popout-btn, #dm-close-btn {
+      background: none; border: none; color: var(--text-dim);
+      font-size: .85rem; cursor: pointer; line-height: 1; padding: 0 2px;
+    }
+    #dm-popout-btn:hover, #dm-close-btn:hover { color: var(--text); }
+
+    #dm-messages {
+      flex: 1; overflow-y: auto; padding: 8px 10px;
+      display: flex; flex-direction: column; gap: 5px; min-height: 0;
+    }
+    #dm-messages::-webkit-scrollbar { width: 3px; }
+    #dm-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .dm-msg {
+      font-size: .8rem; line-height: 1.45;
+    }
+    .dm-msg.from-me { align-self: flex-end; }
+    .dm-msg.from-them { align-self: flex-start; }
+    .dm-msg .dm-bubble {
+      display: inline-block; padding: 5px 9px; border-radius: 6px; max-width: 220px;
+    }
+    .dm-msg.from-me .dm-bubble { background: var(--panel2); border: 1px solid var(--blue); }
+    .dm-msg.from-them .dm-bubble { background: var(--bg); border: 1px solid var(--border); }
+    .dm-msg .dm-sender { font-size: .63rem; color: var(--text-dim); margin-bottom: 2px; }
+
+    #dm-input-row {
+      display: flex; gap: 6px; padding: 7px 10px;
+      border-top: 1px solid var(--border); flex-shrink: 0;
+    }
+    #dm-input {
+      flex: 1; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 4px; color: var(--text); padding: 5px 9px;
+      font-size: .8rem; font-family: 'Roboto', sans-serif;
+    }
+    #dm-input:focus { outline: none; border-color: var(--blue-lt); }
+    #dm-send-btn {
+      background: var(--blue); border: none; color: #fff;
+      padding: 5px 12px; border-radius: 4px;
+      font-family: 'Roboto', sans-serif; font-size: .8rem; font-weight: 700;
+      cursor: pointer; transition: background .15s;
+    }
+    #dm-send-btn:hover { background: #1976d2; }
+
+    /* ── Party Chat Float Panel ── */
+    #party-chat-badge {
+      display: none; background: var(--red-lt); color: #fff;
+      border-radius: 10px; padding: 0 5px; font-size: .62rem; font-weight: 700;
+    }
+    #party-chat-badge.has-unread { display: inline; }
+
+    #party-chat-panel {
+      position: fixed; bottom: 80px; left: 278px; z-index: 181;
+      width: 320px; height: 400px;
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 8px; display: none; flex-direction: column;
+      box-shadow: 0 8px 32px rgba(0,0,0,.6);
+      resize: both; overflow: hidden; min-width: 240px; min-height: 200px;
+    }
+    #party-chat-panel.open { display: flex; }
+    #party-chat-panel.floating {
+      cursor: move;
+    }
+    #pc-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 12px; background: var(--panel2);
+      border-bottom: 1px solid var(--border); flex-shrink: 0; cursor: move;
+    }
+    #pc-title {
+      font-family: 'Roboto Condensed', sans-serif; font-size: .82rem;
+      font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+      color: var(--gold);
+    }
+    .pc-header-btns { display: flex; gap: 6px; align-items: center; }
+    #pc-popout-btn, #pc-close-btn {
+      background: none; border: none; color: var(--text-dim);
+      font-size: .85rem; cursor: pointer; line-height: 1; padding: 0 2px;
+    }
+    #pc-popout-btn:hover, #pc-close-btn:hover { color: var(--text); }
+    #pc-messages {
+      flex: 1; overflow-y: auto; padding: 8px 10px;
+      display: flex; flex-direction: column; gap: 5px; min-height: 0;
+    }
+    #pc-messages::-webkit-scrollbar { width: 3px; }
+    #pc-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .pc-msg { font-size: .8rem; line-height: 1.45; }
+    .pc-msg .pc-sender { font-weight: 700; margin-right: 5px; }
+    .pc-msg.from-me .pc-sender { color: var(--gold); }
+    .pc-msg.from-gm .pc-sender { color: var(--red-lt); }
+    .pc-msg.from-other .pc-sender { color: var(--blue-lt); }
+    .pc-msg .pc-time { font-size: .62rem; color: var(--text-dim); margin-left: 4px; }
+    #pc-input-row {
+      display: flex; gap: 6px; padding: 7px 10px;
+      border-top: 1px solid var(--border); flex-shrink: 0;
+    }
+    #pc-input {
+      flex: 1; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 4px; color: var(--text); padding: 5px 9px;
+      font-size: .8rem; font-family: 'Roboto', sans-serif;
+    }
+    #pc-input:focus { outline: none; border-color: var(--gold); }
+    #pc-send-btn {
+      background: var(--gold); border: none; color: #1a1a1a;
+      padding: 5px 12px; border-radius: 4px;
+      font-family: 'Roboto', sans-serif; font-size: .8rem; font-weight: 700;
+      cursor: pointer;
+    }
+    #pc-send-btn:hover { opacity: .85; }
+
+    /* Secret toggle on DM panel */
+    #dm-secret-row {
+      display: flex; align-items: center; gap: 7px;
+      padding: 4px 12px 0; font-size: .72rem; color: var(--text-dim);
+    }
+    #dm-secret-toggle { cursor: pointer; accent-color: var(--red-lt); }
+    #dm-secret-label  { cursor: pointer; user-select: none; }
+    #dm-secret-row.active #dm-secret-label { color: var(--red-lt); font-weight: 700; }
+
+    /* ── Toast Notifications ── */
+    #toast-container {
+      position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; gap: 7px; align-items: center;
+      z-index: 999; pointer-events: none;
+    }
+    .toast {
+      background: var(--panel2); border: 1px solid var(--border);
+      border-left: 3px solid var(--red-lt); color: var(--text);
+      padding: 9px 14px; border-radius: 5px; font-size: .82rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,.5);
+      animation: toastIn .25s ease, toastOut .3s ease 2.7s forwards;
+      max-width: 270px;
+    }
+    .toast.success { border-left-color: var(--green-lt); }
+    .toast.warn    { border-left-color: var(--gold); }
+    .toast.dm      { border-left-color: var(--blue-lt); }
+    @keyframes toastIn  { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes toastOut { from { opacity: 1; } to { opacity: 0; pointer-events: none; } }
+
+    /* Notes / Readied Action field */
+    #char-notes-area { border-top: 1px solid var(--border); padding-top: 5px; margin-top: 4px; }
+    .char-notes-label { font-size: .6rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 3px; }
+    #char-notes {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 3px; color: var(--text); font-size: .75rem;
+      font-family: 'Roboto', sans-serif; padding: 5px 7px;
+      resize: none; height: 52px;
+    }
+    #char-notes:focus { outline: none; border-color: var(--gold); }
+
+    /* Status bar Chronicle button */
+    .sb-btn {
+      background: #e8dcc0; border: 1px solid #c5b08a;
+      border-radius: 5px; padding: 4px 11px;
+      color: #2c1a0a; font-size: .75rem; font-weight: 700;
+      cursor: pointer; font-family: 'IM Fell English', serif;
+      transition: background .15s; white-space: nowrap;
+    }
+    .sb-btn:hover { background: #ddd0a8; }
+
+    /* Chronicle overlay */
+    #chronicle-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.6); z-index: 299;
+    }
+    #chronicle-overlay.visible { display: block; }
+
+    /* Chronicle centered modal */
+    #chronicle-modal {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0.96);
+      width: min(720px, 92vw); max-height: 82vh;
+      background: #f5edd8; border: 2px solid #c5b08a;
+      border-radius: 8px; z-index: 300;
+      display: flex; flex-direction: column;
+      opacity: 0; pointer-events: none;
+      transition: transform .22s ease, opacity .22s ease;
+      box-shadow: 0 24px 64px rgba(0,0,0,.65);
+    }
+    #chronicle-modal.open {
+      opacity: 1; pointer-events: auto;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    #chron-modal-header {
+      background: #e8dcc0; border-bottom: 2px solid #c5b08a;
+      padding: 12px 18px; display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0; font-family: 'IM Fell English', serif;
+      border-radius: 6px 6px 0 0;
+    }
+    #chron-modal-header h3 { font-size: 1.15rem; color: #2c1a0a; }
+    #chron-modal-close {
+      background: none; border: none; font-size: 1.2rem;
+      cursor: pointer; color: #7a6040; line-height: 1; padding: 2px 4px;
+    }
+    #chron-modal-close:hover { color: #2c1a0a; }
+    #chron-modal-scroll {
+      flex: 1; overflow-y: auto; padding: 20px 26px; min-height: 0;
+    }
+    #chron-modal-scroll::-webkit-scrollbar { width: 7px; }
+    #chron-modal-scroll::-webkit-scrollbar-track { background: #ede0c8; }
+    #chron-modal-scroll::-webkit-scrollbar-thumb { background: #c5b08a; border-radius: 4px; }
+    .chron-entry { margin-bottom: 24px; border-bottom: 1px dashed #c5b08a; padding-bottom: 18px; }
+    .chron-entry:last-child { border-bottom: none; margin-bottom: 0; }
+    .chron-date   { font-family: 'IM Fell English', serif; font-size: .75rem; color: #7a6040; margin-bottom: 5px; font-style: italic; }
+    .chron-player { font-family: 'IM Fell English', serif; font-size: .85rem; color: #5a4020; margin-bottom: 8px; font-style: italic; border-left: 3px solid #c5b08a; padding-left: 10px; line-height: 1.5; }
+    .chron-dm     { font-family: 'IM Fell English', serif; font-size: .92rem; color: #2c1a0a; line-height: 1.75; }
+
+    /* ── Responsive ── */
+    @media (max-width: 700px) {
+      #main { flex-direction: column; }
+      #left-panel { width: 100%; min-width: unset; max-height: 320px; border-right: none; border-bottom: 1px solid var(--border); }
+      #map-section { height: 180px; min-height: 180px; }
+      #dm-panel { width: calc(100vw - 36px); right: 18px; left: 18px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Status Bar -->
+<div id="status-bar">
+  <div class="status-left">
+    <span class="logo-mark">D&amp;D <span>Player</span></span>
+    <span class="status-sep">|</span>
+    <span id="sb-char">—</span>
+    <span class="status-sep">·</span>
+    <span id="sb-campaign">Campaign</span>
+    <span class="status-sep">|</span>
+    <span id="session-status" class="waiting">Waiting</span>
+  </div>
+  <div class="status-right">
+    <button class="sb-btn" onclick="toggleChronicle()">&#x1F4DC; Chronicle</button>
+    <button id="dm-notify-btn" class="sb-btn" onclick="openDmNotify()" style="display:none;border-color:var(--blue-lt);color:var(--blue-lt);">&#x1F4AC; DMs <span id="dm-notify-badge" style="background:var(--blue-lt);color:#000;border-radius:8px;padding:0 5px;font-size:.68rem;margin-left:3px;"></span></button>
+    <span id="round-status-badge" class="closed">Round Closed</span>
+    <span id="conn-indicator"></span>
+    <span id="conn-label">Disconnected</span>
+  </div>
+</div>
+
+<!-- Main Layout -->
+<div id="main">
+
+  <!-- Left Panel -->
+  <div id="left-panel">
+    <div id="char-card">
+      <div id="char-card-header">
+        <div>
+          <div id="char-name">Loading...</div>
+          <div id="char-subline">—</div>
+        </div>
+        <button id="char-inv-btn" onclick="openInvPanel('equipped')">&#x1F392; Inv / Spells</button>
+      </div>
+      <div class="hp-label-row">
+        <span>HP</span>
+        <span id="hp-text">— / —</span>
+      </div>
+      <div id="hp-bar-track">
+        <div id="hp-bar-fill"></div>
+      </div>
+      <div id="vitals-row">
+        <span class="vital-item">AC <span id="vital-ac">—</span></span>
+        <span class="vital-item">Spd <span id="vital-speed">—</span></span>
+        <span class="vital-item">Gold <span id="vital-gold">—</span></span>
+      </div>
+      <div id="ability-grid">
+        <div class="ability-cell"><div class="ability-label">STR</div><div class="ability-val" id="abl-str">—</div><div class="ability-mod" id="abl-mod-str">—</div></div>
+        <div class="ability-cell"><div class="ability-label">DEX</div><div class="ability-val" id="abl-dex">—</div><div class="ability-mod" id="abl-mod-dex">—</div></div>
+        <div class="ability-cell"><div class="ability-label">CON</div><div class="ability-val" id="abl-con">—</div><div class="ability-mod" id="abl-mod-con">—</div></div>
+        <div class="ability-cell"><div class="ability-label">INT</div><div class="ability-val" id="abl-int">—</div><div class="ability-mod" id="abl-mod-int">—</div></div>
+        <div class="ability-cell"><div class="ability-label">WIS</div><div class="ability-val" id="abl-wis">—</div><div class="ability-mod" id="abl-mod-wis">—</div></div>
+        <div class="ability-cell"><div class="ability-label">CHA</div><div class="ability-val" id="abl-cha">—</div><div class="ability-mod" id="abl-mod-cha">—</div></div>
+      </div>
+      <div id="char-notes-area">
+        <div class="char-notes-label">&#x1F4CB; Notes / Readied Action</div>
+        <textarea id="char-notes" placeholder="Readied action, reminders, conditions..."></textarea>
+      </div>
+    </div>
+
+    <div id="party-section">
+      <button id="party-chat-toggle" onclick="togglePartyChat()">
+        <span class="pct-label">&#x1F4AC; Party Chat <span id="party-chat-badge"></span></span>
+        <span class="pct-right">
+          <span id="party-chat-indicator">&#x25BE;</span>
+        </span>
+      </button>
+      <div id="party-badges"></div>
+    </div>
+  </div>
+
+  <!-- Right Panel -->
+  <div id="right-panel">
+
+    <!-- Map + Initiative row -->
+    <div id="map-init-row">
+      <!-- Map -->
+      <div id="map-section">
+        <canvas id="map-canvas"></canvas>
+        <div id="map-placeholder">&#x1F5FA; Map will appear when the GM loads a battle map</div>
+        <div id="map-scene-desc"></div>
+        <div id="map-zoom-hint">Scroll to zoom &middot; Drag to pan &middot; Dbl-click to reset</div>
+      </div>
+
+      <!-- Initiative Tracker -->
+      <div id="init-panel">
+        <div class="panel-title">&#x2694; Initiative</div>
+        <div id="init-round">Round <span id="init-round-num">—</span></div>
+        <div id="init-list">
+          <div id="init-empty">No combat active</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Map Resize Handle -->
+    <div id="map-resizer"></div>
+
+    <!-- Narrative Feed -->
+    <div id="narrative-section">
+      <div class="narrative-empty" id="narrative-empty">Awaiting the DM's tale...</div>
+    </div>
+
+    <!-- Turn Panel -->
+    <div id="turn-panel">
+      <div id="turn-waiting">
+        <span>&#x23F3; Waiting for your turn &mdash;</span>
+        <span id="turn-acting-name">—</span>
+        <span>is acting</span>
+      </div>
+      <div id="turn-active-ui">
+        <div id="turn-header">&#x2694; YOUR TURN &mdash; Round <span id="turn-round-num">1</span></div>
+        <textarea id="turn-action-area" placeholder="Describe your action..."></textarea>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <button id="turn-submit-btn">Submit Action</button>
+          <span id="turn-submitted-msg">&#x2713; Action sent &mdash; awaiting resolution</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Party Chat Panel (trigger is embedded in party section) -->
+<div id="party-chat-panel">
+  <div id="pc-header">
+    <span id="pc-title">&#x1F4AC; Party Chat</span>
+    <div class="pc-header-btns">
+      <button id="pc-popout-btn" title="Pop out / dock" onclick="togglePcPopout()">&#x2922;</button>
+      <button id="pc-close-btn" title="Close" onclick="togglePartyChat()">&#x2715;</button>
+    </div>
+  </div>
+  <div id="pc-messages"></div>
+  <div id="pc-input-row">
+    <input id="pc-input" type="text" placeholder="Message the party..." autocomplete="off" />
+    <button id="pc-send-btn">Send</button>
+  </div>
+</div>
+
+<!-- Inventory / Spells Float Panel -->
+<div id="inv-panel">
+  <div id="inv-panel-header">
+    <span id="inv-panel-title">&#x1F392; Items &amp; Spells</span>
+    <div class="inv-panel-btns">
+      <button id="inv-popout-btn" title="Pop out">&#x2922;</button>
+      <button id="inv-close-btn" title="Close">&#x2715;</button>
+    </div>
+  </div>
+
+  <div id="inv-tabs">
+    <button class="inv-tab active" data-tab="equipped" onclick="pInvSwitchTab('equipped')">&#x2694; Equipped</button>
+    <button class="inv-tab"        data-tab="carried"  onclick="pInvSwitchTab('carried')">&#x1F392; Carried</button>
+    <button class="inv-tab"        data-tab="spells"   onclick="pInvSwitchTab('spells')">&#x2728; Spells</button>
+  </div>
+
+  <!-- Equipped tab -->
+  <div class="inv-tab-pane active" id="p-inv-pane-equipped">
+    <div class="eq-layout">
+      <!-- Equipment slot grid -->
+      <div class="eq-slots-panel">
+        <div class="eq-slot-grid">
+          <div class="eq-slot-placeholder"></div>
+          <div class="eq-slot" ondragover="pEqDragOver(event)" ondragleave="pEqDragLeave(event)" ondrop="pEqDrop(event,'head')">
+            <div class="eq-slot-label">Head</div><div class="eq-slot-item" id="p-eq-item-head"></div>
+          </div>
+          <div class="eq-slot-placeholder"></div>
+
+          <div class="eq-slot" ondragover="pEqDragOver(event)" ondragleave="pEqDragLeave(event)" ondrop="pEqDrop(event,'main_hand')">
+            <div class="eq-slot-label">Main Hand</div><div class="eq-slot-item" id="p-eq-item-main_hand"></div>
+          </div>
+          <div class="eq-slot" ondragover="pEqDragOver(event)" ondragleave="pEqDragLeave(event)" ondrop="pEqDrop(event,'armor')">
+            <div class="eq-slot-label">Armor</div><div class="eq-slot-item" id="p-eq-item-armor"></div>
+          </div>
+          <div class="eq-slot" ondragover="pEqDragOver(event)" ondragleave="pEqDragLeave(event)" ondrop="pEqDrop(event,'off_hand')">
+            <div class="eq-slot-label">Off Hand</div><div class="eq-slot-item" id="p-eq-item-off_hand"></div>
+          </div>
+
+          <div class="eq-slot" ondragover="pEqDragOver(event)" ondragleave="pEqDragLeave(event)" ondrop="pEqDrop(event,'ring_right')">
+            <div class="eq-slot-label">Ring R</div><div class="eq-slot-item" id="p-eq-item-ring_right"></div>
+          </div>
+          <div class="eq-slot" ondragover="pEqDragOver(event)" ondragleave="pEqDragLeave(event)" ondrop="pEqDrop(event,'cloak')">
+            <div class="eq-slot-label">Cloak</div><div class="eq-slot-item" id="p-eq-item-cloak"></div>
+          </div>
+          <div class="eq-slot" ondragover="pEqDragOver(event)" ondragleave="pEqDragLeave(event)" ondrop="pEqDrop(event,'ring_left')">
+            <div class="eq-slot-label">Ring L</div><div class="eq-slot-item" id="p-eq-item-ring_left"></div>
+          </div>
+
+          <div class="eq-slot" ondragover="pEqDragOver(event)" ondragleave="pEqDragLeave(event)" ondrop="pEqDrop(event,'arms')">
+            <div class="eq-slot-label">Arms</div><div class="eq-slot-item" id="p-eq-item-arms"></div>
+          </div>
+          <div class="eq-slot" ondragover="pEqDragOver(event)" ondragleave="pEqDragLeave(event)" ondrop="pEqDrop(event,'robe')">
+            <div class="eq-slot-label">Robe</div><div class="eq-slot-item" id="p-eq-item-robe"></div>
+          </div>
+          <div class="eq-slot" ondragover="pEqDragOver(event)" ondragleave="pEqDragLeave(event)" ondrop="pEqDrop(event,'hands')">
+            <div class="eq-slot-label">Hands</div><div class="eq-slot-item" id="p-eq-item-hands"></div>
+          </div>
+
+          <div class="eq-slot" ondragover="pEqDragOver(event)" ondragleave="pEqDragLeave(event)" ondrop="pEqDrop(event,'comp_pouch')">
+            <div class="eq-slot-label">Comp Pouch</div><div class="eq-slot-item" id="p-eq-item-comp_pouch"></div>
+          </div>
+          <div class="eq-slot" ondragover="pEqDragOver(event)" ondragleave="pEqDragLeave(event)" ondrop="pEqDrop(event,'belt')">
+            <div class="eq-slot-label">Belt</div><div class="eq-slot-item" id="p-eq-item-belt"></div>
+          </div>
+          <div class="eq-slot" ondragover="pEqDragOver(event)" ondragleave="pEqDragLeave(event)" ondrop="pEqDrop(event,'quiver')">
+            <div class="eq-slot-label">Quiver</div><div class="eq-slot-item" id="p-eq-item-quiver"></div>
+          </div>
+
+          <div class="eq-slot" ondragover="pEqDragOver(event)" ondragleave="pEqDragLeave(event)" ondrop="pEqDrop(event,'scroll_case')">
+            <div class="eq-slot-label">Scroll Case</div><div class="eq-slot-item" id="p-eq-item-scroll_case"></div>
+          </div>
+          <div class="eq-slot-placeholder"></div>
+          <div class="eq-slot" ondragover="pEqDragOver(event)" ondragleave="pEqDragLeave(event)" ondrop="pEqDrop(event,'pouch')">
+            <div class="eq-slot-label">Pouch</div><div class="eq-slot-item" id="p-eq-item-pouch"></div>
+          </div>
+
+          <div class="eq-slot-placeholder"></div>
+          <div class="eq-slot" ondragover="pEqDragOver(event)" ondragleave="pEqDragLeave(event)" ondrop="pEqDrop(event,'boots')">
+            <div class="eq-slot-label">Boots</div><div class="eq-slot-item" id="p-eq-item-boots"></div>
+          </div>
+          <div class="eq-slot-placeholder"></div>
+        </div>
+        <!-- Backpack drop bucket -->
+        <div class="eq-buckets">
+          <div class="eq-bucket" id="p-bucket-backpack"
+               ondragover="pEqDragOver(event)" ondragleave="pEqDragLeave(event)" ondrop="pEqDrop(event,'backpack')">
+            &#x1F392; Backpack<small>Drop &#x2193; Carried</small>
+          </div>
+        </div>
+      </div>
+      <!-- Carried items panel -->
+      <div class="eq-available-panel">
+        <div class="eq-avail-label">Carried — drag to equip</div>
+        <input id="p-eq-avail-filter" type="text" placeholder="Filter items..." oninput="pRenderEquipped()" autocomplete="off">
+        <div id="p-eq-avail-list"></div>
+        <div class="eq-add-form">
+          <div class="mi-ac-wrap">
+            <input id="p-inv-eq-name" type="text" placeholder="Item name..." autocomplete="off"
+                   oninput="pItemAcInput(this,'p-inv-eq-note','p-mi-dd-eq')"
+                   onkeydown="pItemAcKey(event,'p-mi-dd-eq')">
+            <div class="p-mi-dropdown" id="p-mi-dd-eq"></div>
+          </div>
+          <input id="p-inv-eq-qty"  type="number" placeholder="Qty" style="width:54px;" min="1">
+          <input id="p-inv-eq-note" type="text" placeholder="Note..." style="flex:1.5;">
+          <button class="inv-save-btn primary" onclick="pInvAddItem()">+ Add</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Carried tab -->
+  <div class="inv-tab-pane" id="p-inv-pane-carried">
+    <div id="p-inv-carried-list"></div>
+    <div class="inv-add-row">
+      <div class="mi-ac-wrap">
+        <input id="p-inv-cr-name" type="text" placeholder="Item name..." autocomplete="off"
+               oninput="pItemAcInput(this,'p-inv-cr-note','p-mi-dd-cr')"
+               onkeydown="pItemAcKey(event,'p-mi-dd-cr')">
+        <div class="p-mi-dropdown" id="p-mi-dd-cr"></div>
+      </div>
+      <input id="p-inv-cr-qty"  type="number" placeholder="Qty" style="width:56px;" min="1">
+      <input id="p-inv-cr-note" type="text" placeholder="Note..." style="flex:2;">
+      <button class="inv-save-btn primary" onclick="pInvAddCarried()">+ Add</button>
+    </div>
+  </div>
+
+  <!-- Spells tab -->
+  <div class="inv-tab-pane" id="p-inv-pane-spells">
+    <div class="spell-section-label" style="flex-shrink:0;">Spellbook &mdash; Known</div>
+    <div id="p-spellbook-list" style="flex:1;overflow-y:auto;min-height:80px;display:flex;flex-direction:column;gap:3px;"></div>
+    <div class="spell-section-label" style="margin-top:6px;flex-shrink:0;">Add from Reference</div>
+    <div class="p-spell-search-row" style="flex-shrink:0;">
+      <input id="p-spell-q" type="text" placeholder="Search spells..." autocomplete="off"
+             style="flex:2;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:5px 8px;font-size:.78rem;"
+             oninput="pSpellSearch()" onkeydown="if(event.key==='Enter')pSpellSearch()">
+      <select id="p-spell-lvl" onchange="pSpellSearch()">
+        <option value="" selected>All levels</option>
+        <option value="0">Cantrip</option>
+        <option value="1">1st</option><option value="2">2nd</option><option value="3">3rd</option>
+        <option value="4">4th</option><option value="5">5th</option><option value="6">6th</option>
+        <option value="7">7th</option><option value="8">8th</option><option value="9">9th</option>
+      </select>
+      <select id="p-spell-school" onchange="pSpellSearch()">
+        <option value="">Any school</option>
+        <option>Abjuration</option><option>Conjuration</option><option>Divination</option>
+        <option>Enchantment</option><option>Evocation</option><option>Illusion</option>
+        <option>Necromancy</option><option>Transmutation</option>
+      </select>
+    </div>
+    <div id="p-spell-results" style="flex:1;overflow-y:auto;min-height:60px;">
+      <div class="inv-empty">Search above to find spells to add.</div>
+    </div>
+  </div>
+
+  <!-- Save row -->
+  <div class="inv-save-row">
+    <button class="inv-save-btn secondary" onclick="closeInvPanel()">Cancel</button>
+    <button class="inv-save-btn primary"   onclick="pSaveInventory()">Save &amp; Close</button>
+  </div>
+</div>
+
+<!-- DM Float Panel -->
+<div id="dm-panel">
+  <div id="dm-header">
+    <span id="dm-title">Direct Message</span>
+    <div class="dm-header-btns">
+      <button id="dm-popout-btn" title="Pop out">&#x2922;</button>
+      <button id="dm-close-btn" title="Close">&#x2715;</button>
+    </div>
+  </div>
+  <div id="dm-secret-row">
+    <input type="checkbox" id="dm-secret-toggle" />
+    <label id="dm-secret-label" for="dm-secret-toggle">Secret (GM cannot read)</label>
+  </div>
+  <div id="dm-messages"></div>
+  <div id="dm-input-row">
+    <input id="dm-input" type="text" placeholder="Message..." autocomplete="off" />
+    <button id="dm-send-btn">Send</button>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<!-- Chronicle -->
+<div id="chronicle-overlay"></div>
+<div id="chronicle-modal">
+  <div id="chron-modal-header">
+    <h3>&#x1F4DC; Chronicle of Deeds</h3>
+    <button id="chron-modal-close">&#x2715;</button>
+  </div>
+  <div id="chron-modal-scroll">
+    <div id="chron-modal-content" style="font-family:'IM Fell English',serif;color:#9a8060;text-align:center;padding:24px 0;font-style:italic;">The chronicle awaits your deeds...</div>
+  </div>
+</div>
+
+<script>
+  // ── Constants ──────────────────────────────────────────────────────────────
+  const PLAYER_TOKEN = "{{ token }}";
+  const PLAYER_CHAR  = "{{ character_name }}";
+  const CAMPAIGN_ID  = "{{ campaign_id }}";
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  let socket;
+  let _myTurnKey      = null;   // "round-turnIdx" when player last had their turn
+  let _myTurnSubmitted = false;
+  let dmTargetChar    = null;
+  let dmConversations     = {};   // char_name -> [{sender, text}]
+  let narrativeChronicle  = [];   // last 20 entries
+  let characterState      = {};
+  let pollTimer           = null;
+  let _partyNames         = new Set();   // populated from game_state.characters
+
+  // ── Audio ──────────────────────────────────────────────────────────────────
+  let _audioCtx = null;
+  function playChime() {
+    try {
+      if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (_audioCtx.state === 'suspended') _audioCtx.resume();
+      const ctx = _audioCtx;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      gain.gain.setValueAtTime(0.25, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.3);
+    } catch(e) { /* AudioContext not available */ }
+  }
+
+  // ── Toast Notifications ────────────────────────────────────────────────────
+  function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(() => {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 3100);
+  }
+
+  // ── HP Bar Update ──────────────────────────────────────────────────────────
+  function updateHPBar(current, max) {
+    const fill = document.getElementById('hp-bar-fill');
+    const text = document.getElementById('hp-text');
+    const pct  = max > 0 ? Math.max(0, Math.min(100, (current / max) * 100)) : 0;
+    fill.style.width = pct + '%';
+    text.textContent = `${current} / ${max}`;
+    fill.classList.toggle('low',  pct <= 50 && pct > 25);
+    fill.classList.toggle('crit', pct <= 25);
+  }
+
+  // ── Stat modifier helper ───────────────────────────────────────────────────
+  function modStr(score) {
+    const mod = Math.floor((score - 10) / 2);
+    return (mod >= 0 ? '+' : '') + mod;
+  }
+
+  // ── Apply State to UI ──────────────────────────────────────────────────────
+  function applyCharacterState(state) {
+    characterState = state;
+    const char = state.character || {};
+
+    // Header — read_all_characters returns 'class' not 'char_class'
+    const charClass = char.char_class || char['class'] || '';
+    document.getElementById('char-name').textContent    = char.name || PLAYER_CHAR || '—';
+    document.getElementById('char-subline').textContent = [char.race, charClass].filter(Boolean).join(' · ') || '—';
+    document.getElementById('sb-char').textContent      = char.name || PLAYER_CHAR || '—';
+
+    // HP
+    const hpCur = char.hp_current ?? char.hp ?? 0;
+    const hpMax = char.hp_max     ?? char.max_hp ?? hpCur;
+    updateHPBar(hpCur, hpMax);
+
+    // Vitals
+    document.getElementById('vital-ac').textContent    = char.ac    ?? '—';
+    document.getElementById('vital-speed').textContent = char.speed  != null ? char.speed : '—';
+    document.getElementById('vital-gold').textContent  = char.gold   ?? '—';
+
+    // Ability grid
+    const keys = ['str','dex','con','int','wis','cha'];
+    keys.forEach(k => {
+      // DB stores as str_score, dex_score etc; fallback to char.stats.str or char.str
+      const score = char[k + '_score'] ?? char.stats?.[k] ?? char[k] ?? null;
+      document.getElementById('abl-' + k).textContent     = score != null ? score : '—';
+      document.getElementById('abl-mod-' + k).textContent = score != null ? modStr(score) : '—';
+    });
+
+    // Spells / Inventory lists moved to floating inv panel — no left-panel elements to update
+
+    // Party — use party_members (always from DB) so badges always show
+    const gameState     = state.game_state || {};
+    const characters    = gameState.characters || [];
+    _partyNames = new Set(characters.map(c => typeof c === 'string' ? c : (c.name || '')).filter(Boolean));
+    const partyEl       = document.getElementById('party-badges');
+    const members       = state.party_members || [];
+    if (members.length === 0) {
+      partyEl.innerHTML = '<span style="color:var(--text-dim);font-size:12px;">No other party members</span>';
+    } else {
+      partyEl.innerHTML = members.map(c => {
+        const n = c.name || '—';
+        return `<span class="party-badge" data-char="${escHtml(n)}">${escHtml(n)}</span>`;
+      }).join('');
+      partyEl.querySelectorAll('.party-badge').forEach(b => {
+        b.addEventListener('click', () => openDM(b.dataset.char));
+      });
+    }
+
+    // Session status
+    const sessionStatus = document.getElementById('session-status');
+    if (gameState.active || gameState.session_active) {
+      sessionStatus.textContent = 'Active';
+      sessionStatus.className   = 'active';
+    } else {
+      sessionStatus.textContent = 'Waiting';
+      sessionStatus.className   = 'waiting';
+    }
+
+    // Map if included — always reset view on full state restore (page load)
+    if (state.map_layout !== undefined || state.token_positions !== undefined) {
+      _mapCellSize = null; _mapPanOffset = null;
+      if (state.scene_description) setSceneDesc(state.scene_description);
+      renderMap(state.map_layout || null, state.token_positions ?? null);
+    }
+
+    // Sync initiative tracker
+    if (state.combat_order !== undefined) {
+      applyCombatState(state.combat_order, state.combat_turn_idx, state.combat_round);
+    }
+
+    // Replay chronicle entries not yet shown (handles joining mid-session)
+    const chronicle = state.chronicle || [];
+    if (chronicle.length > 0) {
+      const knownIds = new Set(narrativeChronicle.map(e => e.sync_id).filter(Boolean));
+      chronicle.forEach(entry => {
+        const id = entry.sync_id;
+        if (id && knownIds.has(id)) return;
+        // Chronicle uses .dm for the narrative text; normalise before appending
+        appendNarrative({
+          sync_id:   id,
+          game_date: entry.game_date || '',
+          narrative: entry.dm || entry.dm_text || entry.narrative || entry.text || '',
+          player_actions: entry.player    ? [entry.player]
+                        : entry.player_text ? [entry.player_text] : []
+        });
+      });
+    }
+  }
+
+  // ── HTML escaping ──────────────────────────────────────────────────────────
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Narrative Feed ─────────────────────────────────────────────────────────
+  // ── Initiative Tracker ─────────────────────────────────────────────────────
+  let _combatOrder    = [];
+  let _combatTurnIdx  = 0;
+  let _combatRound    = 1;
+  let _lastMapLayout    = null;
+  let _lastTokenPositions = null;
+  let _mapCellSize    = null;   // null = auto-fit on first render
+  let _mapPanOffset   = null;   // null = auto-center on first render
+  let _mapPanStart    = null;
+  let _mapIsDragging  = false;
+
+  function renderInitiative() {
+    document.getElementById('init-round-num').textContent = _combatRound || '—';
+    const list = document.getElementById('init-list');
+    if (!_combatOrder || !_combatOrder.length) {
+      list.innerHTML = '<div id="init-empty">No combat active</div>';
+      return;
+    }
+    list.innerHTML = _combatOrder.map((c, i) => {
+      const isActive = i === _combatTurnIdx;
+      const isNpc    = c.is_npc || c.type === 'npc' || c.type === 'mob';
+      const isKo     = c.status_ko || false;
+      const classes  = [
+        'init-entry',
+        isActive ? 'active'  : '',
+        isNpc    ? 'is-npc'  : '',
+        isKo     ? 'is-ko'   : '',
+      ].filter(Boolean).join(' ');
+      const badge = isKo ? 'ko' : isNpc ? 'npc' : 'pc';
+      const label = isKo ? 'KO' : isNpc ? 'NPC' : 'PC';
+      return `<div class="${classes}">
+        <span class="init-num">${c.initiative ?? '?'}</span>
+        <span class="init-name">${escHtml(c.name || '?')}</span>
+        <span class="init-badge ${badge}">${label}</span>
+      </div>`;
+    }).join('');
+  }
+
+  function applyCombatState(order, turnIdx, round) {
+    _combatOrder   = order   || [];
+    _combatTurnIdx = turnIdx ?? 0;
+    _combatRound   = round   ?? 1;
+    renderInitiative();
+    applyTurnState();
+    // Re-render map so active-turn glow updates
+    const canvas = document.getElementById('map-canvas');
+    if (canvas.style.display !== 'none') renderMap();
+  }
+
+  function appendNarrative(entry) {
+    const empty = document.getElementById('narrative-empty');
+    if (empty) empty.remove();
+
+    narrativeChronicle.push(entry);
+    if (narrativeChronicle.length > 20) narrativeChronicle.shift();
+
+    const feed = document.getElementById('narrative-section');
+    const el   = document.createElement('div');
+    el.className = 'narrative-entry';
+
+    const gameDate  = entry.game_date || entry.date || '';
+    const narrative = entry.narrative || entry.text || '';
+    const actions   = entry.player_actions || entry.actions || [];
+
+    let actionsHtml = '';
+    if (actions.length > 0) {
+      const id = 'act-' + Date.now();
+      actionsHtml = `
+        <button class="narrative-actions-toggle" onclick="toggleActions('${id}')">&#9654; Player Actions (${actions.length})</button>
+        <div id="${id}" class="narrative-actions-list" style="display:none">
+          ${actions.map(a => `<div>${escHtml(typeof a === 'string' ? a : (a.char + ': ' + a.action))}</div>`).join('')}
+        </div>`;
+    }
+
+    el.innerHTML = `
+      ${gameDate ? `<div class="narrative-date">${escHtml(gameDate)}</div>` : ''}
+      <div class="narrative-text">${escHtml(narrative)}</div>
+      ${actionsHtml}`;
+
+    feed.appendChild(el);
+    feed.scrollTop = feed.scrollHeight;
+  }
+
+  function toggleActions(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const btn = el.previousElementSibling;
+    if (el.style.display === 'none') {
+      el.style.display = 'block';
+      if (btn) btn.textContent = btn.textContent.replace('▶','▼');
+    } else {
+      el.style.display = 'none';
+      if (btn) btn.textContent = btn.textContent.replace('▼','▶');
+    }
+  }
+
+  // ── Turn Panel ─────────────────────────────────────────────────────────────
+  function applyTurnState() {
+    const panel = document.getElementById('turn-panel');
+
+    if (!_combatOrder || !_combatOrder.length) {
+      panel.style.display = 'none';
+      document.getElementById('round-status-badge').textContent = 'No Combat';
+      document.getElementById('round-status-badge').className   = 'closed';
+      return;
+    }
+
+    panel.style.display = 'block';
+    const active    = _combatOrder[_combatTurnIdx];
+    const isMyTurn  = active && active.name === PLAYER_CHAR;
+    const turnKey   = `${_combatRound}-${_combatTurnIdx}`;
+
+    // Status badge
+    const badge = document.getElementById('round-status-badge');
+    if (isMyTurn) {
+      badge.textContent = `Round ${_combatRound} — Your Turn!`;
+      badge.className   = 'open';
+    } else {
+      badge.textContent = `Round ${_combatRound} — ${active ? active.name + "'s Turn" : 'Combat'}`;
+      badge.className   = 'closed';
+    }
+
+    // Waiting vs active UI
+    document.getElementById('turn-waiting').style.display   = isMyTurn ? 'none'  : 'flex';
+    document.getElementById('turn-active-ui').style.display = isMyTurn ? 'block' : 'none';
+
+    if (!isMyTurn && active) {
+      document.getElementById('turn-acting-name').textContent = active.name;
+    }
+
+    if (isMyTurn) {
+      document.getElementById('turn-round-num').textContent = _combatRound;
+      // New turn — reset submission state
+      if (turnKey !== _myTurnKey) {
+        _myTurnKey       = turnKey;
+        _myTurnSubmitted = false;
+        document.getElementById('turn-action-area').value             = '';
+        document.getElementById('turn-action-area').disabled          = false;
+        document.getElementById('turn-submit-btn').disabled           = false;
+        document.getElementById('turn-submitted-msg').style.display   = 'none';
+        playChime();
+        showToast('It\'s your turn!', 'success');
+      }
+    }
+  }
+
+  document.getElementById('turn-action-area').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      document.getElementById('turn-submit-btn').click();
+    }
+  });
+
+  document.getElementById('turn-submit-btn').addEventListener('click', () => {
+    if (_myTurnSubmitted) return;
+    const action = document.getElementById('turn-action-area').value.trim();
+    if (!action) return;
+
+    _myTurnSubmitted = true;
+    document.getElementById('turn-action-area').disabled          = true;
+    document.getElementById('turn-submit-btn').disabled           = true;
+    document.getElementById('turn-submitted-msg').style.display   = 'inline';
+
+    fetch('/player/submit-action', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action })
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (!d.ok) {
+        _myTurnSubmitted = false;
+        document.getElementById('turn-action-area').disabled          = false;
+        document.getElementById('turn-submit-btn').disabled           = false;
+        document.getElementById('turn-submitted-msg').style.display   = 'none';
+        showToast(d.error || 'Submission failed', 'warn');
+      }
+    })
+    .catch(() => showToast('Network error submitting action', 'warn'));
+  });
+
+  // ── Map Scene Description ──────────────────────────────────────────────────
+  function setSceneDesc(text) {
+    const el = document.getElementById('map-scene-desc');
+    if (!el) return;
+    if (text) { el.textContent = text; el.style.display = 'block'; }
+    else      { el.style.display = 'none'; }
+  }
+
+  // ── Map Rendering ──────────────────────────────────────────────────────────
+  function renderMap(layout, tokenPositions) {
+    if (layout !== undefined)       _lastMapLayout      = layout;
+    if (tokenPositions !== undefined) _lastTokenPositions = tokenPositions;
+    const canvas      = document.getElementById('map-canvas');
+    const placeholder = document.getElementById('map-placeholder');
+    const section     = document.getElementById('map-section');
+
+    // Normalise tokenPositions: accept object {name:{gx,gy}} or array [{name,x,y}]
+    let tokens = [];
+    const tp = tokenPositions !== undefined ? tokenPositions : _lastTokenPositions;
+    if (tp && !Array.isArray(tp) && typeof tp === 'object') {
+      tokens = Object.entries(tp).map(([name, pos]) => ({
+        name,
+        gx: pos.gx ?? pos.x ?? pos.col ?? 0,
+        gy: pos.gy ?? pos.y ?? pos.row ?? 0,
+      }));
+    } else if (Array.isArray(tp)) {
+      tokens = tp.map(tok => ({
+        name: tok.name || tok.character || '?',
+        gx:   tok.gx ?? tok.x ?? tok.col ?? 0,
+        gy:   tok.gy ?? tok.y ?? tok.row ?? 0,
+      }));
+    }
+
+    const curLayout = layout !== undefined ? layout : _lastMapLayout;
+    const hasLayout = curLayout && Array.isArray(curLayout) && curLayout.length > 0;
+    const hasTokens = tokens.length > 0;
+
+    if (!hasLayout && !hasTokens) {
+      placeholder.style.display = 'flex';
+      canvas.style.display = 'none';
+      return;
+    }
+    placeholder.style.display = 'none';
+    canvas.style.display = 'block';
+
+    // Size canvas to fill container
+    const W = section.clientWidth  || 400;
+    const H = section.clientHeight || 300;
+    canvas.width  = W; canvas.height = H;
+
+    // Determine grid dimensions
+    let rows, cols;
+    if (hasLayout) {
+      rows = curLayout.length;
+      cols = Math.max(...curLayout.map(r => Array.isArray(r) ? r.length : 0));
+    } else {
+      const maxGx = tokens.reduce((m, t) => Math.max(m, t.gx), 0);
+      const maxGy = tokens.reduce((m, t) => Math.max(m, t.gy), 0);
+      cols = Math.max(maxGx + 3, 20); rows = Math.max(maxGy + 3, 20);
+    }
+
+    // Auto-fit on first render; subsequent renders use the stored pan/zoom
+    if (_mapCellSize === null) {
+      _mapCellSize = Math.max(16, Math.min(Math.floor(W / cols), Math.floor(H / rows), 38));
+    }
+    if (_mapPanOffset === null) {
+      _mapPanOffset = {
+        x: Math.floor((W - cols * _mapCellSize) / 2),
+        y: Math.floor((H - rows * _mapCellSize) / 2),
+      };
+    }
+    const cs = _mapCellSize;
+    const ox = _mapPanOffset.x;
+    const oy = _mapPanOffset.y;
+
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, W, H);
+
+    // Dark void background
+    ctx.fillStyle = '#09090c';
+    ctx.fillRect(0, 0, W, H);
+
+    if (hasLayout) {
+      for (let r = 0; r < rows; r++) {
+        const row = curLayout[r];
+        if (!Array.isArray(row)) continue;
+        for (let c = 0; c < row.length; c++) {
+          const px = ox + c * cs, py = oy + r * cs;
+          // Skip tiles entirely outside the canvas
+          if (px + cs < 0 || py + cs < 0 || px > W || py > H) continue;
+          const cell = typeof row[c] === 'string' ? row[c] : (row[c]?.type || 'floor');
+          const v  = ((Math.imul(c, 1664525) + Math.imul(r, 1013904223)) >>> 0) & 0xf;
+
+          if (cell === 'wall' || cell === 'void') {
+            const bv = 14 + Math.floor(v * 0.3);
+            ctx.fillStyle = `rgb(${bv},${bv},${bv + 4})`;
+            ctx.fillRect(px, py, cs, cs);
+            ctx.fillStyle = 'rgba(85,90,115,0.55)'; ctx.fillRect(px, py, cs, 2);
+            ctx.fillStyle = 'rgba(70,75,100,0.35)';  ctx.fillRect(px, py, 2, cs);
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.fillRect(px, py + cs - 2, cs, 2); ctx.fillRect(px + cs - 2, py, 2, cs);
+          } else {
+            const bv = 22 + v;
+            ctx.fillStyle = `rgb(${bv},${bv},${bv + 5})`;
+            ctx.fillRect(px, py, cs, cs);
+            ctx.strokeStyle = 'rgba(8,8,14,0.7)'; ctx.lineWidth = 0.8;
+            ctx.strokeRect(px + 0.5, py + 0.5, cs - 1, cs - 1);
+            ctx.strokeStyle = 'rgba(70,80,105,0.25)'; ctx.lineWidth = 0.4;
+            ctx.strokeRect(px + 1.5, py + 1.5, cs - 3, cs - 3);
+            if (cell === 'door')  { ctx.fillStyle = 'rgba(90,50,20,0.55)';  ctx.fillRect(px+2, py+2, cs-4, cs-4); }
+            if (cell === 'water') { ctx.fillStyle = 'rgba(20,70,130,0.5)';  ctx.fillRect(px, py, cs, cs); }
+            if (cell === 'altar' || cell === 'chest') {
+              ctx.fillStyle = 'rgba(201,168,76,0.18)'; ctx.fillRect(px+1, py+1, cs-2, cs-2);
+            }
+          }
+        }
+      }
+    } else {
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const px = ox + c * cs, py = oy + r * cs;
+          if (px + cs < 0 || py + cs < 0 || px > W || py > H) continue;
+          ctx.fillStyle = '#14141e'; ctx.fillRect(px, py, cs, cs);
+          ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 0.5;
+          ctx.strokeRect(px, py, cs, cs);
+        }
+      }
+    }
+
+    // Draw tokens
+    const activeIdx = _combatTurnIdx ?? 0;
+    tokens.forEach(tok => {
+      const combatant = _combatOrder ? _combatOrder.find(c => c.name === tok.name) : null;
+      const isParty   = combatant ? !!combatant.is_party : (_partyNames.has(tok.name) || tok.name === PLAYER_CHAR);
+      const isKo      = combatant ? !!combatant.status_ko : false;
+      const isActive  = _combatOrder && _combatOrder[activeIdx] && _combatOrder[activeIdx].name === tok.name;
+
+      const cx = ox + tok.gx * cs + cs / 2;
+      const cy = oy + tok.gy * cs + cs / 2;
+      const r  = cs * 0.38;
+
+      if (isActive) { ctx.shadowColor = '#ffb300'; ctx.shadowBlur = 14; }
+
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fillStyle = isKo ? '#2a2a2e' : isParty ? '#1976d2' : '#c42020';
+      ctx.fill();
+
+      ctx.strokeStyle = isActive ? '#ffb300' : isKo ? '#555' : isParty ? '#64b5f6' : '#ff8c00';
+      ctx.lineWidth   = isActive ? 3 : 2;
+      ctx.stroke();
+      ctx.shadowBlur  = 0;
+
+      if (isKo) {
+        ctx.strokeStyle = '#ef5350'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(cx - r*.7, cy - r*.7); ctx.lineTo(cx + r*.7, cy + r*.7); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx + r*.7, cy - r*.7); ctx.lineTo(cx - r*.7, cy + r*.7); ctx.stroke();
+      }
+
+      ctx.fillStyle = isKo ? '#888' : '#fff';
+      ctx.font = `bold ${Math.round(r)}px 'Roboto Condensed', sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(tok.name.charAt(0).toUpperCase(), cx, cy);
+
+      ctx.fillStyle = isActive ? '#ffdb70' : '#b0b0b8';
+      ctx.font = `${Math.round(r * 0.52)}px Roboto, sans-serif`;
+      ctx.textBaseline = 'top';
+      const label = tok.name.length > 12 ? tok.name.slice(0, 11) + '…' : tok.name;
+      ctx.fillText(label, cx, cy + r + 3);
+    });
+  }
+
+  // ── Map Pan / Zoom ──────────────────────────────────────────────────────────
+  (function initMapInteraction() {
+    const canvas = document.getElementById('map-canvas');
+
+    // Wheel → zoom around cursor
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      if (_mapCellSize === null) return;
+      const rect   = canvas.getBoundingClientRect();
+      const mx     = e.clientX - rect.left;
+      const my     = e.clientY - rect.top;
+      const factor = e.deltaY < 0 ? 1.12 : (1 / 1.12);
+      const newCs  = Math.max(12, Math.min(80, Math.round(_mapCellSize * factor)));
+      if (newCs === _mapCellSize) return;
+      // Adjust pan so the tile under the cursor stays fixed
+      if (_mapPanOffset) {
+        _mapPanOffset.x = mx - (mx - _mapPanOffset.x) * (newCs / _mapCellSize);
+        _mapPanOffset.y = my - (my - _mapPanOffset.y) * (newCs / _mapCellSize);
+      }
+      _mapCellSize = newCs;
+      renderMap();
+    }, { passive: false });
+
+    // Mouse drag → pan
+    canvas.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      _mapIsDragging = false;
+      _mapPanStart   = { x: e.clientX, y: e.clientY, ox: _mapPanOffset?.x ?? 0, oy: _mapPanOffset?.y ?? 0 };
+      canvas.classList.add('panning');
+    });
+    window.addEventListener('mousemove', e => {
+      if (!_mapPanStart) return;
+      const dx = e.clientX - _mapPanStart.x;
+      const dy = e.clientY - _mapPanStart.y;
+      if (!_mapIsDragging && (Math.abs(dx) > 3 || Math.abs(dy) > 3)) _mapIsDragging = true;
+      if (!_mapIsDragging) return;
+      if (!_mapPanOffset) _mapPanOffset = { x: 0, y: 0 };
+      _mapPanOffset.x = _mapPanStart.ox + dx;
+      _mapPanOffset.y = _mapPanStart.oy + dy;
+      renderMap();
+    });
+    window.addEventListener('mouseup', () => {
+      _mapPanStart = null; _mapIsDragging = false;
+      canvas.classList.remove('panning');
+    });
+
+    // Double-click → reset view
+    canvas.addEventListener('dblclick', () => {
+      _mapCellSize  = null;
+      _mapPanOffset = null;
+      renderMap();
+    });
+
+    // Touch support (single finger = pan, pinch = zoom)
+    let _touchLast = null, _touchDist = null;
+    canvas.addEventListener('touchstart', e => {
+      e.preventDefault();
+      if (e.touches.length === 1) {
+        const t = e.touches[0];
+        _touchLast = { x: t.clientX, y: t.clientY, ox: _mapPanOffset?.x ?? 0, oy: _mapPanOffset?.y ?? 0 };
+        _touchDist = null;
+      } else if (e.touches.length === 2) {
+        _touchDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY);
+      }
+    }, { passive: false });
+    canvas.addEventListener('touchmove', e => {
+      e.preventDefault();
+      if (e.touches.length === 1 && _touchLast) {
+        const t = e.touches[0];
+        if (!_mapPanOffset) _mapPanOffset = { x: 0, y: 0 };
+        _mapPanOffset.x = _touchLast.ox + (t.clientX - _touchLast.x);
+        _mapPanOffset.y = _touchLast.oy + (t.clientY - _touchLast.y);
+        renderMap();
+      } else if (e.touches.length === 2 && _touchDist !== null && _mapCellSize !== null) {
+        const newDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY);
+        const factor  = newDist / _touchDist;
+        const mx = (e.touches[0].clientX + e.touches[1].clientX) / 2 - canvas.getBoundingClientRect().left;
+        const my = (e.touches[0].clientY + e.touches[1].clientY) / 2 - canvas.getBoundingClientRect().top;
+        const newCs = Math.max(12, Math.min(80, Math.round(_mapCellSize * factor)));
+        if (_mapPanOffset) {
+          _mapPanOffset.x = mx - (mx - _mapPanOffset.x) * (newCs / _mapCellSize);
+          _mapPanOffset.y = my - (my - _mapPanOffset.y) * (newCs / _mapCellSize);
+        }
+        _mapCellSize = newCs;
+        _touchDist   = newDist;
+        renderMap();
+      }
+    }, { passive: false });
+    canvas.addEventListener('touchend', () => { _touchLast = null; _touchDist = null; });
+
+    // Resize observer — keep canvas sized to section, re-render
+    const section = document.getElementById('map-section');
+    new ResizeObserver(() => {
+      if (document.getElementById('map-canvas').style.display !== 'none') renderMap();
+    }).observe(section);
+  })();
+
+  // ── DM Float Panel ─────────────────────────────────────────────────────────
+  let _dmPopped   = false;
+  let _dmDragOff  = null;
+  let _dmUnread   = 0;
+  let _dmUnreadFrom = null;
+
+  function openDmNotify() {
+    const from = _dmUnreadFrom || 'GM';
+    _dmUnread = 0;
+    _dmUnreadFrom = null;
+    document.getElementById('dm-notify-btn').style.display = 'none';
+    document.getElementById('dm-notify-badge').textContent = '';
+    openDM(from);
+  }
+
+  function openDM(charName) {
+    dmTargetChar = charName;
+    document.getElementById('dm-title').textContent = `DM \u2192 ${charName}`;
+    const msgs = document.getElementById('dm-messages');
+    msgs.innerHTML = '';
+    const conv = dmConversations[charName] || [];
+    conv.forEach(m => appendDMMessage(m.sender, m.text, false));
+    document.getElementById('dm-panel').classList.add('open');
+    document.getElementById('dm-input').focus();
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function closeDM() {
+    document.getElementById('dm-panel').classList.remove('open');
+    dmTargetChar = null;
+    _dmPopped = false;
+    const panel = document.getElementById('dm-panel');
+    panel.style.left = '';
+    panel.style.top  = '';
+    panel.style.bottom = '';
+    panel.style.right  = '';
+    document.getElementById('dm-popout-btn').textContent = '\u2922';
+  }
+
+  function toggleDmPopout() {
+    const panel = document.getElementById('dm-panel');
+    _dmPopped = !_dmPopped;
+    if (_dmPopped) {
+      const r = panel.getBoundingClientRect();
+      panel.style.left   = r.left + 'px';
+      panel.style.top    = r.top  + 'px';
+      panel.style.bottom = 'auto';
+      panel.style.right  = 'auto';
+      document.getElementById('dm-popout-btn').textContent = '\u2923';
+    } else {
+      panel.style.left = '';
+      panel.style.top  = '';
+      panel.style.bottom = '';
+      panel.style.right  = '';
+      document.getElementById('dm-popout-btn').textContent = '\u2922';
+    }
+  }
+
+  function appendDMMessage(sender, text, scroll = true, secret = false) {
+    const msgs   = document.getElementById('dm-messages');
+    const fromMe = sender === PLAYER_CHAR;
+    const el     = document.createElement('div');
+    el.className = `dm-msg ${fromMe ? 'from-me' : 'from-them'}`;
+    const secretTag = secret ? ' <span style="font-size:.62rem;color:var(--red-lt);opacity:.8;">[secret]</span>' : '';
+    el.innerHTML = `<div class="dm-sender">${escHtml(sender)}${secretTag}</div><div class="dm-bubble">${escHtml(text)}</div>`;
+    msgs.appendChild(el);
+    if (scroll) msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  document.getElementById('dm-close-btn').addEventListener('click', closeDM);
+  document.getElementById('dm-popout-btn').addEventListener('click', toggleDmPopout);
+
+  function sendDM() {
+    const input  = document.getElementById('dm-input');
+    const text   = input.value.trim();
+    const secret = document.getElementById('dm-secret-toggle').checked;
+    if (!text || !dmTargetChar) return;
+
+    fetch('/player/send-dm', {
+      method: 'POST', credentials: 'include',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ to: dmTargetChar, message: text, secret })
+    }).then(r => r.json()).then(d => {
+      if (!d.ok) {
+        showToast(d.error || 'Message failed to send', 'error');
+      } else {
+        if (!dmConversations[dmTargetChar]) dmConversations[dmTargetChar] = [];
+        dmConversations[dmTargetChar].push({ sender: PLAYER_CHAR, text });
+        appendDMMessage(PLAYER_CHAR, text, true, secret);
+        input.value = '';
+      }
+    }).catch(() => showToast('Could not reach server', 'error'));
+  }
+
+  document.getElementById('dm-send-btn').addEventListener('click', sendDM);
+  document.getElementById('dm-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendDM();
+  });
+
+  // Update secret row styling when toggled
+  document.getElementById('dm-secret-toggle').addEventListener('change', function() {
+    document.getElementById('dm-secret-row').classList.toggle('active', this.checked);
+  });
+
+  // Drag-by-header (only when popped out)
+  (function() {
+    const header = document.getElementById('dm-header');
+    header.addEventListener('mousedown', e => {
+      const panel = document.getElementById('dm-panel');
+      if (!_dmPopped) return;
+      if (e.target.closest('button')) return;
+      const r = panel.getBoundingClientRect();
+      _dmDragOff = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+      const onMove = mv => {
+        panel.style.left = (mv.clientX - _dmDragOff.dx) + 'px';
+        panel.style.top  = (mv.clientY - _dmDragOff.dy) + 'px';
+      };
+      const onUp = () => {
+        _dmDragOff = null;
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup',   onUp);
+      };
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup',   onUp);
+    });
+  })();
+
+  // ── Party Chat ─────────────────────────────────────────────────────────────
+  let _pcUnread   = 0;
+  let _pcOpen     = false;
+  let _pcPopped   = false;   // floating/undocked mode
+  let _pcDragOff  = null;
+
+  function togglePartyChat() {
+    const panel  = document.getElementById('party-chat-panel');
+    const toggle = document.getElementById('party-chat-toggle');
+    _pcOpen = !_pcOpen;
+    panel.classList.toggle('open', _pcOpen);
+    toggle.classList.toggle('active', _pcOpen);
+    document.getElementById('party-chat-indicator').textContent = _pcOpen ? '\u25B4' : '\u25BE';
+    if (_pcOpen) {
+      _pcUnread = 0;
+      updatePcBadge();
+      document.getElementById('pc-messages').scrollTop = 99999;
+      document.getElementById('pc-input').focus();
+    }
+  }
+
+  function updatePcBadge() {
+    const badge = document.getElementById('party-chat-badge');
+    badge.textContent = _pcUnread > 0 ? _pcUnread : '';
+    badge.classList.toggle('has-unread', _pcUnread > 0);
+  }
+
+  function appendPcMessage(msg, scrollToBottom = true) {
+    const msgs   = document.getElementById('pc-messages');
+    const isMe   = msg.from === PLAYER_CHAR;
+    const isGM   = msg.from === 'GM';
+    const el     = document.createElement('div');
+    el.className = `pc-msg ${isMe ? 'from-me' : isGM ? 'from-gm' : 'from-other'}`;
+    const t      = msg.sent_at ? new Date(msg.sent_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
+    el.innerHTML = `<span class="pc-sender">${escHtml(msg.from)}</span>${escHtml(msg.message)}<span class="pc-time">${t}</span>`;
+    msgs.appendChild(el);
+    if (scrollToBottom) msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function sendPartyChat() {
+    const input = document.getElementById('pc-input');
+    const text  = input.value.trim();
+    if (!text) return;
+    fetch('/party-chat', {
+      method: 'POST', credentials: 'include',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ message: text })
+    }).catch(() => {});
+    // Optimistic local append
+    appendPcMessage({ from: PLAYER_CHAR, message: text, sent_at: new Date().toISOString() });
+    input.value = '';
+  }
+
+  document.getElementById('pc-send-btn').addEventListener('click', sendPartyChat);
+  document.getElementById('pc-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendPartyChat();
+  });
+
+  // Pop-out: detach panel from fixed bottom-left into freely draggable position
+  function togglePcPopout() {
+    const panel = document.getElementById('party-chat-panel');
+    _pcPopped = !_pcPopped;
+    if (_pcPopped) {
+      const r = panel.getBoundingClientRect();
+      panel.style.left   = r.left + 'px';
+      panel.style.bottom = 'auto';
+      panel.style.top    = r.top  + 'px';
+      panel.classList.add('floating');
+      document.getElementById('pc-popout-btn').title = 'Dock';
+      document.getElementById('pc-popout-btn').textContent = '\u229F';
+    } else {
+      panel.style.left   = '278px';
+      panel.style.right  = 'auto';
+      panel.style.top    = 'auto';
+      panel.style.bottom = '80px';
+      panel.classList.remove('floating');
+      document.getElementById('pc-popout-btn').title = 'Pop out';
+      document.getElementById('pc-popout-btn').textContent = '\u2922';
+    }
+  }
+
+  // Drag the header to move the popped-out panel
+  (function() {
+    const header = document.getElementById('pc-header');
+    header.addEventListener('mousedown', e => {
+      const panel = document.getElementById('party-chat-panel');
+      if (!_pcPopped) return;
+      if (e.target.closest('button')) return;
+      const startX = e.clientX, startY = e.clientY;
+      const r = panel.getBoundingClientRect();
+      const ox = r.left, oy = r.top;
+      const onMove = ev => {
+        panel.style.left = (ox + ev.clientX - startX) + 'px';
+        panel.style.top  = (oy + ev.clientY - startY) + 'px';
+      };
+      const onUp = () => {
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+      };
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+      e.preventDefault();
+    });
+  })();
+
+  // Load party chat history on connect
+  function loadPartyChatHistory() {
+    fetch('/party-chat', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d || !d.ok) return;
+        d.messages.forEach(m => appendPcMessage(m, false));
+        document.getElementById('pc-messages').scrollTop = 99999;
+      }).catch(() => {});
+  }
+
+  // ── Chronicle modal ────────────────────────────────────────────────────────
+  function toggleChronicle() {
+    const modal   = document.getElementById('chronicle-modal');
+    const overlay = document.getElementById('chronicle-overlay');
+    if (modal.classList.contains('open')) {
+      modal.classList.remove('open');
+      overlay.classList.remove('visible');
+    } else {
+      rebuildChronicleModal();
+      modal.classList.add('open');
+      overlay.classList.add('visible');
+      // Scroll to bottom so most recent entry is visible
+      const scroll = document.getElementById('chron-modal-scroll');
+      setTimeout(() => { scroll.scrollTop = scroll.scrollHeight; }, 50);
+    }
+  }
+
+  function rebuildChronicleModal() {
+    const content = document.getElementById('chron-modal-content');
+    if (!narrativeChronicle.length) {
+      content.innerHTML = '<span style="font-family:\'IM Fell English\',serif;color:#9a8060;font-style:italic;">The chronicle awaits your deeds...</span>';
+      return;
+    }
+    content.innerHTML = narrativeChronicle.map(e => {
+      const date    = e.game_date || e.date || '';
+      const text    = e.narrative || e.text || '';
+      const actions = e.player_actions || e.actions || [];
+      return `<div class="chron-entry">
+        ${date ? `<div class="chron-date">${escHtml(date)}</div>` : ''}
+        ${actions.map(a => `<div class="chron-player">${escHtml(typeof a === 'string' ? a : (a.char + ': ' + a.action))}</div>`).join('')}
+        <div class="chron-dm">${escHtml(text)}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Map resize handle ──────────────────────────────────────────────────────
+  (function() {
+    const resizer  = document.getElementById('map-resizer');
+    const mapRow   = document.getElementById('map-init-row');
+    let startY = 0, startH = 0;
+
+    resizer.addEventListener('mousedown', e => {
+      startY = e.clientY;
+      startH = mapRow.offsetHeight;
+      resizer.classList.add('dragging');
+      document.addEventListener('mousemove', onDrag);
+      document.addEventListener('mouseup',   onUp);
+      e.preventDefault();
+    });
+
+    function onDrag(e) {
+      const newH = Math.max(120, Math.min(window.innerHeight - 150, startH + (e.clientY - startY)));
+      mapRow.style.height    = newH + 'px';
+      mapRow.style.minHeight = newH + 'px';
+    }
+    function onUp() {
+      resizer.classList.remove('dragging');
+      document.removeEventListener('mousemove', onDrag);
+      document.removeEventListener('mouseup',   onUp);
+    }
+  })();
+
+  // ── Inventory / Spells Float Panel ─────────────────────────────────────────
+  let _invPopped   = false;
+  let _invDragOff  = null;
+  let _pInvItems   = [];   // [{name, qty, note, slot}]  slot='' → carried
+  let _pSpells     = [];   // [{name, level}]
+  let _pDragIdx    = null;
+
+  const P_EQ_SLOTS = [
+    'head',
+    'main_hand','armor','off_hand',
+    'ring_right','cloak','ring_left',
+    'arms','robe','hands',
+    'comp_pouch','belt','quiver',
+    'scroll_case','pouch',
+    'boots',
+    'shirt','pants',  // legacy compat
+  ];
+
+  function openInvPanel(tab) {
+    // Load items from characterState — items live under .character
+    const char  = characterState.character || characterState;
+    const items = char.items || char.inventory || [];
+    _pInvItems = items.map(i => {
+      if (typeof i === 'string') return { name: i, qty: 1, note: '', slot: '' };
+      let slot = i.slot !== undefined ? i.slot : (i.equipped ? 'main_hand' : '');
+      if (slot === 'shirt') slot = 'belt';
+      return { name: i.name || '', qty: i.qty || 1, note: i.note || '', slot };
+    });
+    // Load spellbook from DB
+    _pSpells = [];
+    fetch(`/spells/book?campaign_id=${encodeURIComponent(CAMPAIGN_ID)}&char_name=${encodeURIComponent(PLAYER_CHAR)}`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => {
+        if (Array.isArray(d)) _pSpells = d;
+        else if (d.spells) _pSpells = d.spells;
+        if (document.getElementById('p-inv-pane-spells').classList.contains('active')) pRenderSpells();
+      }).catch(() => {});
+    document.getElementById('inv-panel').classList.add('open');
+    // Reset spell search
+    const sq = document.getElementById('p-spell-q');
+    if (sq) sq.value = '';
+    const sr = document.getElementById('p-spell-results');
+    if (sr) sr.innerHTML = '<div class="inv-empty">Search above to find spells to add.</div>';
+    pInvSwitchTab(tab || 'equipped');
+  }
+
+  function closeInvPanel() {
+    document.getElementById('inv-panel').classList.remove('open');
+    _invPopped = false;
+    const panel = document.getElementById('inv-panel');
+    panel.style.left = ''; panel.style.top = '';
+    panel.style.right = '18px'; panel.style.bottom = '';
+    document.getElementById('inv-popout-btn').textContent = '\u2922';
+  }
+
+  function pInvSwitchTab(tab) {
+    document.querySelectorAll('.inv-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.querySelectorAll('.inv-tab-pane').forEach(p => p.classList.remove('active'));
+    const pane = document.getElementById('p-inv-pane-' + tab);
+    if (pane) pane.classList.add('active');
+    if (tab === 'equipped') pRenderEquipped();
+    if (tab === 'carried')  pRenderCarried();
+    if (tab === 'spells')   pRenderSpells();
+  }
+
+  function toggleInvPopout() {
+    const panel = document.getElementById('inv-panel');
+    _invPopped = !_invPopped;
+    if (_invPopped) {
+      const r = panel.getBoundingClientRect();
+      panel.style.left   = r.left + 'px';
+      panel.style.top    = r.top  + 'px';
+      panel.style.right  = 'auto';
+      panel.style.bottom = 'auto';
+      document.getElementById('inv-popout-btn').textContent = '\u2923';
+    } else {
+      panel.style.left = ''; panel.style.top = '';
+      panel.style.right = '18px'; panel.style.bottom = '';
+      document.getElementById('inv-popout-btn').textContent = '\u2922';
+    }
+  }
+
+  document.getElementById('inv-close-btn').addEventListener('click', closeInvPanel);
+  document.getElementById('inv-popout-btn').addEventListener('click', toggleInvPopout);
+
+  // Drag-by-header when popped out
+  (function() {
+    const header = document.getElementById('inv-panel-header');
+    header.addEventListener('mousedown', e => {
+      const panel = document.getElementById('inv-panel');
+      if (!_invPopped) return;
+      if (e.target.closest('button')) return;
+      const r = panel.getBoundingClientRect();
+      _invDragOff = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+      const onMove = mv => {
+        panel.style.left = (mv.clientX - _invDragOff.dx) + 'px';
+        panel.style.top  = (mv.clientY - _invDragOff.dy) + 'px';
+      };
+      const onUp = () => {
+        _invDragOff = null;
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup',   onUp);
+      };
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup',   onUp);
+    });
+  })();
+
+  // ── Equipment rendering ───────────────────────────────────────────────────
+  function pRenderEquipped() {
+    P_EQ_SLOTS.forEach(slot => {
+      const el = document.getElementById(`p-eq-item-${slot}`);
+      if (!el) return;
+      const item = _pInvItems.find(i => i.slot === slot);
+      if (item) {
+        const idx = _pInvItems.indexOf(item);
+        el.draggable = true;
+        el.style.cursor = 'grab';
+        el.ondragstart = (ev) => {
+          _pDragIdx = idx;
+          ev.dataTransfer.effectAllowed = 'move';
+          ev.dataTransfer.setData('text/plain', String(idx));
+          setTimeout(() => el.classList.add('dragging'), 0);
+        };
+        el.ondragend = () => { el.classList.remove('dragging'); _pDragIdx = null; };
+        el.innerHTML = `<span title="${escHtml(item.name)}">${escHtml(item.name)}</span>
+          <button class="eq-slot-clear" title="Unequip" onclick="event.stopPropagation();pEqUnequip(${idx})">&#x2193;</button>`;
+      } else {
+        el.draggable = false; el.style.cursor = ''; el.ondragstart = null; el.ondragend = null; el.innerHTML = '';
+      }
+    });
+
+    const avail  = document.getElementById('p-eq-avail-list');
+    const filterQ = (document.getElementById('p-eq-avail-filter')?.value || '').toLowerCase();
+    let carried = _pInvItems.filter(i => i.slot === '');
+    if (filterQ) carried = carried.filter(i => i.name.toLowerCase().includes(filterQ));
+    if (!carried.length) {
+      avail.innerHTML = `<div class="inv-empty">${filterQ ? 'No matches.' : 'No carried items — add one below.'}</div>`;
+    } else {
+      avail.innerHTML = carried.map(it => {
+        const idx = _pInvItems.indexOf(it);
+        return `<div class="eq-avail-item" draggable="true"
+                     ondragstart="pEqDragStart(event,${idx})" ondragend="pEqDragEnd(event)">
+          <input class="ai-name-input" value="${escHtml(it.name)}" placeholder="item name"
+                 onclick="event.stopPropagation()" ondragstart="event.stopPropagation()"
+                 onchange="_pInvItems[${idx}].name=this.value.trim()||_pInvItems[${idx}].name">
+          <input class="ai-note-input" value="${escHtml(it.note||'')}" placeholder="note…"
+                 onclick="event.stopPropagation()" ondragstart="event.stopPropagation()"
+                 onchange="_pInvItems[${idx}].note=this.value">
+          <input class="ai-qty-input" type="number" min="1" value="${it.qty||1}"
+                 onclick="event.stopPropagation()" ondragstart="event.stopPropagation()"
+                 onchange="_pInvItems[${idx}].qty=Math.max(1,+this.value||1);this.value=_pInvItems[${idx}].qty">
+          <button class="ai-del" onclick="event.stopPropagation();pInvRemoveItem(${idx});pRenderEquipped()">&#10005;</button>
+        </div>`;
+      }).join('');
+    }
+
+    const bp = document.getElementById('p-bucket-backpack');
+    if (bp) {
+      const bpCount = _pInvItems.filter(i => i.slot === '').length;
+      bp.innerHTML = `&#x1F392; Backpack<small>${bpCount ? `${bpCount} item${bpCount !== 1 ? 's' : ''} &#x2014; click` : 'Drop &#x2193; Carried'}</small>`;
+      bp.style.cursor = bpCount ? 'pointer' : '';
+      bp.onclick = bpCount ? (e) => { if (!e.defaultPrevented) pInvSwitchTab('carried'); } : null;
+    }
+  }
+
+  function pRenderCarried() {
+    const list   = document.getElementById('p-inv-carried-list');
+    const carried = _pInvItems.filter(i => i.slot === '');
+    if (!carried.length) { list.innerHTML = '<div class="inv-empty">No carried items.</div>'; return; }
+    list.innerHTML = carried.map(it => {
+      const i = _pInvItems.indexOf(it);
+      return `<div class="inv-item-row">
+        <input class="inv-item-name" value="${escHtml(it.name)}" placeholder="item name"
+               onchange="_pInvItems[${i}].name=this.value.trim()||_pInvItems[${i}].name">
+        <input class="inv-item-qty" type="number" min="1" value="${it.qty||1}"
+               onchange="_pInvItems[${i}].qty=Math.max(1,+this.value||1)">
+        <input class="inv-item-note" value="${escHtml(it.note||'')}" placeholder="note..."
+               onchange="_pInvItems[${i}].note=this.value">
+        <button class="inv-del-btn" onclick="pInvRemoveItem(${i});pRenderCarried()">&#10005;</button>
+      </div>`;
+    }).join('');
+  }
+
+  function pRenderSpells() {
+    const list = document.getElementById('p-spellbook-list');
+    if (!_pSpells.length) { list.innerHTML = '<div class="inv-empty">No spells in spellbook.</div>'; return; }
+    const levelLabel = lv => lv === 0 ? 'Cantrip' : `Lv ${lv}`;
+    const sorted = [..._pSpells].sort((a, b) => (a.level ?? 99) - (b.level ?? 99));
+    list.innerHTML = sorted.map(sp => {
+      return `<div class="spell-entry">
+        <span class="se-name">${escHtml(sp.name)}</span>
+        <span class="se-level">${sp.level != null ? levelLabel(sp.level) : ''}</span>
+        <button class="se-del" title="Remove" onclick="pSpellDbRemove(${sp.id || 0},'${escHtml(sp.name)}')">&#10005;</button>
+      </div>`;
+    }).join('');
+    // Mark already-added spells in search results
+    document.querySelectorAll('.p-spell-add-btn[data-spell-id]').forEach(btn => {
+      const sid = parseInt(btn.dataset.spellId);
+      if (_pSpells.find(s => s.id === sid)) { btn.textContent = 'Added'; btn.classList.add('added'); btn.disabled = true; }
+    });
+  }
+
+  // ── Drag & drop ───────────────────────────────────────────────────────────
+  function pEqDragStart(e, idx) {
+    _pDragIdx = idx;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(idx));
+    setTimeout(() => { if (e.target) e.target.classList.add('dragging'); }, 0);
+  }
+  function pEqDragEnd(e) { e.target.classList.remove('dragging'); }
+  function pEqDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; e.currentTarget.classList.add('dragover'); }
+  function pEqDragLeave(e) { e.currentTarget.classList.remove('dragover'); }
+  function pEqDrop(e, slot) {
+    e.preventDefault(); e.currentTarget.classList.remove('dragover');
+    const idx = _pDragIdx !== null ? _pDragIdx : parseInt(e.dataTransfer.getData('text/plain'));
+    _pDragIdx = null;
+    if (isNaN(idx) || idx < 0 || idx >= _pInvItems.length) return;
+    if (slot === 'backpack') {
+      _pInvItems[idx].slot = '';
+    } else {
+      const existing = _pInvItems.findIndex((it, i) => i !== idx && it.slot === slot);
+      if (existing !== -1) _pInvItems[existing].slot = '';
+      _pInvItems[idx].slot = slot;
+    }
+    pRenderEquipped();
+  }
+  function pEqUnequip(idx) { _pInvItems[idx].slot = ''; pRenderEquipped(); }
+
+  // ── Item / spell management ───────────────────────────────────────────────
+  function pInvRemoveItem(idx) { _pInvItems.splice(idx, 1); }
+
+  function pInvAddItem() {
+    const name = document.getElementById('p-inv-eq-name').value.trim();
+    if (!name) return;
+    const qty  = Math.max(1, parseInt(document.getElementById('p-inv-eq-qty').value) || 1);
+    const note = document.getElementById('p-inv-eq-note').value.trim();
+    _pInvItems.push({ name, qty, note, slot: '' });
+    document.getElementById('p-inv-eq-name').value = '';
+    document.getElementById('p-inv-eq-qty').value  = '';
+    document.getElementById('p-inv-eq-note').value = '';
+    pRenderEquipped();
+  }
+
+  function pInvAddCarried() {
+    const name = document.getElementById('p-inv-cr-name').value.trim();
+    if (!name) return;
+    const qty  = Math.max(1, parseInt(document.getElementById('p-inv-cr-qty').value) || 1);
+    const note = document.getElementById('p-inv-cr-note').value.trim();
+    _pInvItems.push({ name, qty, note, slot: '' });
+    document.getElementById('p-inv-cr-name').value = '';
+    document.getElementById('p-inv-cr-qty').value  = '';
+    document.getElementById('p-inv-cr-note').value = '';
+    pRenderCarried();
+  }
+
+  async function pSpellDbAdd(spellId, spellName, spellLevel) {
+    if (_pSpells.find(s => s.id === spellId)) return;
+    try {
+      const res = await fetch('/spells/book/add', {
+        method: 'POST', credentials: 'include',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ campaign_id: parseInt(CAMPAIGN_ID) || 0, char_name: PLAYER_CHAR, spell_id: spellId })
+      });
+      const d = await res.json();
+      if (d.ok) {
+        _pSpells.push({ id: spellId, name: spellName, level: spellLevel });
+        pRenderSpells();
+      }
+    } catch(e) { console.warn('[spells] add failed:', e); }
+  }
+
+  async function pSpellDbRemove(spellId, spellName) {
+    if (spellId) {
+      try {
+        await fetch('/spells/book/remove', {
+          method: 'POST', credentials: 'include',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ campaign_id: parseInt(CAMPAIGN_ID) || 0, char_name: PLAYER_CHAR, spell_id: spellId })
+        });
+      } catch(e) { /* best-effort */ }
+    }
+    _pSpells = _pSpells.filter(s => !(s.id === spellId && s.name === spellName));
+    pRenderSpells();
+  }
+
+  let _pSpellSearchTimer = null;
+  function pSpellSearch() {
+    clearTimeout(_pSpellSearchTimer);
+    _pSpellSearchTimer = setTimeout(_pDoSpellSearch, 150);
+  }
+
+  async function _pDoSpellSearch() {
+    const q      = (document.getElementById('p-spell-q')?.value || '').trim();
+    const level  = document.getElementById('p-spell-lvl')?.value || '';
+    const school = document.getElementById('p-spell-school')?.value || '';
+    const results = document.getElementById('p-spell-results');
+    if (!q && !level && !school) {
+      results.innerHTML = '<div class="inv-empty">Search above to find spells to add.</div>';
+      return;
+    }
+    results.innerHTML = '<div class="inv-empty">Searching...</div>';
+    try {
+      let url = `/spells/search?q=${encodeURIComponent(q)}&limit=30`;
+      if (level !== '') url += `&level=${level}`;
+      if (school)       url += `&school=${encodeURIComponent(school)}`;
+      const spells = await fetch(url).then(r => r.json());
+      if (!spells.length) { results.innerHTML = '<div class="inv-empty">No spells found.</div>'; return; }
+      results.innerHTML = spells.map(sp => {
+        const lvlLabel = sp.level === 0 ? 'Cantrip' : `Lv${sp.level}`;
+        const already  = !!_pSpells.find(s => s.id === sp.id);
+        return `<div class="p-spell-ref-row">
+          <span class="p-sr-lvl">${escHtml(lvlLabel)}</span>
+          <span class="p-sr-name">${escHtml(sp.name)}</span>
+          <span class="p-sr-school">${escHtml(sp.school||'')}</span>
+          <button class="p-spell-add-btn${already ? ' added' : ''}" data-spell-id="${sp.id}"
+                  ${already ? 'disabled' : `onclick="pSpellDbAdd(${sp.id},'${escHtml(sp.name)}',${sp.level})"`}>
+            ${already ? 'Added' : '+ Add'}
+          </button>
+        </div>`;
+      }).join('');
+    } catch(e) {
+      results.innerHTML = '<div class="inv-empty" style="color:var(--red-lt);">Search failed.</div>';
+    }
+  }
+
+  let _pSpellAcTimer = null;
+  function pSpellAcInput(input) {
+    clearTimeout(_pSpellAcTimer);
+    const q  = input.value.trim();
+    const dd = document.getElementById('p-mi-dd-spell');
+    if (q.length < 2) { dd.classList.remove('open'); dd.innerHTML = ''; pSpellSearch(); return; }
+    pSpellSearch();
+    _pSpellAcTimer = setTimeout(async () => {
+      const level  = document.getElementById('p-spell-lvl')?.value || '';
+      const school = document.getElementById('p-spell-school')?.value || '';
+      let url = `/spells/search?q=${encodeURIComponent(q)}&limit=8`;
+      if (level !== '') url += `&level=${level}`;
+      if (school)       url += `&school=${encodeURIComponent(school)}`;
+      try {
+        const spells = await fetch(url).then(r => r.json());
+        if (!spells.length) { dd.classList.remove('open'); dd.innerHTML = ''; return; }
+        dd._items = spells;
+        dd._activeIdx = -1;
+        dd.innerHTML = spells.map((sp, i) => {
+          const lvlLabel = sp.level === 0 ? 'Cantrip' : `Level ${sp.level}`;
+          return `<div class="p-mi-option" data-idx="${i}" onmousedown="pSpellAcSelect(event,${i})">
+            <div class="p-mi-opt-name">${escHtml(sp.name)}</div>
+            <div class="p-mi-opt-meta">${escHtml(lvlLabel)} &middot; ${escHtml(sp.school||'')} &middot; ${escHtml(sp.casting_time||'')}</div>
+          </div>`;
+        }).join('');
+        dd.classList.add('open');
+      } catch(e) { dd.classList.remove('open'); }
+    }, 200);
+  }
+
+  function pSpellAcSelect(event, idx) {
+    event.preventDefault();
+    const dd   = document.getElementById('p-mi-dd-spell');
+    const sp   = dd._items?.[idx];
+    if (!sp) return;
+    document.getElementById('p-spell-q').value = sp.name;
+    dd.classList.remove('open');
+    pSpellDbAdd(sp.id, sp.name, sp.level);
+  }
+
+  // ── Save ──────────────────────────────────────────────────────────────────
+  async function pSaveInventory() {
+    try {
+      const res = await fetch('/update-character', {
+        method: 'POST', credentials: 'include',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          original_name: PLAYER_CHAR,
+          character: { items: _pInvItems, spells: _pSpells }
+        })
+      });
+      const d = await res.json();
+      if (d.ok) {
+        // Update local characterState so the card reflects new data immediately
+        if (characterState.character) {
+          characterState.character.items  = _pInvItems;
+          characterState.character.spells = _pSpells;
+        }
+        closeInvPanel();
+      } else {
+        console.warn('[inv] save failed:', d.error);
+      }
+    } catch(e) { console.warn('[inv] save error:', e); }
+  }
+
+  // ── Item autocomplete ───────────────────────────────────────────────────────
+  let _pItemAcTimer = null;
+  let _pItemAcMeta  = {};
+  let _pItemAcItems = [];
+
+  function pItemAcInput(input, noteId, dropdownId) {
+    clearTimeout(_pItemAcTimer);
+    const q  = input.value.trim();
+    const dd = document.getElementById(dropdownId);
+    if (q.length < 2) { dd.classList.remove('open'); dd.innerHTML = ''; return; }
+    _pItemAcMeta = { inputId: input.id, noteId, dropdownId };
+    _pItemAcTimer = setTimeout(async () => {
+      try {
+        const res   = await fetch(`/mundane-items/search?q=${encodeURIComponent(q)}&limit=10`);
+        const items = await res.json();
+        if (!items.length) { dd.classList.remove('open'); dd.innerHTML = ''; return; }
+        _pItemAcItems = items;
+        dd._activeIdx = -1;
+        dd.innerHTML = items.map((it, i) =>
+          `<div class="p-mi-option" onmousedown="pItemAcSelect(event,${i})">
+            <div class="p-mi-opt-name">${escHtml(it.name)}</div>
+            <div class="p-mi-opt-meta">${escHtml(it.category||'')}${it.subcategory ? ' · '+escHtml(it.subcategory) : ''}${it.cost_gp ? ' · '+it.cost_gp+' gp' : ''}</div>
+          </div>`
+        ).join('');
+        // Position fixed dropdown below the input (not clipped by overflow:hidden parents)
+        const r = input.getBoundingClientRect();
+        dd.style.left  = r.left + 'px';
+        dd.style.top   = (r.bottom) + 'px';
+        dd.style.width = r.width + 'px';
+        dd.classList.add('open');
+      } catch(e) { dd.classList.remove('open'); }
+    }, 220);
+  }
+
+  function pItemAcSelect(event, idx) {
+    event.preventDefault();
+    const item = _pItemAcItems[idx];
+    if (!item) return;
+    const inputEl = document.getElementById(_pItemAcMeta.inputId);
+    const noteEl  = document.getElementById(_pItemAcMeta.noteId);
+    if (inputEl) inputEl.value = item.name;
+    if (noteEl) {
+      let note = item.description ? item.description.split('.')[0].slice(0, 80) : '';
+      if (item.cost_gp) note += (note ? '; ' : '') + item.cost_gp + ' gp';
+      noteEl.value = note;
+    }
+    const dd = document.getElementById(_pItemAcMeta.dropdownId);
+    if (dd) { dd.classList.remove('open'); dd.innerHTML = ''; }
+  }
+
+  function pItemAcKey(event, dropdownId) {
+    const dd = document.getElementById(dropdownId);
+    if (!dd || !dd.classList.contains('open')) return;
+    const opts = dd.querySelectorAll('.p-mi-option');
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      dd._activeIdx = Math.min((dd._activeIdx||0) + 1, opts.length - 1);
+      opts.forEach((o,i) => o.classList.toggle('active', i === dd._activeIdx));
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      dd._activeIdx = Math.max((dd._activeIdx||0) - 1, 0);
+      opts.forEach((o,i) => o.classList.toggle('active', i === dd._activeIdx));
+    } else if (event.key === 'Enter' && dd._activeIdx >= 0) {
+      event.preventDefault();
+      opts[dd._activeIdx]?.dispatchEvent(new MouseEvent('mousedown'));
+    } else if (event.key === 'Escape') {
+      dd.classList.remove('open');
+    }
+  }
+
+  // Close item autocomplete dropdowns when clicking outside them
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.mi-ac-wrap') && !e.target.closest('.p-mi-dropdown')) {
+      document.querySelectorAll('.p-mi-dropdown').forEach(d => { d.classList.remove('open'); d.innerHTML = ''; });
+    }
+  });
+
+  // ── Map Poll (dedicated endpoint, bypasses socket room issues) ─────────────
+  let _mapPollTimer = null;
+  function startMapPoll() {
+    _mapPollTimer = setInterval(async () => {
+      try {
+        const res = await fetch('/player/map', { credentials: 'include' });
+        if (!res.ok) return;
+        const d = await res.json();
+        if (d.ok) {
+          // Reset view when the layout itself changes (new room/scene)
+          const newLayout = JSON.stringify(d.map_layout || null);
+          if (newLayout !== JSON.stringify(_lastMapLayout)) { _mapCellSize = null; _mapPanOffset = null; }
+          if (d.scene_description) setSceneDesc(d.scene_description);
+          renderMap(d.map_layout || null, d.token_positions ?? null);
+        }
+      } catch(_) {}
+    }, 2000);
+  }
+
+  // ── Player State Fetch ─────────────────────────────────────────────────────
+  function fetchPlayerState() {
+    fetch('/player/state', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) applyCharacterState(data); })
+      .catch(() => {});
+  }
+
+  // ── Socket.IO Setup ────────────────────────────────────────────────────────
+  function initSocket() {
+    socket = io(window.location.origin, { transports: ['websocket', 'polling'] });
+
+    socket.on('connect', () => {
+      document.getElementById('conn-indicator').className = 'connected';
+      document.getElementById('conn-label').textContent   = 'Connected';
+      socket.emit('player_join', { token: PLAYER_TOKEN, character: PLAYER_CHAR });
+    });
+
+    socket.on('disconnect', () => {
+      document.getElementById('conn-indicator').className = '';
+      document.getElementById('conn-label').textContent   = 'Disconnected';
+    });
+
+    socket.on('dm_narrative', data => {
+      appendNarrative(data);
+      showToast('New narrative from the DM', 'success');
+    });
+
+    socket.on('direct_message', data => {
+      const from   = data.from || data.from_char || data.sender || '?';
+      const text   = data.message || data.text || '';
+      const secret = !!data.secret;
+      if (!dmConversations[from]) dmConversations[from] = [];
+      dmConversations[from].push({ sender: from, text });
+      const panelOpen = document.getElementById('dm-panel').classList.contains('open');
+      if (panelOpen) {
+        appendDMMessage(from, text, true, secret);
+      } else {
+        // Persist a notification button in the status bar
+        _dmUnread++;
+        _dmUnreadFrom = from;
+        document.getElementById('dm-notify-btn').style.display = '';
+        document.getElementById('dm-notify-badge').textContent = _dmUnread;
+        showToast(`DM from ${from}`, 'dm');
+      }
+    });
+
+    socket.on('party_chat', data => {
+      if (data.from === PLAYER_CHAR) return; // already shown optimistically
+      appendPcMessage(data);
+      if (!_pcOpen) {
+        _pcUnread++;
+        updatePcBadge();
+        showToast(`${data.from}: ${data.message.slice(0, 40)}`, 'dm');
+      }
+    });
+
+    // Load history once connected
+    loadPartyChatHistory();
+
+    socket.on('map_update', data => {
+      const newLayout = data.map_layout || data.layout || null;
+      if (JSON.stringify(newLayout) !== JSON.stringify(_lastMapLayout)) { _mapCellSize = null; _mapPanOffset = null; }
+      if (data.scene_description) setSceneDesc(data.scene_description);
+      renderMap(newLayout, data.token_positions ?? data.tokens ?? null);
+    });
+
+    socket.on('combat_update', data => {
+      applyCombatState(data.combat_order, data.combat_turn_idx, data.combat_round);
+    });
+
+    socket.on('state_update', data => {
+      applyCharacterState(data);
+    });
+  }
+
+  // ── Polling Fallback ───────────────────────────────────────────────────────
+  function startPolling() {
+    fetchPlayerState();
+    pollTimer = setInterval(fetchPlayerState, 5000);
+  }
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('sb-campaign').textContent = CAMPAIGN_ID || 'Campaign';
+
+    document.getElementById('chron-modal-close').addEventListener('click', () => {
+      document.getElementById('chronicle-modal').classList.remove('open');
+      document.getElementById('chronicle-overlay').classList.remove('visible');
+    });
+    document.getElementById('chronicle-overlay').addEventListener('click', () => {
+      document.getElementById('chronicle-modal').classList.remove('open');
+      document.getElementById('chronicle-overlay').classList.remove('visible');
+    });
+
+    initSocket();
+    startPolling();
+    startMapPoll();
+  });
+</script>
+</body>
+</html>
