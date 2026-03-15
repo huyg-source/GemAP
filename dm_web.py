@@ -4,6 +4,9 @@ Browser-based DM session with party tracking and chronicle.
 Run: python dm_web.py
 """
 
+import eventlet
+eventlet.monkey_patch()
+
 import os
 import json
 import re
