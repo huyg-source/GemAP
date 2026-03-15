@@ -3058,11 +3058,12 @@ def _graceful_shutdown(signum, frame):
 signal.signal(signal.SIGTERM, _graceful_shutdown)
 signal.signal(signal.SIGINT,  _graceful_shutdown)
 
+# Always run at startup (works under both gunicorn and direct python)
+init_db()
+threading.Thread(target=_evict_stale_states, daemon=True).start()
 
 if __name__ == "__main__":
-    init_db()
     threading.Timer(1.5, open_in_chrome).start()
-    threading.Thread(target=_evict_stale_states, daemon=True).start()
     log.info("D&D DM Web App: %s", URL)
     log.info("GM Password: %s", GM_PASSWORD)
     socketio.run(app, port=PORT, debug=False, use_reloader=False)
