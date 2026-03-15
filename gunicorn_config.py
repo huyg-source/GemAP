@@ -10,8 +10,8 @@ Or via the Render start command:
 
 import os
 
-# Flask-SocketIO requires eventlet worker
-worker_class   = "eventlet"
+# Flask-SocketIO requires async worker
+worker_class   = "gevent"
 workers        = 1          # eventlet is single-process async — do NOT increase
 threads        = 1
 
