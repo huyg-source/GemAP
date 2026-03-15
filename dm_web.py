@@ -118,9 +118,10 @@ socketio = SocketIO(app, async_mode="eventlet", cors_allowed_origins=_cors_origi
 # GM password — set env var DND_GM_PASSWORD to override default
 GM_PASSWORD = os.environ.get("DND_GM_PASSWORD", "dungeonmaster")
 
-SESSIONS_DIR   = os.path.join(os.path.dirname(__file__), "sessions")
-PORTRAITS_DIR  = os.path.join(os.path.dirname(__file__), "portraits")
-MOB_IMAGES_DIR = os.path.join(os.path.dirname(__file__), "mob_images")
+_DATA_DIR      = os.environ.get("DND_DATA_DIR", os.path.dirname(__file__))
+SESSIONS_DIR   = os.path.join(_DATA_DIR, "sessions")
+PORTRAITS_DIR  = os.path.join(_DATA_DIR, "portraits")
+MOB_IMAGES_DIR = os.path.join(_DATA_DIR, "mob_images")
 os.makedirs(SESSIONS_DIR,   exist_ok=True)
 os.makedirs(PORTRAITS_DIR,  exist_ok=True)
 os.makedirs(MOB_IMAGES_DIR, exist_ok=True)
