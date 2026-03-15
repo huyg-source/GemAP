@@ -4,8 +4,8 @@ Browser-based DM session with party tracking and chronicle.
 Run: python dm_web.py
 """
 
-from gevent import monkey
-monkey.patch_all()
+import eventlet
+eventlet.monkey_patch()
 
 import os
 import json
@@ -113,7 +113,7 @@ app.secret_key = _secret
 _cors_origins = os.environ.get("DND_ALLOWED_ORIGINS", "*")
 if _cors_origins != "*":
     _cors_origins = [o.strip() for o in _cors_origins.split(",")]
-socketio = SocketIO(app, async_mode="gevent", cors_allowed_origins=_cors_origins)
+socketio = SocketIO(app, async_mode="eventlet", cors_allowed_origins=_cors_origins)
 
 # GM password — set env var DND_GM_PASSWORD to override default
 GM_PASSWORD = os.environ.get("DND_GM_PASSWORD", "dungeonmaster")

@@ -11,7 +11,7 @@ Or via the Render start command:
 import os
 
 # Flask-SocketIO requires async worker
-worker_class   = "geventwebsocket.gunicorn.workers.GeventWebSocketWorker"
+worker_class   = "eventlet"
 workers        = 1          # eventlet is single-process async — do NOT increase
 threads        = 1
 
