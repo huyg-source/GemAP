@@ -8006,7 +8006,7 @@ function _cwBuildRaceGrid() {
     const rd = CWIZ_RACES[r];
     const sub = rd.subraces ? 'Choose subrace' :
       Object.entries(rd.bonuses||{}).map(([s,v]) => `+${v} ${s.toUpperCase()}`).join(', ');
-    return `<div class="cwiz-card" data-race="${r}" onclick="cwizPickRace(${JSON.stringify(r)})">
+    return `<div class="cwiz-card" data-race="${r}" onclick="cwizPickRace(this.dataset.race)">
       <div class="cwiz-card-name">${r}</div><div class="cwiz-card-sub">${sub}</div></div>`;
   }).join('');
 }
@@ -8021,7 +8021,7 @@ function cwizPickRace(race) {
     wrap.style.display = 'block';
     document.getElementById('cwiz-subrace-grid').innerHTML = Object.entries(rd.subraces).map(([sr,sd]) => {
       const b = Object.entries(sd.bonuses).map(([s,v]) => `+${v} ${s.toUpperCase()}`).join(', ');
-      return `<div class="cwiz-card" data-sr="${sr}" onclick="cwizPickSubrace(${JSON.stringify(sr)})">
+      return `<div class="cwiz-card" data-sr="${sr}" onclick="cwizPickSubrace(this.dataset.sr)">
         <div class="cwiz-card-name">${sr}</div><div class="cwiz-card-sub">${b}</div></div>`;
     }).join('');
     document.getElementById('cwiz-race-info').style.display = 'none';
@@ -8061,7 +8061,7 @@ function _cwShowRaceInfo(race, sr) {
 // ── Class Grid ────────────────────────────────────────────────────────────────
 function _cwBuildClassGrid() {
   document.getElementById('cwiz-class-grid').innerHTML = Object.keys(CWIZ_CLASSES).map(c =>
-    `<div class="cwiz-card selected" data-cls="${c}" onclick="cwizPickClass(${JSON.stringify(c)})">
+    `<div class="cwiz-card selected" data-cls="${c}" onclick="cwizPickClass(this.dataset.cls)">
       <div class="cwiz-card-name">${c}</div>
       <div class="cwiz-card-sub">d${CWIZ_CLASSES[c].hitDie} hit die</div></div>`
   ).join('');
@@ -8305,7 +8305,7 @@ function cwizAsiTab(lvl, type) {
 // ── Background ────────────────────────────────────────────────────────────────
 function _cwBuildBgGrid() {
   document.getElementById('cwiz-bg-grid').innerHTML = Object.keys(CWIZ_BACKGROUNDS).map(b =>
-    `<div class="cwiz-card" data-bg="${b}" onclick="cwizPickBg(${JSON.stringify(b)})">
+    `<div class="cwiz-card" data-bg="${b}" onclick="cwizPickBg(this.dataset.bg)">
       <div class="cwiz-card-name">${b}</div>
       <div class="cwiz-card-sub">${CWIZ_BACKGROUNDS[b].skills.join(', ')}</div></div>`
   ).join('');
@@ -8339,8 +8339,9 @@ function _cwRenderSkills() {
         const auto   = bgSk.includes(s);
         const chosen = _cw.skillChoices.includes(s);
         return `<div class="cwiz-card ${auto||chosen?'selected':''}"
+          data-skill="${s}"
           style="min-width:130px;opacity:${auto?.55:1};cursor:${auto?'default':'pointer'}"
-          onclick="${auto?'':`cwizToggleSkill(${JSON.stringify(s)})`}">
+          onclick="${auto?'':'cwizToggleSkill(this.dataset.skill)'}">
           <div class="cwiz-card-name">${s}</div>
           <div class="cwiz-card-sub">${auto?'(background)':''}</div></div>`;
       }).join('')}
