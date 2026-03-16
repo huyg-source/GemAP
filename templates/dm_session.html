@@ -1197,6 +1197,23 @@
   .cwiz-stat-box-mod { font-size:.72rem; color:var(--text-dim); }
   .cwiz-err { color:var(--red-lt); font-size:.78rem; }
 
+  /* ── Drag-and-Drop Ability Score chips ── */
+  .cwiz-dnd-pool { display:flex; gap:7px; flex-wrap:wrap; margin-bottom:14px; min-height:42px; padding:8px; background:var(--panel2); border:1px dashed var(--border); border-radius:5px; align-items:center; }
+  .cwiz-dnd-chip { background:var(--panel); border:2px solid var(--gold); border-radius:5px; padding:5px 14px; font-size:1rem; font-weight:700; cursor:grab; color:var(--gold); transition:opacity .15s; user-select:none; }
+  .cwiz-dnd-chip:active { cursor:grabbing; }
+  .cwiz-dnd-chip.dragging { opacity:.35; }
+  .cwiz-dnd-chip.used { border-color:var(--blue); color:var(--blue-lt); background:rgba(21,101,194,.15); opacity:.5; pointer-events:none; }
+  .cwiz-dnd-slots { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:4px; }
+  .cwiz-dnd-slot { background:var(--panel2); border:2px dashed var(--border); border-radius:6px; padding:8px 6px; text-align:center; min-height:64px; transition:border-color .15s, background .15s; position:relative; }
+  .cwiz-dnd-slot.over { border-color:var(--blue-lt); background:rgba(79,195,247,.08); }
+  .cwiz-dnd-slot.filled { border-style:solid; border-color:var(--blue); }
+  .cwiz-dnd-slot-label { font-size:.6rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:.09em; }
+  .cwiz-dnd-slot-val { font-size:1.5rem; font-weight:700; color:var(--blue-lt); line-height:1.2; min-height:1.8rem; }
+  .cwiz-dnd-slot-racial { font-size:.65rem; color:var(--gold); }
+  .cwiz-dnd-slot-total { font-size:.65rem; color:var(--text-dim); }
+  .cwiz-dnd-slot-clear { position:absolute; top:2px; right:4px; font-size:.62rem; color:var(--text-dim); cursor:pointer; background:none; border:none; line-height:1; padding:1px 3px; }
+  .cwiz-dnd-slot-clear:hover { color:var(--red-lt); }
+
   /* ── Voice btn ── */
   #voice-btn {
     padding: 9px 12px; background: var(--panel2); border: 1px solid var(--border);
@@ -7817,35 +7834,127 @@ const CWIZ_RACES = {
 };
 
 const CWIZ_CLASSES = {
+  'Barbarian': {
+    hitDie:12, avgHpPerLevel:7, saves:['STR','CON'],
+    armorProf:'Light & medium armor, shields', weaponProf:'Simple & martial weapons',
+    skillCount:2, skills:['Animal Handling','Athletics','Intimidation','Nature','Perception','Survival'],
+    spellcaster:false,
+    features:{
+      1:['Rage (2/long rest, +2 dmg)','Unarmored Defense (10+DEX+CON AC)'],
+      2:['Reckless Attack','Danger Sense (adv DEX saves vs seen effects)'],
+      3:['Primal Path (choose subclass)'],
+      4:['ASI / Feat'],
+      5:['Extra Attack','Fast Movement (+10 ft speed)'],
+      6:['Path feature','Rage (3/long rest)'],
+      7:['Feral Instinct (adv Initiative, act while surprised)'],
+      8:['ASI / Feat'],
+      9:['Brutal Critical (1 extra die on crit)'],
+      10:['Path feature'],
+      11:['Relentless Rage (DC 10 CON to stay at 1 HP)'],
+      12:['ASI / Feat','Rage (4/long rest)'],
+      13:['Brutal Critical (2 extra dice)'],
+      14:['Path feature'],
+      15:['Persistent Rage (concentration not needed to maintain)'],
+      16:['ASI / Feat','Rage (5/long rest)'],
+      17:['Brutal Critical (3 extra dice)'],
+      18:['Indomitable Might (min STR score on STR checks)'],
+      19:['ASI / Feat'],
+      20:['Primal Champion (+4 STR, +4 CON)'],
+    },
+    asiLevels:[4,8,12,16,19],
+    subclassLevel:3, subclassLabel:'Primal Path',
+    subclasses:['Path of the Berserker','Path of the Totem Warrior','Path of the Battlerager','Path of the Storm Herald','Path of the Zealot'],
+  },
+  'Bard': {
+    hitDie:8, avgHpPerLevel:5, saves:['DEX','CHA'],
+    armorProf:'Light armor', weaponProf:'Simple weapons, hand crossbows, longswords, rapiers, shortswords',
+    skillCount:3, skills:['Acrobatics','Animal Handling','Arcana','Athletics','Deception','History','Insight','Intimidation','Investigation','Medicine','Nature','Perception','Performance','Persuasion','Religion','Sleight of Hand','Stealth','Survival'],
+    spellcaster:true, spellAbility:'CHA', spellcastType:'full',
+    cantripCount:[2,2,2,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4],
+    spellsKnown:[4,5,6,7,8,9,10,11,12,12,13,13,14,14,15,15,16,16,18,20],
+    features:{
+      1:['Spellcasting (CHA)','Bardic Inspiration (d6, CHA mod/long rest)'],
+      2:['Jack of All Trades','Song of Rest (d6)'],
+      3:['Bard College (choose subclass)','Expertise (2 skills)'],
+      4:['ASI / Feat'],
+      5:['Bardic Inspiration (d8)','Font of Inspiration'],
+      6:['College feature','Countercharm'],
+      7:[],8:['ASI / Feat'],9:['Song of Rest (d8)'],
+      10:['Bardic Inspiration (d10)','Expertise (2 more)','Magical Secrets (2 spells any class)'],
+      11:[],12:['ASI / Feat'],13:['Song of Rest (d10)'],
+      14:['Magical Secrets','College feature'],
+      15:['Bardic Inspiration (d12)'],16:['ASI / Feat'],17:['Song of Rest (d12)'],
+      18:['Magical Secrets'],19:['ASI / Feat'],20:['Superior Inspiration'],
+    },
+    asiLevels:[4,8,12,16,19],
+    subclassLevel:3, subclassLabel:'Bard College',
+    subclasses:['College of Lore','College of Valor','College of Glamour','College of Swords','College of Whispers'],
+  },
+  'Cleric': {
+    hitDie:8, avgHpPerLevel:5, saves:['WIS','CHA'],
+    armorProf:'All armor, shields', weaponProf:'Simple weapons',
+    skillCount:2, skills:['History','Insight','Medicine','Persuasion','Religion'],
+    spellcaster:true, spellAbility:'WIS', spellcastType:'full',
+    cantripCount:[3,3,3,4,4,4,4,4,4,5,5,5,5,5,5,5,5,5,5,5],
+    spellsKnown:null,
+    features:{
+      1:['Spellcasting (WIS)','Divine Domain (choose subclass)','Domain Spells'],
+      2:['Channel Divinity (1/rest)','Domain feature'],
+      3:[],4:['ASI / Feat'],
+      5:['Destroy Undead (CR ½)'],6:['Channel Divinity (2/rest)','Domain feature'],
+      7:[],8:['ASI / Feat','Destroy Undead (CR 1)','Domain feature'],
+      9:[],10:['Divine Intervention'],
+      11:['Destroy Undead (CR 2)'],12:['ASI / Feat'],
+      13:[],14:['Destroy Undead (CR 3)'],15:[],
+      16:['ASI / Feat'],17:['Destroy Undead (CR 4)','Domain feature'],18:['Channel Divinity (3/rest)'],
+      19:['ASI / Feat'],20:['Divine Intervention improvement'],
+    },
+    asiLevels:[4,8,12,16,19],
+    subclassLevel:1, subclassLabel:'Divine Domain',
+    subclasses:['Life Domain','Light Domain','Nature Domain','Tempest Domain','Trickery Domain','War Domain','Knowledge Domain'],
+  },
+  'Druid': {
+    hitDie:8, avgHpPerLevel:5, saves:['INT','WIS'],
+    armorProf:'Light & medium non-metal armor, shields', weaponProf:'Clubs, daggers, darts, javelins, maces, quarterstaffs, scimitars, sickles, slings, spears',
+    skillCount:2, skills:['Arcana','Animal Handling','Insight','Medicine','Nature','Perception','Religion','Survival'],
+    spellcaster:true, spellAbility:'WIS', spellcastType:'full',
+    cantripCount:[2,2,2,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4],
+    spellsKnown:null,
+    features:{
+      1:['Druidic language','Spellcasting (WIS)'],
+      2:['Wild Shape (CR ¼)','Druid Circle (choose subclass)'],
+      3:[],4:['ASI / Feat','Wild Shape (CR ½, swim)'],
+      5:[],6:['Circle feature'],
+      7:[],8:['ASI / Feat','Wild Shape (CR 1, fly)'],
+      9:[],10:['Circle feature'],
+      11:[],12:['ASI / Feat'],
+      13:[],14:['Circle feature'],
+      15:[],16:['ASI / Feat'],
+      17:[],18:['Timeless Body','Beast Spells'],
+      19:['ASI / Feat'],20:['Archdruid'],
+    },
+    asiLevels:[4,8,12,16,19],
+    subclassLevel:2, subclassLabel:'Druid Circle',
+    subclasses:['Circle of the Land','Circle of the Moon','Circle of Dreams','Circle of the Shepherd','Circle of Spores'],
+  },
   'Fighter': {
     hitDie:10, avgHpPerLevel:6, saves:['STR','CON'],
     armorProf:'All armor, shields', weaponProf:'Simple & martial weapons',
     skillCount:2, skills:['Acrobatics','Animal Handling','Athletics','History','Insight','Intimidation','Perception','Survival'],
     spellcaster:false,
     features:{
-      1: ['Fighting Style (choose)','Second Wind (1d10+level HP, 1/short rest)'],
-      2: ['Action Surge (extra action, 1/short rest)'],
-      3: ['Martial Archetype (choose subclass)'],
-      4: ['ASI / Feat'],
-      5: ['Extra Attack (attack twice)'],
-      6: ['ASI / Feat'],
-      7: ['Archetype Feature'],
-      8: ['ASI / Feat'],
-      9: ['Indomitable (reroll failed save, 1/long rest)'],
-      10:['Archetype Feature'],
-      11:['Extra Attack (3 attacks)'],
-      12:['ASI / Feat'],
-      13:['Indomitable (2/long rest)'],
-      14:['Archetype Feature'],
-      15:['Relentless'],
-      16:['ASI / Feat'],
+      1:['Fighting Style (choose)','Second Wind (1d10+level HP, 1/short rest)'],
+      2:['Action Surge (extra action, 1/short rest)'],
+      3:['Martial Archetype (choose subclass)'],
+      4:['ASI / Feat'],5:['Extra Attack (attack twice)'],6:['ASI / Feat'],7:['Archetype Feature'],
+      8:['ASI / Feat'],9:['Indomitable (reroll failed save, 1/long rest)'],10:['Archetype Feature'],
+      11:['Extra Attack (3 attacks)'],12:['ASI / Feat'],13:['Indomitable (2/long rest)'],
+      14:['Archetype Feature'],15:['Relentless'],16:['ASI / Feat'],
       17:['Action Surge (2/short rest)','Indomitable (3/long rest)'],
-      18:['Archetype Feature'],
-      19:['ASI / Feat'],
-      20:['Extra Attack (4 attacks)'],
+      18:['Archetype Feature'],19:['ASI / Feat'],20:['Extra Attack (4 attacks)'],
     },
     asiLevels:[4,6,8,12,14,16,19],
-    subclassLevel:3,
+    subclassLevel:3, subclassLabel:'Martial Archetype', fightingStyleLevel:1,
     subclasses:['Champion','Battle Master','Eldritch Knight'],
     fightingStyles:[
       'Archery — +2 bonus to ranged attack rolls',
@@ -7855,6 +7964,168 @@ const CWIZ_CLASSES = {
       'Protection — impose disadvantage on attacks against adjacent allies (requires shield)',
       'Two-Weapon Fighting — add ability modifier to off-hand attack damage',
     ],
+  },
+  'Monk': {
+    hitDie:8, avgHpPerLevel:5, saves:['STR','DEX'],
+    armorProf:'None', weaponProf:'Simple weapons, shortswords',
+    skillCount:2, skills:['Acrobatics','Athletics','History','Insight','Religion','Stealth'],
+    spellcaster:false,
+    features:{
+      1:['Unarmored Defense (10+DEX+WIS)','Martial Arts (d4)'],
+      2:['Ki (2 pts)','Unarmored Movement (+10 ft)','Flurry of Blows / Patient Defense / Step of the Wind'],
+      3:['Monastic Tradition (choose subclass)','Deflect Missiles'],
+      4:['ASI / Feat','Slow Fall'],
+      5:['Extra Attack','Stunning Strike'],
+      6:['Ki-Empowered Strikes','Tradition feature'],
+      7:['Evasion','Stillness of Mind'],
+      8:['ASI / Feat'],9:['Unarmored Movement (+15 ft, walls)'],10:['Purity of Body'],
+      11:['Tradition feature'],12:['ASI / Feat'],13:['Tongue of the Sun and Moon'],
+      14:['Diamond Soul (prof on all saves)'],15:['Timeless Body'],
+      16:['ASI / Feat'],17:['Tradition feature'],18:['Empty Body'],
+      19:['ASI / Feat'],20:['Perfect Self'],
+    },
+    asiLevels:[4,8,12,16,19],
+    subclassLevel:3, subclassLabel:'Monastic Tradition',
+    subclasses:['Way of the Open Hand','Way of Shadow','Way of the Four Elements','Way of the Drunken Master','Way of the Kensei','Way of the Sun Soul'],
+  },
+  'Paladin': {
+    hitDie:10, avgHpPerLevel:6, saves:['WIS','CHA'],
+    armorProf:'All armor, shields', weaponProf:'Simple & martial weapons',
+    skillCount:2, skills:['Athletics','Insight','Intimidation','Medicine','Persuasion','Religion'],
+    spellcaster:true, spellAbility:'CHA', spellcastType:'half',
+    cantripCount:null, spellsKnown:null,
+    features:{
+      1:['Divine Sense','Lay on Hands (5×level HP pool)'],
+      2:['Fighting Style (choose)','Spellcasting (CHA)','Divine Smite'],
+      3:['Divine Health','Sacred Oath (choose subclass)','Oath Spells'],
+      4:['ASI / Feat'],5:['Extra Attack'],
+      6:['Aura of Protection (+CHA mod to saves, 10 ft)'],
+      7:['Sacred Oath feature'],8:['ASI / Feat'],9:[],
+      10:['Aura of Courage (immune frightened, 10 ft)'],
+      11:['Improved Divine Smite (+1d8 radiant on all melee)'],
+      12:['ASI / Feat'],13:[],14:['Cleansing Touch (CHA mod/long rest)'],
+      15:['Sacred Oath feature'],16:['ASI / Feat'],17:[],18:['Aura improvements (30 ft)'],
+      19:['ASI / Feat'],20:['Sacred Oath capstone'],
+    },
+    asiLevels:[4,8,12,16,19],
+    subclassLevel:3, subclassLabel:'Sacred Oath', fightingStyleLevel:2,
+    subclasses:['Oath of Devotion','Oath of the Ancients','Oath of Vengeance','Oath of Conquest','Oath of Redemption','Oathbreaker'],
+    fightingStyles:[
+      'Defense — +1 AC while wearing armor',
+      'Dueling — +2 damage with one-handed weapon (no other weapons)',
+      'Great Weapon Fighting — reroll 1s & 2s on damage with two-handed weapons',
+      'Protection — impose disadvantage on attacks against adjacent allies (requires shield)',
+    ],
+  },
+  'Ranger': {
+    hitDie:10, avgHpPerLevel:6, saves:['STR','DEX'],
+    armorProf:'Light & medium armor, shields', weaponProf:'Simple & martial weapons',
+    skillCount:3, skills:['Animal Handling','Athletics','Insight','Investigation','Nature','Perception','Stealth','Survival'],
+    spellcaster:true, spellAbility:'WIS', spellcastType:'half',
+    cantripCount:null,
+    spellsKnown:[2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,9,10,10,10,11],
+    features:{
+      1:['Favored Enemy','Natural Explorer'],
+      2:['Fighting Style (choose)','Spellcasting (WIS)'],
+      3:['Ranger Archetype (choose subclass)','Primeval Awareness'],
+      4:['ASI / Feat'],5:['Extra Attack'],
+      6:['Favored Enemy (2nd type)','Natural Explorer (2nd terrain)'],
+      7:['Archetype feature'],8:['ASI / Feat',"Land's Stride"],
+      9:[],10:['Natural Explorer (3rd)','Hide in Plain Sight'],
+      11:['Archetype feature'],12:['ASI / Feat'],13:[],14:['Vanish'],
+      15:['Archetype feature'],16:['ASI / Feat'],17:[],18:['Feral Senses'],
+      19:['ASI / Feat'],20:['Foe Slayer'],
+    },
+    asiLevels:[4,8,12,16,19],
+    subclassLevel:3, subclassLabel:'Ranger Archetype', fightingStyleLevel:2,
+    subclasses:['Hunter','Beast Master','Gloom Stalker','Horizon Walker','Monster Slayer'],
+    fightingStyles:[
+      'Archery — +2 bonus to ranged attack rolls',
+      'Defense — +1 AC while wearing armor',
+      'Dueling — +2 damage with one-handed weapon (no other weapons)',
+      'Two-Weapon Fighting — add ability modifier to off-hand attack damage',
+    ],
+  },
+  'Rogue': {
+    hitDie:8, avgHpPerLevel:5, saves:['DEX','INT'],
+    armorProf:'Light armor', weaponProf:'Simple weapons, hand crossbows, longswords, rapiers, shortswords',
+    skillCount:4, skills:['Acrobatics','Athletics','Deception','Insight','Intimidation','Investigation','Perception','Performance','Persuasion','Sleight of Hand','Stealth'],
+    spellcaster:false,
+    features:{
+      1:['Expertise (2 skills)','Sneak Attack (1d6)',"Thieves' Cant"],
+      2:['Cunning Action (Dash/Disengage/Hide as bonus)'],
+      3:['Roguish Archetype (choose subclass)','Sneak Attack (2d6)'],
+      4:['ASI / Feat'],5:['Uncanny Dodge','Sneak Attack (3d6)'],
+      6:['Expertise (2 more)','Sneak Attack (4d6)'],
+      7:['Evasion','Sneak Attack (5d6)'],
+      8:['ASI / Feat','Sneak Attack (6d6)'],9:['Archetype feature','Sneak Attack (7d6)'],
+      10:['ASI / Feat','Sneak Attack (8d6)'],11:['Reliable Talent','Sneak Attack (9d6)'],
+      12:['ASI / Feat','Sneak Attack (10d6)'],13:['Archetype feature','Sneak Attack (11d6)'],
+      14:['Blindsense 10 ft','Sneak Attack (12d6)'],15:['Slippery Mind (WIS save prof)','Sneak Attack (13d6)'],
+      16:['ASI / Feat','Sneak Attack (14d6)'],17:['Archetype feature','Sneak Attack (15d6)'],
+      18:['Elusive','Sneak Attack (16d6)'],19:['ASI / Feat','Sneak Attack (17d6)'],
+      20:['Stroke of Luck','Sneak Attack (18d6)'],
+    },
+    asiLevels:[4,8,10,12,16,19],
+    subclassLevel:3, subclassLabel:'Roguish Archetype',
+    subclasses:['Thief','Assassin','Arcane Trickster','Inquisitive','Mastermind','Scout','Swashbuckler'],
+  },
+  'Sorcerer': {
+    hitDie:6, avgHpPerLevel:4, saves:['CON','CHA'],
+    armorProf:'None', weaponProf:'Daggers, darts, slings, quarterstaffs, light crossbows',
+    skillCount:2, skills:['Arcana','Deception','Insight','Intimidation','Persuasion','Religion'],
+    spellcaster:true, spellAbility:'CHA', spellcastType:'full',
+    cantripCount:[4,4,4,5,5,5,5,5,5,6,6,6,6,6,6,6,6,6,6,6],
+    spellsKnown:[2,3,4,5,6,7,8,9,10,11,12,12,13,13,14,14,15,15,15,15],
+    features:{
+      1:['Spellcasting (CHA)','Sorcerous Origin (choose subclass)'],
+      2:['Font of Magic (2 sorcery points)'],3:['Metamagic (choose 2)'],4:['ASI / Feat'],
+      5:[],6:['Origin feature'],7:[],8:['ASI / Feat'],9:[],
+      10:['Metamagic (1 more)'],11:[],12:['ASI / Feat'],13:[],14:['Origin feature'],
+      15:[],16:['ASI / Feat'],17:['Metamagic (1 more)'],18:['Origin feature'],
+      19:['ASI / Feat'],20:['Sorcerous Restoration'],
+    },
+    asiLevels:[4,8,12,16,19],
+    subclassLevel:1, subclassLabel:'Sorcerous Origin',
+    subclasses:['Draconic Bloodline','Wild Magic','Divine Soul','Shadow Magic','Storm Sorcery'],
+  },
+  'Warlock': {
+    hitDie:8, avgHpPerLevel:5, saves:['WIS','CHA'],
+    armorProf:'Light armor', weaponProf:'Simple weapons',
+    skillCount:2, skills:['Arcana','Deception','History','Intimidation','Investigation','Nature','Religion'],
+    spellcaster:true, spellAbility:'CHA', spellcastType:'warlock',
+    cantripCount:[2,2,2,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4],
+    spellsKnown:[2,3,4,5,6,7,8,9,10,10,11,11,12,12,13,13,14,14,15,15],
+    features:{
+      1:['Otherworldly Patron (choose subclass)','Pact Magic (1 slot, L1)'],
+      2:['Eldritch Invocations (choose 2)'],3:['Pact Boon (choose)'],4:['ASI / Feat'],
+      5:[],6:['Patron feature'],7:[],8:['ASI / Feat'],9:[],10:['Patron feature'],
+      11:['Mystic Arcanum (L6)'],12:['ASI / Feat'],13:['Mystic Arcanum (L7)'],14:['Patron feature'],
+      15:['Mystic Arcanum (L8)'],16:['ASI / Feat'],17:['Mystic Arcanum (L9)'],18:[],
+      19:['ASI / Feat'],20:['Eldritch Master'],
+    },
+    asiLevels:[4,8,12,16,19],
+    subclassLevel:1, subclassLabel:'Otherworldly Patron',
+    subclasses:['The Fiend','The Great Old One','The Archfey','The Hexblade','The Undying','The Celestial'],
+  },
+  'Wizard': {
+    hitDie:6, avgHpPerLevel:4, saves:['INT','WIS'],
+    armorProf:'None', weaponProf:'Daggers, darts, slings, quarterstaffs, light crossbows',
+    skillCount:2, skills:['Arcana','History','Insight','Investigation','Medicine','Religion'],
+    spellcaster:true, spellAbility:'INT', spellcastType:'full',
+    cantripCount:[3,3,3,4,4,4,4,4,4,5,5,5,5,5,5,5,5,5,5,5],
+    spellsKnown:null,
+    features:{
+      1:['Spellcasting (INT, spellbook)','Arcane Recovery'],
+      2:['Arcane Tradition (choose subclass)'],
+      3:[],4:['ASI / Feat'],5:[],6:['Tradition feature'],7:[],8:['ASI / Feat'],
+      9:[],10:['Tradition feature'],11:[],12:['ASI / Feat'],
+      13:[],14:['Tradition feature'],15:[],16:['ASI / Feat'],17:[],18:['Spell Mastery'],
+      19:['ASI / Feat'],20:['Signature Spells (2 free 3rd-level spells/day)'],
+    },
+    asiLevels:[4,8,12,16,19],
+    subclassLevel:2, subclassLabel:'Arcane Tradition',
+    subclasses:['School of Evocation','School of Abjuration','School of Conjuration','School of Divination','School of Enchantment','School of Illusion','School of Necromancy','School of Transmutation'],
   },
 };
 
@@ -7923,27 +8194,39 @@ let _cw = {};
 function _cwReset() {
   _cw = {
     stepIdx: 0,
-    name:'', level:1,
+    name:'', level:1, alignment:'',
     race:'', subrace:'',
     cls:'Fighter',
     abilityMethod:'',
-    arrayAssign: {},           // {str:'15', dex:'14', ...}
+    arrayAssign: {},
     pbScores: {str:8,dex:8,con:8,int:8,wis:8,cha:8},
-    rollPool: [],              // array of 6 rolled numbers
-    rollAssign: {str:null,dex:null,con:null,int:null,wis:null,cha:null}, // pool index per stat
+    rollPool: [],
+    rollAssign: {str:null,dex:null,con:null,int:null,wis:null,cha:null},
     fightingStyle:'',
     subclass:'',
-    asiChoices: {},            // {4:{type:'asi2',stat:'str'}, 6:{type:'feat',feat:'...'}, ...}
+    asiChoices: {},
     background:'',
     skillChoices: [],
+    cantrips: [],
+    spells: [],
+    racialCantrip: '',
   };
 }
 
 function _cwSteps() {
   const s = ['basic','race','class','abilities'];
   if (_cw.level > 1) s.push('levelup');
-  s.push('bg','skills','review');
+  s.push('bg','skills');
+  if (_cwNeedsSpellStep()) s.push('spells');
+  s.push('review');
   return s;
+}
+function _cwNeedsSpellStep() {
+  const cd = CWIZ_CLASSES[_cw.cls];
+  if (cd && cd.spellcaster) return true;
+  if (_cw.race === 'Elf'   && _cw.subrace === 'High Elf')    return true;
+  if (_cw.race === 'Gnome' && _cw.subrace === 'Forest Gnome') return true;
+  return false;
 }
 function _cwStepId() { return _cwSteps()[_cw.stepIdx]; }
 
@@ -7999,6 +8282,7 @@ function _cwShow() {
   if (id === 'abilities') _cwSetupAbilities();
   if (id === 'levelup')   _cwRenderLevelUp();
   if (id === 'skills')    _cwRenderSkills();
+  if (id === 'spells')    _cwRenderSpells();
   if (id === 'review')    _cwRenderReview();
 
   document.getElementById('cwiz-body').scrollTop = 0;
@@ -8013,6 +8297,7 @@ function _cwValidate() {
     const l = parseInt(document.getElementById('cwiz-level').value) || 0;
     if (l < 1 || l > 20) return 'Level must be 1–20.';
     _cw.name = n; _cw.level = l;
+    _cw.alignment = document.getElementById('cwiz-alignment').value || '';
     return null;
   }
   if (id === 'race') {
@@ -8027,27 +8312,29 @@ function _cwValidate() {
   if (id === 'abilities') {
     if (!_cw.abilityMethod) return 'Choose an ability score method.';
     if (_cw.abilityMethod === 'array') {
-      if (STAT_NAMES.some(s => !_cw.arrayAssign[s])) return 'Assign all 6 ability scores.';
-      const vals = STAT_NAMES.map(s => _cw.arrayAssign[s]);
-      if (new Set(vals).size < 6) return 'Each array value can only be used once.';
+      if (STAT_NAMES.some(s => !_cw.arrayAssign[s])) return 'Drag all 6 values to stat slots.';
     }
     if (_cw.abilityMethod === 'roll') {
       if (!_cw.rollPool.length) return 'Roll your dice first.';
       if (STAT_NAMES.some(s => _cw.rollAssign[s] === null || _cw.rollAssign[s] === undefined))
-        return 'Assign all 6 rolled scores.';
+        return 'Drag all 6 rolled scores to stat slots.';
     }
     return null;
   }
   if (id === 'levelup') {
-    if (!_cw.fightingStyle) return 'Choose a Fighting Style.';
-    if (_cw.level >= 3 && !_cw.subclass) return 'Choose a Martial Archetype at level 3.';
-    for (const lvl of CWIZ_CLASSES[_cw.cls].asiLevels) {
+    const cd = CWIZ_CLASSES[_cw.cls];
+    const fsLevel = cd.fightingStyleLevel || 1;
+    if (cd.fightingStyles && _cw.level >= fsLevel && !_cw.fightingStyle)
+      return 'Choose a Fighting Style.';
+    if (_cw.level >= cd.subclassLevel && !_cw.subclass)
+      return `Choose a ${cd.subclassLabel || 'Subclass'} at level ${cd.subclassLevel}.`;
+    for (const lvl of cd.asiLevels) {
       if (lvl > _cw.level) break;
       const ch = _cw.asiChoices[lvl];
       if (!ch) return `Make a choice at level ${lvl} (ASI/Feat).`;
-      if (ch.type === 'asi2'  && !ch.stat)            return `Choose a stat for +2 at level ${lvl}.`;
+      if (ch.type === 'asi2'  && !ch.stat)              return `Choose a stat for +2 at level ${lvl}.`;
       if (ch.type === 'asi11' && (!ch.stat1||!ch.stat2)) return `Choose both stats for +1/+1 at level ${lvl}.`;
-      if (ch.type === 'feat'  && !ch.feat)            return `Choose a feat at level ${lvl}.`;
+      if (ch.type === 'feat'  && !ch.feat)              return `Choose a feat at level ${lvl}.`;
     }
     return null;
   }
@@ -8058,6 +8345,16 @@ function _cwValidate() {
   if (id === 'skills') {
     const needed = CWIZ_CLASSES[_cw.cls].skillCount;
     if (_cw.skillChoices.length < needed) return `Choose ${needed} class skills.`;
+    return null;
+  }
+  if (id === 'spells') {
+    const cd = CWIZ_CLASSES[_cw.cls];
+    if (cd && cd.spellcaster && cd.cantripCount) {
+      const needed = cd.cantripCount[_cw.level-1] || cd.cantripCount[0];
+      if (_cw.cantrips.length < needed) return `Choose ${needed} class cantrip${needed>1?'s':''}.`;
+    }
+    if (_cw.race === 'Elf' && _cw.subrace === 'High Elf' && !_cw.racialCantrip)
+      return 'Choose your High Elf racial cantrip.';
     return null;
   }
   return null;
@@ -8145,11 +8442,11 @@ function _cwShowRaceInfo(race, sr) {
 // ── Class Grid ────────────────────────────────────────────────────────────────
 function _cwBuildClassGrid() {
   document.getElementById('cwiz-class-grid').innerHTML = Object.keys(CWIZ_CLASSES).map(c =>
-    `<div class="cwiz-card selected" data-cls="${c}" onclick="cwizPickClass(this.dataset.cls)">
+    `<div class="cwiz-card${c===_cw.cls?' selected':''}" data-cls="${c}" onclick="cwizPickClass(this.dataset.cls)">
       <div class="cwiz-card-name">${c}</div>
       <div class="cwiz-card-sub">d${CWIZ_CLASSES[c].hitDie} hit die</div></div>`
   ).join('');
-  _cwShowClassInfo('Fighter');
+  _cwShowClassInfo(_cw.cls || 'Fighter');
 }
 
 function cwizPickClass(cls) {
@@ -8178,9 +8475,9 @@ function _cwShowClassInfo(cls) {
 
 // ── Ability Scores ────────────────────────────────────────────────────────────
 function _cwSetupAbilities() {
-  _cwBuildArrayRows();
+  _cwBuildArrayDnD();
   _cwBuildPbRows();
-  _cwBuildRollRows();
+  _cwBuildRollDnD();
 }
 
 function cwizSelectMethod(m) {
@@ -8191,33 +8488,36 @@ function cwizSelectMethod(m) {
   });
 }
 
-// Standard Array
-function _cwBuildArrayRows() {
-  document.getElementById('cwiz-array-rows').innerHTML = STAT_NAMES.map(s => {
-    const rb = _cwRacialBonus(s);
-    const cur = _cw.arrayAssign[s] || '';
-    return `<div class="cwiz-stat-row">
-      <div class="cwiz-stat-label">${STAT_LABELS[s]}</div>
-      <select class="cwiz-sel" onchange="_cw.arrayAssign['${s}']=this.value;_cwArrayRefresh()">
-        <option value="">—</option>
-        ${STD_ARRAY.map(v => `<option value="${v}" ${cur==v?'selected':''}>${v}</option>`).join('')}
-      </select>
-      ${rb ? `<div class="cwiz-stat-racial">+${rb} racial</div>` : ''}
+// ── Standard Array (DnD) ──────────────────────────────────────────────────────
+function _cwBuildArrayDnD() {
+  const usedVals = new Set(Object.values(_cw.arrayAssign).filter(Boolean).map(String));
+  const pool = document.getElementById('cwiz-array-pool');
+  if (pool) pool.innerHTML = STD_ARRAY.map(v => {
+    const used = usedVals.has(String(v));
+    return `<div class="cwiz-dnd-chip${used?' used':''}" draggable="${!used}"
+      ondragstart="cwizDndStart(event,'array','${v}')" ondragend="cwizDndEnd(event)">${v}</div>`;
+  }).join('');
+  _cwRenderArraySlots();
+}
+
+function _cwRenderArraySlots() {
+  const slots = document.getElementById('cwiz-array-slots');
+  if (!slots) return;
+  slots.innerHTML = STAT_NAMES.map(s => {
+    const val = _cw.arrayAssign[s];
+    const rb  = _cwRacialBonus(s);
+    const tot = val ? (parseInt(val) + rb) : '';
+    return `<div class="cwiz-dnd-slot${val?' filled':''}" data-stat="${s}"
+      ondragover="cwizDndOver(event)" ondragleave="cwizDndLeave(event)" ondrop="cwizDndDrop(event,'array','${s}')">
+      <div class="cwiz-dnd-slot-label">${STAT_LABELS[s]}</div>
+      <div class="cwiz-dnd-slot-val">${val||'—'}</div>
+      ${rb ? `<div class="cwiz-dnd-slot-racial">+${rb} racial${tot?` = ${tot}`:''}</div>` : (tot?`<div class="cwiz-dnd-slot-total">= ${tot}</div>`:'')}
+      ${val ? `<button class="cwiz-dnd-slot-clear" onclick="cwizDndClear('array','${s}')">✕</button>` : ''}
     </div>`;
   }).join('');
 }
 
-function _cwArrayRefresh() {
-  const used = Object.values(_cw.arrayAssign).filter(Boolean);
-  document.querySelectorAll('#cwiz-array-rows select').forEach((sel, i) => {
-    const stat = STAT_NAMES[i];
-    Array.from(sel.options).forEach(opt => {
-      opt.disabled = opt.value && used.includes(opt.value) && opt.value !== _cw.arrayAssign[stat];
-    });
-  });
-}
-
-// Point Buy
+// ── Point Buy ─────────────────────────────────────────────────────────────────
 function _cwBuildPbRows() {
   document.getElementById('cwiz-pb-rows').innerHTML = STAT_NAMES.map(s => {
     const rb = _cwRacialBonus(s);
@@ -8250,56 +8550,234 @@ function _cwPbUpdatePts() {
   if (el) { el.textContent = 27 - spent; el.style.color = spent > 27 ? 'var(--red-lt)' : 'var(--gold)'; }
 }
 
-// Roll
+// ── Roll Dice (DnD) ───────────────────────────────────────────────────────────
 function cwizRollAll() {
   function r4d6() {
-    const d = [0,0,0,0].map(() => Math.floor(Math.random()*6)+1).sort((a,b)=>a-b);
+    const d = [1,2,3,4].map(() => Math.floor(Math.random()*6)+1).sort((a,b)=>a-b);
     return d[1]+d[2]+d[3];
   }
-  _cw.rollPool = [0,0,0,0,0,0].map(() => r4d6());
+  _cw.rollPool  = [0,0,0,0,0,0].map(() => r4d6());
   _cw.rollAssign = {str:null,dex:null,con:null,int:null,wis:null,cha:null};
-  _cwRenderRollPool();
-  _cwBuildRollRows();
+  _cwBuildRollDnD();
 }
 
-function _cwRenderRollPool() {
+function _cwBuildRollDnD() {
   const usedIdx = new Set(Object.values(_cw.rollAssign).filter(v => v !== null));
-  document.getElementById('cwiz-roll-pool').innerHTML = _cw.rollPool.map((v,i) =>
-    `<span class="cwiz-rolled-chip${usedIdx.has(i)?' used':''}">${v}</span>`).join('');
+  const pool = document.getElementById('cwiz-roll-pool');
+  if (pool) {
+    if (!_cw.rollPool.length) {
+      pool.innerHTML = '<span style="color:var(--text-dim);font-size:.8rem">Click Roll to generate scores, then drag to slots.</span>';
+    } else {
+      pool.innerHTML = _cw.rollPool.map((v,i) => {
+        const used = usedIdx.has(i);
+        return `<div class="cwiz-dnd-chip${used?' used':''}" draggable="${!used}"
+          ondragstart="cwizDndStart(event,'roll','${i}')" ondragend="cwizDndEnd(event)">${v}</div>`;
+      }).join('');
+    }
+  }
+  _cwRenderRollSlots();
 }
 
-function _cwBuildRollRows() {
-  const el = document.getElementById('cwiz-roll-rows');
-  if (!_cw.rollPool.length) {
-    el.innerHTML = '<div style="color:var(--text-dim);font-size:.8rem">Click Roll to generate scores.</div>';
-    return;
-  }
-  el.innerHTML = STAT_NAMES.map(s => {
-    const rb = _cwRacialBonus(s);
-    const cur = _cw.rollAssign[s];
-    return `<div class="cwiz-stat-row">
-      <div class="cwiz-stat-label">${STAT_LABELS[s]}</div>
-      <select class="cwiz-sel" onchange="cwizAssignRoll('${s}',this.value)">
-        <option value="">—</option>
-        ${_cw.rollPool.map((v,i) => `<option value="${i}" ${cur===i?'selected':''}>${v}</option>`).join('')}
-      </select>
-      <div class="cwiz-stat-val">${cur !== null && cur !== undefined ? _cw.rollPool[cur] : '—'}</div>
-      ${rb ? `<div class="cwiz-stat-racial">+${rb} racial</div>` : ''}
+function _cwRenderRollSlots() {
+  const slots = document.getElementById('cwiz-roll-slots');
+  if (!slots) return;
+  slots.innerHTML = STAT_NAMES.map(s => {
+    const idx = _cw.rollAssign[s];
+    const val = (idx !== null && idx !== undefined) ? _cw.rollPool[idx] : null;
+    const rb  = _cwRacialBonus(s);
+    const tot = val !== null ? (val + rb) : '';
+    return `<div class="cwiz-dnd-slot${val!==null?' filled':''}" data-stat="${s}"
+      ondragover="cwizDndOver(event)" ondragleave="cwizDndLeave(event)" ondrop="cwizDndDrop(event,'roll','${s}')">
+      <div class="cwiz-dnd-slot-label">${STAT_LABELS[s]}</div>
+      <div class="cwiz-dnd-slot-val">${val!==null ? val : '—'}</div>
+      ${rb ? `<div class="cwiz-dnd-slot-racial">+${rb} racial${tot?` = ${tot}`:''}</div>` : (tot?`<div class="cwiz-dnd-slot-total">= ${tot}</div>`:'')}
+      ${val!==null ? `<button class="cwiz-dnd-slot-clear" onclick="cwizDndClear('roll','${s}')">✕</button>` : ''}
     </div>`;
   }).join('');
 }
 
-function cwizAssignRoll(stat, val) {
-  const idx = val === '' ? null : parseInt(val);
-  // Un-assign if another stat already has this pool slot
-  if (idx !== null) {
-    for (const s of STAT_NAMES) {
-      if (s !== stat && _cw.rollAssign[s] === idx) _cw.rollAssign[s] = null;
-    }
+// ── Drag-and-Drop handlers ────────────────────────────────────────────────────
+let _dndDragVal = null;
+function cwizDndStart(e, method, val) {
+  _dndDragVal = val;
+  e.dataTransfer.effectAllowed = 'move';
+  e.target.classList.add('dragging');
+}
+function cwizDndEnd(e) { e.target.classList.remove('dragging'); }
+function cwizDndOver(e)  { e.preventDefault(); e.currentTarget.classList.add('over'); }
+function cwizDndLeave(e) { e.currentTarget.classList.remove('over'); }
+function cwizDndDrop(e, method, stat) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('over');
+  if (method === 'array') {
+    for (const s of STAT_NAMES) { if (_cw.arrayAssign[s] == _dndDragVal) _cw.arrayAssign[s] = ''; }
+    _cw.arrayAssign[stat] = String(_dndDragVal);
+    _cwBuildArrayDnD();
+  } else {
+    const idx = parseInt(_dndDragVal);
+    for (const s of STAT_NAMES) { if (_cw.rollAssign[s] === idx) _cw.rollAssign[s] = null; }
+    _cw.rollAssign[stat] = idx;
+    _cwBuildRollDnD();
   }
-  _cw.rollAssign[stat] = idx;
-  _cwRenderRollPool();
-  _cwBuildRollRows();
+}
+function cwizDndClear(method, stat) {
+  if (method === 'array') { _cw.arrayAssign[stat] = ''; _cwBuildArrayDnD(); }
+  else                    { _cw.rollAssign[stat]  = null; _cwBuildRollDnD(); }
+}
+
+// ── Spells Step ───────────────────────────────────────────────────────────────
+const CANTRIPS_BY_CLASS = {
+  bard:    ['Blade Ward','Dancing Lights','Friends','Light','Mage Hand','Mending','Message','Minor Illusion','Prestidigitation','True Strike','Vicious Mockery'],
+  cleric:  ['Guidance','Light','Mending','Resistance','Sacred Flame','Spare the Dying','Thaumaturgy'],
+  druid:   ['Druidcraft','Guidance','Mending','Poison Spray','Produce Flame','Resistance','Shillelagh','Thorn Whip'],
+  sorcerer:['Acid Splash','Blade Ward','Chill Touch','Dancing Lights','Fire Bolt','Friends','Light','Mage Hand','Mending','Message','Minor Illusion','Poison Spray','Prestidigitation','Ray of Frost','Shocking Grasp','True Strike'],
+  warlock: ['Blade Ward','Chill Touch','Eldritch Blast','Friends','Mage Hand','Minor Illusion','Poison Spray','Prestidigitation','True Strike'],
+  wizard:  ['Acid Splash','Blade Ward','Chill Touch','Dancing Lights','Fire Bolt','Friends','Light','Mage Hand','Mending','Message','Minor Illusion','Prestidigitation','Ray of Frost','Shocking Grasp','True Strike'],
+  any:     ['Acid Splash','Blade Ward','Chill Touch','Dancing Lights','Druidcraft','Eldritch Blast','Fire Bolt','Friends','Guidance','Light','Mage Hand','Mending','Message','Minor Illusion','Poison Spray','Prestidigitation','Produce Flame','Ray of Frost','Resistance','Sacred Flame','Shillelagh','Shocking Grasp','Spare the Dying','Thaumaturgy','Thorn Whip','True Strike','Vicious Mockery'],
+};
+const RACE_BASE_LANGS = {
+  'Dwarf':'Common, Dwarvish', 'Elf':'Common, Elvish', 'Halfling':'Common, Halfling',
+  'Human':'Common + one of choice', 'Dragonborn':'Common, Draconic', 'Gnome':'Common, Gnomish',
+  'Half-Elf':'Common, Elvish + one of choice', 'Half-Orc':'Common, Orc', 'Tiefling':'Common, Infernal',
+};
+
+function _cwRenderSpells() {
+  const cd  = CWIZ_CLASSES[_cw.cls] || {};
+  const html = [];
+
+  // Forest Gnome: auto-grant Minor Illusion
+  if (_cw.race === 'Gnome' && _cw.subrace === 'Forest Gnome') {
+    _cw.racialCantrip = 'Minor Illusion';
+    html.push(`<div class="cwiz-info" style="margin-bottom:12px">
+      <strong>Forest Gnome Racial Cantrip (auto-granted):</strong> Minor Illusion</div>`);
+  }
+  // High Elf: choose one cantrip from any class
+  if (_cw.race === 'Elf' && _cw.subrace === 'High Elf') {
+    html.push(`<div class="cwiz-sec">High Elf Racial Cantrip — Choose 1 (INT-based, any class)</div>`);
+    html.push(_cwCantripBlock('racial', 1, _cw.racialCantrip ? [_cw.racialCantrip] : [], 'any'));
+  }
+
+  // Class cantrips
+  if (cd.spellcaster && cd.cantripCount) {
+    const needed = cd.cantripCount[_cw.level-1] || cd.cantripCount[0];
+    const clsKey = _cw.cls.toLowerCase();
+    const list   = CANTRIPS_BY_CLASS[clsKey] || CANTRIPS_BY_CLASS.any;
+    html.push(`<div class="cwiz-sec" style="margin-top:${html.length?'14px':'0'}">Choose ${needed} Cantrip${needed>1?'s':''} (${_cw.cls})</div>`);
+    html.push(_cwCantripBlock('class', needed, _cw.cantrips, clsKey));
+  }
+
+  // Spells known
+  if (cd.spellcaster && cd.spellsKnown) {
+    const needed = cd.spellsKnown[_cw.level-1] || 0;
+    html.push(`<div class="cwiz-sec" style="margin-top:14px">Choose ${needed} Spell${needed>1?'s':''} Known (${_cw.cls})</div>`);
+    html.push(`<div class="cwiz-info">
+      <div id="cwiz-spell-load-row">
+        <div style="font-size:.78rem;color:var(--text-dim);margin-bottom:8px">Choose up to ${needed} spells. Click to load from library.</div>
+        <button class="modal-btn secondary" style="font-size:.78rem" onclick="_cwLoadSpells(${needed})">Load ${_cw.cls} Spells</button>
+      </div>
+      <div id="cwiz-spell-list" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px"></div>
+      <div style="font-size:.72rem;color:var(--text-dim);margin-top:6px"><span id="cwiz-spell-count">${_cw.spells.length}</span>/${needed} chosen</div>
+    </div>`);
+  } else if (cd.spellcaster && !cd.spellsKnown) {
+    const spellMod = cd.spellAbility || 'WIS';
+    html.push(`<div class="cwiz-info" style="margin-top:10px">
+      <strong>${_cw.cls} spells are prepared daily.</strong><br>
+      You prepare <strong>${_cw.cls === 'Wizard' ? 'INT mod + level' : spellMod + ' mod + half level (min 1)'}</strong> spells after each long rest.
+      Spells are managed from the character sheet during play.</div>`);
+  }
+
+  if (!html.length) {
+    html.push('<div class="cwiz-info">No spell choices needed for this character.</div>');
+  }
+  document.getElementById('cwiz-spells-body').innerHTML = html.join('');
+  // Re-highlight already-chosen spells after re-render
+  document.querySelectorAll('#cwiz-spell-list .cwiz-card').forEach(el =>
+    el.classList.toggle('selected', _cw.spells.includes(el.dataset.spell)));
+}
+
+function _cwCantripBlock(type, needed, chosen, clsKey) {
+  const list = CANTRIPS_BY_CLASS[clsKey] || CANTRIPS_BY_CLASS.any;
+  return `<div style="display:flex;flex-wrap:wrap;gap:6px">
+    ${list.map(c => {
+      const sel = chosen.includes(c);
+      return `<div class="cwiz-card${sel?' selected':''}" style="min-width:130px"
+        data-cantrip="${c.replace(/"/g,'&quot;')}" data-type="${type}"
+        onclick="cwizToggleCantrip(this)">
+        <div class="cwiz-card-name" style="font-size:.75rem">${c}</div></div>`;
+    }).join('')}
+  </div>
+  <div style="font-size:.72rem;color:var(--text-dim);margin-top:6px" id="cwiz-cantrip-count-${type}">${chosen.length}/${needed} chosen</div>`;
+}
+
+function cwizToggleCantrip(el) {
+  const name = el.dataset.cantrip;
+  const type = el.dataset.type;
+  if (type === 'racial') {
+    _cw.racialCantrip = (_cw.racialCantrip === name) ? '' : name;
+    document.querySelectorAll('[data-type="racial"]').forEach(c =>
+      c.classList.toggle('selected', c.dataset.cantrip === _cw.racialCantrip));
+    const cc = document.getElementById('cwiz-cantrip-count-racial');
+    if (cc) cc.textContent = (_cw.racialCantrip ? 1 : 0) + '/1 chosen';
+    return;
+  }
+  const cd     = CWIZ_CLASSES[_cw.cls];
+  const needed = cd && cd.cantripCount ? (cd.cantripCount[_cw.level-1] || cd.cantripCount[0]) : 0;
+  const idx    = _cw.cantrips.indexOf(name);
+  if (idx >= 0) {
+    _cw.cantrips.splice(idx, 1);
+    el.classList.remove('selected');
+  } else {
+    if (_cw.cantrips.length >= needed) return;
+    _cw.cantrips.push(name);
+    el.classList.add('selected');
+  }
+  const cc = document.getElementById('cwiz-cantrip-count-class');
+  if (cc) cc.textContent = _cw.cantrips.length + '/' + needed + ' chosen';
+}
+
+async function _cwLoadSpells(needed) {
+  const row = document.getElementById('cwiz-spell-load-row');
+  if (row) row.innerHTML = '<span style="color:var(--text-dim);font-size:.78rem">Loading…</span>';
+  try {
+    const maxLvl = Math.max(1, Math.min(9, Math.ceil(_cw.level / 2)));
+    const r = await fetch(`/spells/search?q=&limit=120`);
+    const data = await r.json();
+    const allSpells = data.results || data.spells || data || [];
+    // Filter to those plausibly appropriate (name-only if no class field)
+    const spells = allSpells.slice(0, 80);
+    const listEl = document.getElementById('cwiz-spell-list');
+    if (listEl) {
+      listEl.innerHTML = spells.map(s => {
+        const name = typeof s === 'string' ? s : (s.name || '');
+        const lvl  = typeof s === 'object' ? s.level : '';
+        const sel  = _cw.spells.includes(name);
+        return `<div class="cwiz-card${sel?' selected':''}" style="min-width:140px"
+          data-spell="${name.replace(/"/g,'&quot;')}"
+          onclick="cwizToggleSpell(this,${needed})">
+          <div class="cwiz-card-name" style="font-size:.72rem">${name}</div>
+          ${lvl!==''?`<div class="cwiz-card-sub">Lvl ${lvl}</div>`:''}
+        </div>`;
+      }).join('');
+    }
+    if (row) row.innerHTML = '';
+  } catch(e) {
+    if (row) row.innerHTML = `<div style="color:var(--text-dim);font-size:.78rem">Could not load spells — add them from the character sheet later.</div>`;
+  }
+}
+
+function cwizToggleSpell(el, needed) {
+  const name = el.dataset.spell;
+  const idx  = _cw.spells.indexOf(name);
+  if (idx >= 0) {
+    _cw.spells.splice(idx, 1);
+    el.classList.remove('selected');
+  } else {
+    if (_cw.spells.length >= needed) return;
+    _cw.spells.push(name);
+    el.classList.add('selected');
+  }
+  const cc = document.getElementById('cwiz-spell-count');
+  if (cc) cc.textContent = _cw.spells.length;
 }
 
 function _cwRacialBonus(stat) {
@@ -8314,11 +8792,12 @@ function _cwRacialBonus(stat) {
 // ── Level Up ──────────────────────────────────────────────────────────────────
 function _cwRenderLevelUp() {
   const cd = CWIZ_CLASSES[_cw.cls];
+  const fsLevel = cd.fightingStyleLevel || 1;
   let html = '';
   for (let lvl = 1; lvl <= _cw.level; lvl++) {
     const feats = cd.features[lvl];
     if (!feats || !feats.length) continue;
-    const isFS  = lvl === 1;
+    const isFS  = cd.fightingStyles && lvl === fsLevel;
     const isSC  = lvl === cd.subclassLevel;
     const isASI = cd.asiLevels.includes(lvl);
     html += `<div class="cwiz-lvl-block"><h4>Level ${lvl}</h4>
@@ -8333,11 +8812,11 @@ function _cwRenderLevelUp() {
     }
     if (isSC) {
       html += `<div style="margin-top:8px">
-        <div style="font-size:.78rem;color:var(--text-dim);margin-bottom:5px">Choose Martial Archetype:</div>
+        <div style="font-size:.78rem;color:var(--text-dim);margin-bottom:5px">Choose ${cd.subclassLabel || 'Subclass'}:</div>
         <div style="display:flex;gap:7px;flex-wrap:wrap">
           ${cd.subclasses.map(sc=>`<div class="cwiz-card ${_cw.subclass===sc?'selected':''}" data-sc="${sc}"
-            onclick="cwizPickSubclass('${sc}')" style="min-width:110px">
-            <div class="cwiz-card-name">${sc}</div></div>`).join('')}
+            onclick="cwizPickSubclass(this.dataset.sc)" style="min-width:110px">
+            <div class="cwiz-card-name" style="font-size:.75rem">${sc}</div></div>`).join('')}
         </div></div>`;
     }
     if (isASI) {
@@ -8499,28 +8978,51 @@ function _cwRenderReview() {
   const sc    = _cwFinalScores();
   const hp    = _cwCalcHp(sc);
   const rd    = CWIZ_RACES[_cw.race] || {};
+  const cd    = CWIZ_CLASSES[_cw.cls] || {};
   const bgD   = CWIZ_BACKGROUNDS[_cw.background] || {skills:[]};
   const allSk = [...bgD.skills, ..._cw.skillChoices];
   const feats = Object.values(_cw.asiChoices).filter(c=>c.type==='feat'&&c.feat)
     .map(c=>c.feat.split('—')[0].trim());
   const raceStr = _cw.race + (_cw.subrace ? ` (${_cw.subrace})` : '');
 
+  // Languages
+  let langs = RACE_BASE_LANGS[_cw.race] || 'Common';
+  const bgExtra = bgD.extra || '';
+  if (/2 language/i.test(bgExtra))  langs += ', + 2 languages (background)';
+  else if (/1 language/i.test(bgExtra)) langs += ', + 1 language (background)';
+
+  // Default AC based on class armor
+  let defaultAC = '10 + DEX';
+  if (/all armor|medium armor|light armor/i.test(cd.armorProf||'')) defaultAC = '16 (chain mail)';
+  if (_cw.cls === 'Barbarian') defaultAC = `${10 + _cwMod(sc.dex) + _cwMod(sc.con)} (unarmored)`;
+  if (_cw.cls === 'Monk')      defaultAC = `${10 + _cwMod(sc.dex) + _cwMod(sc.wis)} (unarmored)`;
+
+  // Spells summary
+  const allCantrips = [..._cw.cantrips, ...((_cw.racialCantrip && _cw.racialCantrip !== 'Minor Illusion') ? [_cw.racialCantrip] : [])];
+  if (_cw.race === 'Gnome' && _cw.subrace === 'Forest Gnome') allCantrips.push('Minor Illusion');
+
   document.getElementById('cwiz-review-body').innerHTML = `
     <div class="cwiz-review-col">
       <div>
         <div class="cwiz-rev-block"><h4>Identity</h4>
-          ${[['Name',_cw.name],['Race',raceStr],['Class',_cw.cls+(_cw.subclass?` (${_cw.subclass})`:'')+` ${_cw.level}`],
-             ['Background',_cw.background],['Speed',(rd.speed||30)+' ft']]
+          ${[['Name',_cw.name],['Race',raceStr],['Class',_cw.cls+(_cw.subclass?` (${_cw.subclass})`:'')+` Lvl ${_cw.level}`],
+             ['Background',_cw.background||'—'],['Alignment',_cw.alignment||'—'],['Speed',(rd.speed||30)+' ft']]
             .map(([k,v])=>`<div class="cwiz-rev-row"><span>${k}</span><span class="cwiz-rev-val">${v}</span></div>`).join('')}
         </div>
         <div class="cwiz-rev-block"><h4>Combat</h4>
-          ${[['Max HP',hp],['AC','16 (chain mail)'],['Fighting Style',(_cw.fightingStyle||'—').split('—')[0].trim()]]
+          ${[['Max HP',hp],['AC',defaultAC],
+             ...(cd.fightingStyles&&_cw.fightingStyle?[['Fighting Style',_cw.fightingStyle.split('—')[0].trim()]]:[])]
             .map(([k,v])=>`<div class="cwiz-rev-row"><span>${k}</span><span class="cwiz-rev-val">${v}</span></div>`).join('')}
         </div>
-        ${feats.length?`<div class="cwiz-rev-block"><h4>Feats</h4>
-          ${feats.map(f=>`<div class="cwiz-rev-row"><span class="cwiz-rev-val">${f}</span></div>`).join('')}</div>`:''}
-        <div class="cwiz-rev-block"><h4>Skills</h4>
-          <div style="font-size:.8rem;color:var(--blue-lt)">${allSk.join(', ')||'—'}</div></div>
+        <div class="cwiz-rev-block"><h4>Proficiencies</h4>
+          <div style="font-size:.76rem;color:var(--text-dim);line-height:1.6">
+            <strong style="color:var(--text)">Armor:</strong> ${cd.armorProf||'None'}<br>
+            <strong style="color:var(--text)">Weapons:</strong> ${cd.weaponProf||'—'}<br>
+            <strong style="color:var(--text)">Saves:</strong> ${(cd.saves||[]).join(', ')||'—'}
+          </div>
+        </div>
+        <div class="cwiz-rev-block"><h4>Languages</h4>
+          <div style="font-size:.78rem;color:var(--blue-lt)">${langs}</div></div>
       </div>
       <div>
         <div class="cwiz-rev-block"><h4>Ability Scores</h4>
@@ -8531,6 +9033,14 @@ function _cwRenderReview() {
               <div class="cwiz-stat-box-mod">${_cwModStr(sc[s])}</div></div>`).join('')}
           </div>
         </div>
+        ${feats.length?`<div class="cwiz-rev-block"><h4>Feats</h4>
+          ${feats.map(f=>`<div class="cwiz-rev-row"><span class="cwiz-rev-val">${f}</span></div>`).join('')}</div>`:''}
+        <div class="cwiz-rev-block"><h4>Skills</h4>
+          <div style="font-size:.78rem;color:var(--blue-lt)">${allSk.join(', ')||'—'}</div></div>
+        ${allCantrips.length?`<div class="cwiz-rev-block"><h4>Cantrips</h4>
+          <div style="font-size:.78rem;color:var(--blue-lt)">${allCantrips.join(', ')}</div></div>`:''}
+        ${_cw.spells.length?`<div class="cwiz-rev-block"><h4>Spells Known</h4>
+          <div style="font-size:.78rem;color:var(--blue-lt)">${_cw.spells.join(', ')}</div></div>`:''}
       </div>
     </div>`;
 }
@@ -8539,16 +9049,30 @@ function _cwRenderReview() {
 async function _cwCreate() {
   const sc    = _cwFinalScores();
   const hp    = _cwCalcHp(sc);
-  const rd    = CWIZ_RACES[_cw.race] || {};
+  const cd    = CWIZ_CLASSES[_cw.cls] || {};
+  const rd    = CWIZ_RACES[_cw.race]  || {};
   const bgD   = CWIZ_BACKGROUNDS[_cw.background] || {skills:[]};
   const allSk = [...bgD.skills, ..._cw.skillChoices];
   const feats = Object.values(_cw.asiChoices).filter(c=>c.type==='feat'&&c.feat)
     .map(c=>c.feat.split('—')[0].trim());
+  const allCantrips = [..._cw.cantrips];
+  if (_cw.racialCantrip) allCantrips.push(_cw.racialCantrip);
+  if (_cw.race === 'Gnome' && _cw.subrace === 'Forest Gnome' && !allCantrips.includes('Minor Illusion'))
+    allCantrips.push('Minor Illusion');
+
+  // Default AC
+  let defaultAc = 10 + _cwMod(sc.dex);
+  if (/all armor|medium armor/i.test(cd.armorProf||'')) defaultAc = 16;
+  if (_cw.cls === 'Barbarian') defaultAc = 10 + _cwMod(sc.dex) + _cwMod(sc.con);
+  if (_cw.cls === 'Monk')      defaultAc = 10 + _cwMod(sc.dex) + _cwMod(sc.wis);
 
   const notes = [
     _cw.fightingStyle ? `Fighting Style: ${_cw.fightingStyle.split('—')[0].trim()}` : '',
-    feats.length ? `Feats: ${feats.join(', ')}` : '',
-    allSk.length ? `Skills: ${allSk.join(', ')}` : '',
+    feats.length      ? `Feats: ${feats.join(', ')}` : '',
+    allSk.length      ? `Skills: ${allSk.join(', ')}` : '',
+    allCantrips.length ? `Cantrips: ${allCantrips.join(', ')}` : '',
+    _cw.spells.length  ? `Spells: ${_cw.spells.join(', ')}` : '',
+    _cw.alignment      ? `Alignment: ${_cw.alignment}` : '',
   ].filter(Boolean).join('\n');
 
   const character = {
@@ -8558,7 +9082,7 @@ async function _cwCreate() {
     subclass:  _cw.subclass || '',
     level:     _cw.level,
     hp:        hp, max_hp: hp,
-    ac:        16,
+    ac:        defaultAc,
     speed:     String(rd.speed || 30),
     str: sc.str, dex: sc.dex, con: sc.con,
     int: sc.int, wis: sc.wis, cha: sc.cha,
@@ -8566,7 +9090,9 @@ async function _cwCreate() {
     profession: _cw.background,
     notes:     notes,
     classes:   [{class: _cw.cls, level: _cw.level, subclass: _cw.subclass || ''}],
-    items: [], spells: [], buffs: [], debuffs: [],
+    items:  [],
+    spells: [...allCantrips.map(n=>({name:n,level:0})), ..._cw.spells.map(n=>({name:n,level:1}))],
+    buffs: [], debuffs: [],
   };
 
   const btn = document.getElementById('cwiz-next-btn');
@@ -8610,11 +9136,20 @@ async function _cwCreate() {
       <!-- Step: basic -->
       <div class="cwiz-step" id="cwiz-step-basic">
         <div class="cwiz-sec">Character Basics</div>
-        <div style="display:flex;flex-direction:column;gap:12px;max-width:380px">
+        <div style="display:flex;flex-direction:column;gap:12px;max-width:420px">
           <div><label class="cs-label">Character Name</label>
             <input class="cs-input" id="cwiz-name" placeholder="Enter name…" style="width:100%;margin-top:4px"></div>
-          <div><label class="cs-label">Target Level (1–20)</label>
-            <input class="cs-input" id="cwiz-level" type="number" min="1" max="20" value="1" style="width:72px;text-align:center;margin-top:4px"></div>
+          <div style="display:flex;gap:16px;align-items:flex-end">
+            <div><label class="cs-label">Target Level (1–20)</label>
+              <input class="cs-input" id="cwiz-level" type="number" min="1" max="20" value="1" style="width:72px;text-align:center;margin-top:4px"></div>
+            <div style="flex:1"><label class="cs-label">Alignment</label>
+              <select class="cwiz-sel" id="cwiz-alignment" style="width:100%;margin-top:4px">
+                <option value="">— Choose —</option>
+                <option>Lawful Good</option><option>Neutral Good</option><option>Chaotic Good</option>
+                <option>Lawful Neutral</option><option>True Neutral</option><option>Chaotic Neutral</option>
+                <option>Lawful Evil</option><option>Neutral Evil</option><option>Chaotic Evil</option>
+              </select></div>
+          </div>
         </div>
       </div>
 
@@ -8655,8 +9190,9 @@ async function _cwCreate() {
         </div>
         <!-- Array panel -->
         <div class="cwiz-scores-panel" id="cwiz-panel-array">
-          <div style="font-size:.78rem;color:var(--text-dim);margin-bottom:9px">Assign each value to one stat. Each value can only be used once.</div>
-          <div id="cwiz-array-rows"></div>
+          <div style="font-size:.78rem;color:var(--text-dim);margin-bottom:6px">Drag each value to a stat slot. Click ✕ to return it to the pool.</div>
+          <div class="cwiz-dnd-pool" id="cwiz-array-pool"></div>
+          <div class="cwiz-dnd-slots" id="cwiz-array-slots"></div>
         </div>
         <!-- Point Buy panel -->
         <div class="cwiz-scores-panel" id="cwiz-panel-pointbuy">
@@ -8669,9 +9205,10 @@ async function _cwCreate() {
         </div>
         <!-- Roll panel -->
         <div class="cwiz-scores-panel" id="cwiz-panel-roll">
-          <button class="modal-btn primary" onclick="cwizRollAll()" style="margin-bottom:10px">🎲 Roll 4d6 Drop Lowest</button>
-          <div id="cwiz-roll-pool" style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px"></div>
-          <div id="cwiz-roll-rows"></div>
+          <button class="modal-btn primary" onclick="cwizRollAll()" style="margin-bottom:8px">🎲 Roll 4d6 Drop Lowest</button>
+          <div style="font-size:.78rem;color:var(--text-dim);margin-bottom:6px">Drag rolled values to stat slots. Click ✕ to unassign.</div>
+          <div class="cwiz-dnd-pool" id="cwiz-roll-pool"></div>
+          <div class="cwiz-dnd-slots" id="cwiz-roll-slots"></div>
         </div>
       </div>
 
@@ -8692,6 +9229,12 @@ async function _cwCreate() {
       <div class="cwiz-step" id="cwiz-step-skills">
         <div class="cwiz-sec">Skill Proficiencies</div>
         <div id="cwiz-skills-body"></div>
+      </div>
+
+      <!-- Step: spells -->
+      <div class="cwiz-step" id="cwiz-step-spells">
+        <div class="cwiz-sec">Cantrips &amp; Spells</div>
+        <div id="cwiz-spells-body"></div>
       </div>
 
       <!-- Step: review -->
