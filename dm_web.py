@@ -3063,6 +3063,86 @@ signal.signal(signal.SIGINT,  _graceful_shutdown)
 init_db()
 threading.Thread(target=_evict_stale_states, daemon=True).start()
 
+
+def _auto_seed_reference_data():
+    """Seed mobs and spells from bundled CSVs if those tables are empty.
+    Campaigns and all user data are never touched."""
+    import csv as _csv
+
+    base = os.path.dirname(os.path.abspath(__file__))
+
+    # ── Mobs ────────────────────────────────────────────────────────────────
+    if count_mobs() == 0:
+        mobs_csv = os.path.join(base, "mobs_seed.csv")
+        if os.path.exists(mobs_csv):
+            log.info("Auto-seeding mobs from %s …", mobs_csv)
+            added = skipped = 0
+
+            def _int(v):
+                try:
+                    return int(v)
+                except (TypeError, ValueError):
+                    return 0
+
+            with open(mobs_csv, newline="", encoding="utf-8") as f:
+                for row in _csv.DictReader(f):
+                    mob = {
+                        "name":          row["name"],
+                        "description":   row["description"],
+                        "ac":            _int(row["ac"]),
+                        "hp_formula":    row["hp_formula"],
+                        "hp_avg":        _int(row["hp_avg"]),
+                        "speed":         row["speed"],
+                        "str":           _int(row["str"]),
+                        "dex":           _int(row["dex"]),
+                        "con":           _int(row["con"]),
+                        "int":           _int(row["int"]),
+                        "wis":           _int(row["wis"]),
+                        "cha":           _int(row["cha"]),
+                        "challenge":     row["challenge"],
+                        "xp":            _int(row["xp"]),
+                        "size":          row["size"],
+                        "mob_type":      row["mob_type"],
+                        "alignment":     row["alignment"],
+                        "melee_mod":     row["melee_mod"],
+                        "ranged_mod":    row["ranged_mod"],
+                        "attack1":       row["attack1"],
+                        "attack1_range": row["attack1_range"],
+                        "attack1_dmg":   row["attack1_dmg"],
+                        "attack2":       row["attack2"],
+                        "attack2_range": row["attack2_range"],
+                        "attack2_dmg":   row["attack2_dmg"],
+                        "attack3":       row["attack3"],
+                        "attack3_range": row["attack3_range"],
+                        "attack3_dmg":   row["attack3_dmg"],
+                        "source":        row["source"],
+                        "notes":         row["notes"],
+                        "languages":     row["languages"],
+                    }
+                    try:
+                        upsert_mob(mob)
+                        added += 1
+                    except Exception as e:
+                        log.warning("Mob seed skipped %s: %s", row.get("name"), e)
+                        skipped += 1
+            log.info("Mob auto-seed done — %d added, %d skipped.", added, skipped)
+        else:
+            log.warning("Mobs table is empty but mobs_seed.csv not found at %s", mobs_csv)
+
+    # ── Spells ───────────────────────────────────────────────────────────────
+    if count_spells_reference() == 0:
+        spells_csv = os.path.join(base, "Spells.csv")
+        if os.path.exists(spells_csv):
+            log.info("Auto-seeding spells from %s …", spells_csv)
+            from seed_spells_csv import seed_from_csv as _seed_spells
+            _seed_spells(path=spells_csv, default_source="PHB")
+            log.info("Spell auto-seed done — %d spells in reference.", count_spells_reference())
+        else:
+            log.warning("Spells table is empty but Spells.csv not found at %s", spells_csv)
+
+
+_auto_seed_reference_data()
+
 if __name__ == "__main__":
     threading.Timer(1.5, open_in_chrome).start()
     log.info("D&D DM Web App: %s", URL)

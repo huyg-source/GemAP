@@ -8,6 +8,9 @@ Or via the Render start command:
     gunicorn --config gunicorn_config.py dm_web:app
 """
 
+import eventlet
+eventlet.monkey_patch()
+
 import os
 
 # Flask-SocketIO requires async worker

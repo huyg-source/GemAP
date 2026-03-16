@@ -22,6 +22,7 @@ DB_PATH = os.environ.get(
     "DND_DB_PATH",
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "dnd_game.db"),
 )
+os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
 
 @contextmanager
