@@ -1196,6 +1196,22 @@
   .cwiz-stat-box-score { font-size:1.3rem; font-weight:700; }
   .cwiz-stat-box-mod { font-size:.72rem; color:var(--text-dim); }
   .cwiz-err { color:var(--red-lt); font-size:.78rem; }
+  /* Equipment step */
+  .cwiz-gold-bar { display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
+  .cwiz-gold-amount { font-size:1.1rem; font-weight:700; color:var(--gold); }
+  .cwiz-equip-pkg { background:var(--panel2); border:1px solid var(--border); border-radius:6px; padding:10px 13px; margin-bottom:12px; }
+  .cwiz-equip-pkg ul { padding-left:16px; font-size:.8rem; color:var(--text-dim); line-height:1.8; }
+  .cwiz-shop-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:6px; margin-top:8px; max-height:210px; overflow-y:auto; }
+  .cwiz-shop-card { background:var(--panel2); border:1px solid var(--border); border-radius:5px; padding:7px 8px; cursor:pointer; transition:border-color .15s; }
+  .cwiz-shop-card:hover { border-color:var(--gold); }
+  .cwiz-shop-card-name { font-size:.75rem; font-weight:600; }
+  .cwiz-shop-card-cost { font-size:.68rem; color:var(--gold); margin-top:2px; }
+  .cwiz-shop-card-cat { font-size:.65rem; color:var(--text-dim); }
+  .cwiz-cart-item { display:flex; justify-content:space-between; align-items:center; padding:4px 8px; border-bottom:1px solid var(--border); font-size:.78rem; }
+  .cwiz-cart-item:last-child { border-bottom:none; }
+  .cwiz-cart-remove { background:none; border:none; color:var(--red-lt); cursor:pointer; font-size:.82rem; padding:0 4px; }
+  .cwiz-budget-bar { display:flex; gap:16px; padding:8px 10px; background:var(--panel2); border-radius:6px; font-size:.82rem; margin-top:8px; border:1px solid var(--border); transition:border-color .3s; }
+  .cwiz-budget-rem { color:var(--gold) !important; }
 
   /* ── Drag-and-Drop Ability Score chips ── */
   .cwiz-dnd-pool { display:flex; gap:7px; flex-wrap:wrap; margin-bottom:14px; min-height:42px; padding:8px; background:var(--panel2); border:1px dashed var(--border); border-radius:5px; align-items:center; }
@@ -8188,6 +8204,31 @@ const STAT_NAMES  = ['str','dex','con','int','wis','cha'];
 const STAT_LABELS = {str:'STR',dex:'DEX',con:'CON',int:'INT',wis:'WIS',cha:'CHA'};
 const STD_ARRAY   = [15,14,13,12,10,8];
 
+// Starting gold by class: {dice, mult, avg}
+const CLASS_STARTING_GOLD = {
+  'Barbarian':{dice:'2d4',mult:10,avg:25},  'Bard':{dice:'5d4',mult:10,avg:125},
+  'Cleric':{dice:'5d4',mult:10,avg:125},    'Druid':{dice:'2d4',mult:10,avg:25},
+  'Fighter':{dice:'5d4',mult:10,avg:125},   'Monk':{dice:'5d4',mult:1,avg:12},
+  'Paladin':{dice:'5d4',mult:10,avg:125},   'Ranger':{dice:'5d4',mult:10,avg:125},
+  'Rogue':{dice:'4d4',mult:10,avg:100},     'Sorcerer':{dice:'3d4',mult:10,avg:75},
+  'Warlock':{dice:'4d4',mult:10,avg:100},   'Wizard':{dice:'4d4',mult:10,avg:100},
+};
+// Starting equipment packages by class
+const CLASS_STARTING_EQUIP = {
+  'Barbarian':['Greataxe or any martial melee weapon','Two handaxes or any simple weapon',"Explorer's Pack",'Four javelins'],
+  'Bard':['Rapier, longsword, or any simple weapon',"Diplomat's Pack or Entertainer's Pack",'Lute or any musical instrument','Leather armor & dagger'],
+  'Cleric':['Mace or warhammer (if proficient)','Scale mail, leather armor, or chain mail','Light crossbow + 20 bolts or any simple weapon',"Priest's Pack or Explorer's Pack",'Shield & holy symbol'],
+  'Druid':['Wooden shield or any simple weapon','Scimitar or any simple melee weapon',"Leather armor, explorer's pack & druidic focus"],
+  'Fighter':['Chain mail or leather armor + longbow + 20 arrows','Martial weapon + shield, or two martial weapons','Light crossbow + 20 bolts or two handaxes',"Dungeoneer's Pack or Explorer's Pack"],
+  'Monk':['Shortsword or any simple weapon',"Dungeoneer's Pack or Explorer's Pack",'Ten darts'],
+  'Paladin':['Martial weapon + shield or two martial weapons','Five javelins or any simple melee weapon',"Priest's Pack or Explorer's Pack",'Chain mail & holy symbol'],
+  'Ranger':['Scale mail or leather armor','Two shortswords or two simple melee weapons',"Dungeoneer's Pack or Explorer's Pack",'Longbow + quiver of 20 arrows'],
+  'Rogue':['Rapier or shortsword','Shortbow + quiver of 20 arrows or a shortsword',"Burglar's Pack, Dungeoneer's Pack, or Explorer's Pack",'Leather armor, two daggers & thieves\' tools'],
+  'Sorcerer':['Light crossbow + 20 bolts or any simple weapon',"Component pouch or arcane focus","Dungeoneer's Pack or Explorer's Pack",'Two daggers'],
+  'Warlock':['Light crossbow + 20 bolts or any simple weapon',"Component pouch or arcane focus","Scholar's Pack or Dungeoneer's Pack",'Leather armor, any simple weapon & two daggers'],
+  'Wizard':['Quarterstaff or dagger',"Component pouch or arcane focus","Scholar's Pack or Explorer's Pack",'Spellbook'],
+};
+
 // ── State ─────────────────────────────────────────────────────────────────────
 let _cw = {};
 
@@ -8210,6 +8251,8 @@ function _cwReset() {
     cantrips: [],
     spells: [],
     racialCantrip: '',
+    goldTotal: 0,
+    cart: [],
   };
 }
 
@@ -8218,7 +8261,7 @@ function _cwSteps() {
   if (_cw.level > 1) s.push('levelup');
   s.push('bg','skills');
   if (_cwNeedsSpellStep()) s.push('spells');
-  s.push('review');
+  s.push('equipment','review');
   return s;
 }
 function _cwNeedsSpellStep() {
@@ -8279,11 +8322,12 @@ function _cwShow() {
   ).join('');
 
   // Per-step setup
-  if (id === 'abilities') _cwSetupAbilities();
-  if (id === 'levelup')   _cwRenderLevelUp();
-  if (id === 'skills')    _cwRenderSkills();
-  if (id === 'spells')    _cwRenderSpells();
-  if (id === 'review')    _cwRenderReview();
+  if (id === 'abilities')  _cwSetupAbilities();
+  if (id === 'levelup')    _cwRenderLevelUp();
+  if (id === 'skills')     _cwRenderSkills();
+  if (id === 'spells')     _cwRenderSpells();
+  if (id === 'equipment')  _cwRenderEquipment();
+  if (id === 'review')     _cwRenderReview();
 
   document.getElementById('cwiz-body').scrollTop = 0;
 }
@@ -8671,11 +8715,11 @@ function _cwRenderSpells() {
     const needed = cd.spellsKnown[_cw.level-1] || 0;
     html.push(`<div class="cwiz-sec" style="margin-top:14px">Choose ${needed} Spell${needed>1?'s':''} Known (${_cw.cls})</div>`);
     html.push(`<div class="cwiz-info">
-      <div id="cwiz-spell-load-row">
-        <div style="font-size:.78rem;color:var(--text-dim);margin-bottom:8px">Choose up to ${needed} spells. Click to load from library.</div>
-        <button class="modal-btn secondary" style="font-size:.78rem" onclick="_cwLoadSpells(${needed})">Load ${_cw.cls} Spells</button>
+      <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+        <input class="cs-input" id="cwiz-spell-q" placeholder="Search ${_cw.cls} spells…" style="width:220px;font-size:.8rem;padding:4px 8px" oninput="cwizSpellSearch()">
+        <span id="cwiz-spell-load-row" style="font-size:.78rem;color:var(--text-dim);align-self:center">Loading…</span>
       </div>
-      <div id="cwiz-spell-list" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px"></div>
+      <div id="cwiz-spell-list" style="display:flex;flex-wrap:wrap;gap:6px;max-height:200px;overflow-y:auto"></div>
       <div style="font-size:.72rem;color:var(--text-dim);margin-top:6px"><span id="cwiz-spell-count">${_cw.spells.length}</span>/${needed} chosen</div>
     </div>`);
   } else if (cd.spellcaster && !cd.spellsKnown) {
@@ -8690,9 +8734,11 @@ function _cwRenderSpells() {
     html.push('<div class="cwiz-info">No spell choices needed for this character.</div>');
   }
   document.getElementById('cwiz-spells-body').innerHTML = html.join('');
-  // Re-highlight already-chosen spells after re-render
-  document.querySelectorAll('#cwiz-spell-list .cwiz-card').forEach(el =>
-    el.classList.toggle('selected', _cw.spells.includes(el.dataset.spell)));
+  // Auto-load spells if this class has spells known
+  if (cd.spellcaster && cd.spellsKnown) {
+    const needed = cd.spellsKnown[_cw.level-1] || 0;
+    _cwLoadSpells(needed);
+  }
 }
 
 function _cwCantripBlock(type, needed, chosen, clsKey) {
@@ -8735,33 +8781,39 @@ function cwizToggleCantrip(el) {
   if (cc) cc.textContent = _cw.cantrips.length + '/' + needed + ' chosen';
 }
 
+let _cwSpellTimer = null;
+function cwizSpellSearch() {
+  clearTimeout(_cwSpellTimer);
+  const cd = CWIZ_CLASSES[_cw.cls] || {};
+  const needed = (cd.spellsKnown && cd.spellsKnown[_cw.level-1]) || 0;
+  _cwSpellTimer = setTimeout(() => _cwLoadSpells(needed), 250);
+}
 async function _cwLoadSpells(needed) {
-  const row = document.getElementById('cwiz-spell-load-row');
-  if (row) row.innerHTML = '<span style="color:var(--text-dim);font-size:.78rem">Loading…</span>';
+  const row    = document.getElementById('cwiz-spell-load-row');
+  const listEl = document.getElementById('cwiz-spell-list');
+  if (row) row.textContent = 'Loading…';
   try {
-    const maxLvl = Math.max(1, Math.min(9, Math.ceil(_cw.level / 2)));
-    const r = await fetch(`/spells/search?q=&limit=120`);
+    const q = (document.getElementById('cwiz-spell-q') || {value:''}).value.trim();
+    const r = await fetch(`/spells/search?q=${encodeURIComponent(q)}&limit=150&char_class=${encodeURIComponent(_cw.cls)}`);
     const data = await r.json();
-    const allSpells = data.results || data.spells || data || [];
-    // Filter to those plausibly appropriate (name-only if no class field)
-    const spells = allSpells.slice(0, 80);
-    const listEl = document.getElementById('cwiz-spell-list');
+    const spells = (data.results || data.spells || data || []);
     if (listEl) {
       listEl.innerHTML = spells.map(s => {
-        const name = typeof s === 'string' ? s : (s.name || '');
-        const lvl  = typeof s === 'object' ? s.level : '';
-        const sel  = _cw.spells.includes(name);
-        return `<div class="cwiz-card${sel?' selected':''}" style="min-width:140px"
+        const name   = typeof s === 'string' ? s : (s.name || '');
+        const lvl    = typeof s === 'object' && s.level != null ? s.level : '';
+        const school = typeof s === 'object' && s.school ? s.school : '';
+        const sel    = _cw.spells.includes(name);
+        return `<div class="cwiz-card${sel?' selected':''}" style="min-width:130px"
           data-spell="${name.replace(/"/g,'&quot;')}"
           onclick="cwizToggleSpell(this,${needed})">
           <div class="cwiz-card-name" style="font-size:.72rem">${name}</div>
-          ${lvl!==''?`<div class="cwiz-card-sub">Lvl ${lvl}</div>`:''}
+          <div class="cwiz-card-sub">${lvl!==''?'Lvl '+lvl:''}${lvl!==''&&school?' · ':''}${school}</div>
         </div>`;
-      }).join('');
+      }).join('') || '<div style="font-size:.78rem;color:var(--text-dim)">No matching spells found.</div>';
     }
-    if (row) row.innerHTML = '';
+    if (row) row.textContent = spells.length + ' spells';
   } catch(e) {
-    if (row) row.innerHTML = `<div style="color:var(--text-dim);font-size:.78rem">Could not load spells — add them from the character sheet later.</div>`;
+    if (row) row.textContent = 'Could not load — add from character sheet later.';
   }
 }
 
@@ -8778,6 +8830,141 @@ function cwizToggleSpell(el, needed) {
   }
   const cc = document.getElementById('cwiz-spell-count');
   if (cc) cc.textContent = _cw.spells.length;
+}
+
+// ── Equipment Step ─────────────────────────────────────────────────────────────
+function _cwRenderEquipment() {
+  // Default to average gold if not yet set
+  if (!_cw.goldTotal) {
+    const gd = CLASS_STARTING_GOLD[_cw.cls];
+    _cw.goldTotal = gd ? gd.avg : 0;
+  }
+  const gd = CLASS_STARTING_GOLD[_cw.cls] || {dice:'?d4',mult:10,avg:0};
+  const classEquip = CLASS_STARTING_EQUIP[_cw.cls] || [];
+  const bgD   = CWIZ_BACKGROUNDS[_cw.background] || {};
+  const bgEquip = bgD.extra || '';
+  document.getElementById('cwiz-equip-body').innerHTML = `
+    <div class="cwiz-sec">Starting Gold</div>
+    <div class="cwiz-gold-bar">
+      <span style="font-size:.8rem;color:var(--text-dim)">${gd.dice}×${gd.mult} gp:</span>
+      <button class="modal-btn secondary" style="font-size:.76rem;padding:3px 9px" onclick="cwizRollGold()">🎲 Roll</button>
+      <button class="modal-btn secondary" style="font-size:.76rem;padding:3px 9px" onclick="cwizUseAvgGold()">Use Average (${gd.avg} gp)</button>
+      <strong class="cwiz-gold-amount" id="cwiz-gold-amount">${_cw.goldTotal} gp</strong>
+    </div>
+    <div class="cwiz-sec">Class Equipment (${_cw.cls})</div>
+    <div class="cwiz-equip-pkg"><ul>${classEquip.map(e=>`<li>${e}</li>`).join('')}</ul></div>
+    ${bgEquip ? `<div class="cwiz-sec">Background Equipment (${_cw.background})</div>
+    <div class="cwiz-equip-pkg"><div style="font-size:.8rem;color:var(--text-dim)">${bgEquip}</div></div>` : ''}
+    <div class="cwiz-sec">Shop — Buy Additional Gear</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+      <input class="cs-input" id="cwiz-shop-q" placeholder="Search items…"
+        style="width:200px;font-size:.8rem;padding:4px 8px" oninput="cwizShopLoad()">
+      <select class="cwiz-sel" id="cwiz-shop-cat" onchange="cwizShopLoad()" style="font-size:.8rem">
+        <option value="">All Categories</option>
+        <option value="Weapon">Weapons</option>
+        <option value="Armor">Armor</option>
+        <option value="Adventuring Gear">Adventuring Gear</option>
+        <option value="Tool">Tools</option>
+        <option value="Mount & Vehicle">Mounts &amp; Vehicles</option>
+        <option value="Trade Good">Trade Goods</option>
+      </select>
+    </div>
+    <div class="cwiz-shop-grid" id="cwiz-shop-grid">
+      <div style="font-size:.78rem;color:var(--text-dim);padding:6px">Loading…</div>
+    </div>
+    <div class="cwiz-sec" style="margin-top:14px">Cart</div>
+    <div id="cwiz-cart-body"></div>
+    <div class="cwiz-budget-bar" id="cwiz-budget-bar">
+      <div><span style="color:var(--text-dim)">Budget: </span><strong>${_cw.goldTotal} gp</strong></div>
+      <div><span style="color:var(--text-dim)">Spent: </span><strong id="cwiz-gold-spent">0 gp</strong></div>
+      <div><span style="color:var(--text-dim)">Remaining: </span><strong class="cwiz-budget-rem" id="cwiz-gold-rem">${_cw.goldTotal} gp</strong></div>
+    </div>`;
+  cwizShopLoad();
+  cwizRenderCart();
+}
+
+function cwizRollGold() {
+  const gd = CLASS_STARTING_GOLD[_cw.cls];
+  if (!gd) return;
+  const [n, d] = gd.dice.split('d').map(Number);
+  let total = 0;
+  for (let i = 0; i < n; i++) total += Math.ceil(Math.random() * d);
+  _cw.goldTotal = total * gd.mult;
+  const el = document.getElementById('cwiz-gold-amount');
+  if (el) el.textContent = _cw.goldTotal + ' gp';
+  cwizRenderCart();
+}
+
+function cwizUseAvgGold() {
+  const gd = CLASS_STARTING_GOLD[_cw.cls];
+  _cw.goldTotal = gd ? gd.avg : 0;
+  const el = document.getElementById('cwiz-gold-amount');
+  if (el) el.textContent = _cw.goldTotal + ' gp';
+  cwizRenderCart();
+}
+
+let _cwShopTimer = null;
+function cwizShopLoad() {
+  clearTimeout(_cwShopTimer);
+  _cwShopTimer = setTimeout(async () => {
+    const q   = (document.getElementById('cwiz-shop-q')   || {value:''}).value.trim();
+    const cat = (document.getElementById('cwiz-shop-cat') || {value:''}).value;
+    const grid = document.getElementById('cwiz-shop-grid');
+    if (!grid) return;
+    grid.innerHTML = '<div style="font-size:.78rem;color:var(--text-dim);padding:6px">Loading…</div>';
+    try {
+      const r = await fetch(`/mundane-items/search?q=${encodeURIComponent(q)}&category=${encodeURIComponent(cat)}&limit=48`);
+      const items = await r.json();
+      if (!items.length) { grid.innerHTML = '<div style="font-size:.78rem;color:var(--text-dim);padding:6px">No items found.</div>'; return; }
+      grid.innerHTML = items.map(it => {
+        const cost = it.cost_gp != null ? (Number.isInteger(it.cost_gp) ? it.cost_gp + ' gp' : Number(it.cost_gp).toFixed(2) + ' gp') : '—';
+        return `<div class="cwiz-shop-card" onclick="cwizBuyItem(${JSON.stringify(it.name)},${it.cost_gp||0})">
+          <div class="cwiz-shop-card-name">${it.name}</div>
+          <div class="cwiz-shop-card-cost">${cost}</div>
+          <div class="cwiz-shop-card-cat">${it.subcategory||it.category||''}</div>
+        </div>`;
+      }).join('');
+    } catch(e) {
+      grid.innerHTML = '<div style="font-size:.78rem;color:var(--text-dim);padding:6px">Could not load items.</div>';
+    }
+  }, 200);
+}
+
+function cwizBuyItem(name, cost) {
+  const spent = _cw.cart.reduce((s,i) => s + i.cost, 0);
+  if (cost > _cw.goldTotal - spent) {
+    const bar = document.getElementById('cwiz-budget-bar');
+    if (bar) { bar.style.outline = '1px solid var(--red)'; setTimeout(() => bar.style.outline = '', 700); }
+    return;
+  }
+  _cw.cart.push({name, cost});
+  cwizRenderCart();
+}
+
+function cwizRemoveItem(idx) { _cw.cart.splice(idx, 1); cwizRenderCart(); }
+
+function cwizRenderCart() {
+  const spent = _cw.cart.reduce((s,i) => s + i.cost, 0);
+  const rem   = _cw.goldTotal - spent;
+  const fmt = n => Number.isInteger(n) ? n + ' gp' : n.toFixed(2) + ' gp';
+  const spEl = document.getElementById('cwiz-gold-spent');
+  const rmEl = document.getElementById('cwiz-gold-rem');
+  if (spEl) spEl.textContent = fmt(spent);
+  if (rmEl) rmEl.textContent = fmt(rem);
+  const cartEl = document.getElementById('cwiz-cart-body');
+  if (!cartEl) return;
+  if (!_cw.cart.length) {
+    cartEl.innerHTML = '<div style="font-size:.78rem;color:var(--text-dim);padding:4px 0">No items purchased yet.</div>';
+    return;
+  }
+  cartEl.innerHTML = _cw.cart.map((it,i) => `
+    <div class="cwiz-cart-item">
+      <span>${it.name}</span>
+      <span style="display:flex;align-items:center;gap:8px">
+        <span style="color:var(--gold)">${fmt(it.cost)}</span>
+        <button class="cwiz-cart-remove" onclick="cwizRemoveItem(${i})">✕</button>
+      </span>
+    </div>`).join('');
 }
 
 function _cwRacialBonus(stat) {
@@ -9041,6 +9228,13 @@ function _cwRenderReview() {
           <div style="font-size:.78rem;color:var(--blue-lt)">${allCantrips.join(', ')}</div></div>`:''}
         ${_cw.spells.length?`<div class="cwiz-rev-block"><h4>Spells Known</h4>
           <div style="font-size:.78rem;color:var(--blue-lt)">${_cw.spells.join(', ')}</div></div>`:''}
+        <div class="cwiz-rev-block"><h4>Starting Gold &amp; Equipment</h4>
+          <div class="cwiz-rev-row"><span>Gold</span><span class="cwiz-rev-val" style="color:var(--gold)">${_cw.goldTotal} gp</span></div>
+          ${_cw.cart.length ? _cw.cart.map(it=>`<div class="cwiz-rev-row"><span>${it.name}</span><span class="cwiz-rev-val" style="color:var(--gold)">${it.cost} gp</span></div>`).join('')
+            : '<div style="font-size:.76rem;color:var(--text-dim)">No shop purchases</div>'}
+          ${_cw.cart.length ? `<div class="cwiz-rev-row" style="margin-top:4px;border-top:1px solid var(--border)"><span>Remaining</span>
+            <span class="cwiz-rev-val" style="color:var(--gold)">${_cw.goldTotal - _cw.cart.reduce((s,i)=>s+i.cost,0)} gp</span></div>` : ''}
+        </div>
       </div>
     </div>`;
 }
@@ -9090,7 +9284,8 @@ async function _cwCreate() {
     profession: _cw.background,
     notes:     notes,
     classes:   [{class: _cw.cls, level: _cw.level, subclass: _cw.subclass || ''}],
-    items:  [],
+    gold:   _cw.goldTotal,
+    items:  _cw.cart.map(it => ({name: it.name, quantity: 1, cost_gp: it.cost})),
     spells: [...allCantrips.map(n=>({name:n,level:0})), ..._cw.spells.map(n=>({name:n,level:1}))],
     buffs: [], debuffs: [],
   };
@@ -9235,6 +9430,11 @@ async function _cwCreate() {
       <div class="cwiz-step" id="cwiz-step-spells">
         <div class="cwiz-sec">Cantrips &amp; Spells</div>
         <div id="cwiz-spells-body"></div>
+      </div>
+
+      <!-- Step: equipment -->
+      <div class="cwiz-step" id="cwiz-step-equipment">
+        <div id="cwiz-equip-body"></div>
       </div>
 
       <!-- Step: review -->
