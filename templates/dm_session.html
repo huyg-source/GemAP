@@ -1115,6 +1115,24 @@
   .modal-btn.secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
   .modal-btn.secondary:hover { background: var(--border); }
 
+  /* ── Global Tooltip ── */
+  #app-tooltip {
+    position:fixed; z-index:9999; pointer-events:none;
+    background:var(--panel); border:1px solid var(--border); border-top:2px solid var(--gold);
+    border-radius:6px; padding:9px 12px; max-width:280px; font-size:.78rem; line-height:1.5;
+    color:var(--text); box-shadow:0 4px 16px rgba(0,0,0,.5);
+    opacity:0; transition:opacity .12s; white-space:pre-wrap;
+  }
+  #app-tooltip.show { opacity:1; }
+  #app-tooltip .tip-title { font-family:'Roboto Condensed',sans-serif; font-weight:700;
+    color:var(--gold); font-size:.82rem; margin-bottom:5px; }
+  #app-tooltip .tip-chip { display:inline-block; background:rgba(21,101,194,.2);
+    border:1px solid var(--blue); border-radius:10px; padding:1px 7px;
+    font-size:.68rem; color:var(--blue-lt); margin:2px 2px 0 0; }
+  #app-tooltip .tip-bonus { display:inline-block; background:rgba(201,168,76,.15);
+    border:1px solid var(--gold); border-radius:10px; padding:1px 7px;
+    font-size:.68rem; color:var(--gold); margin:2px 2px 0 0; }
+
   /* ── Character Creation Wizard ── */
   #char-wizard-modal .modal-box { min-width:720px; max-width:940px; width:94vw; max-height:92vh; overflow:hidden; padding:0; gap:0; }
   .cwiz-header { padding:16px 22px 12px; border-bottom:1px solid var(--border); flex-shrink:0; }
@@ -7727,6 +7745,51 @@ async function loadGmPartyChatHistory() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// GLOBAL TOOLTIP ENGINE
+// Usage: add data-tip="text" or data-tip-html="<html>" to any element
+// ═══════════════════════════════════════════════════════════════════════════════
+(function() {
+  const TIP = document.getElementById('app-tooltip');
+  let _hideTimer = null;
+
+  function show(el, e) {
+    clearTimeout(_hideTimer);
+    const html = el.dataset.tipHtml;
+    const text = el.dataset.tip;
+    if (!html && !text) return;
+    TIP.innerHTML = html || text;
+    TIP.classList.add('show');
+    position(e);
+  }
+
+  function position(e) {
+    const pad = 12, W = window.innerWidth, H = window.innerHeight;
+    const tw = TIP.offsetWidth, th = TIP.offsetHeight;
+    let x = e.clientX + pad, y = e.clientY + pad;
+    if (x + tw > W - pad) x = e.clientX - tw - pad;
+    if (y + th > H - pad) y = e.clientY - th - pad;
+    TIP.style.left = Math.max(pad, x) + 'px';
+    TIP.style.top  = Math.max(pad, y) + 'px';
+  }
+
+  function hide() {
+    _hideTimer = setTimeout(() => TIP.classList.remove('show'), 80);
+  }
+
+  document.addEventListener('mouseover', function(e) {
+    const el = e.target.closest('[data-tip],[data-tip-html]');
+    if (el) show(el, e);
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (TIP.classList.contains('show')) position(e);
+  });
+  document.addEventListener('mouseout', function(e) {
+    const el = e.target.closest('[data-tip],[data-tip-html]');
+    if (el) hide();
+  });
+})();
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // CHARACTER CREATION WIZARD — Phase 1 (Fighter + all PHB races/backgrounds)
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -8001,12 +8064,32 @@ function _cwValidate() {
 }
 
 // ── Race Grid ─────────────────────────────────────────────────────────────────
+function _cwRaceTipHtml(r, sr) {
+  const rd = CWIZ_RACES[r];
+  let bonuses = {}, traits = [];
+  if (sr && rd.subraces && rd.subraces[sr]) {
+    bonuses = rd.subraces[sr].bonuses;
+    traits  = [...(rd.baseTraits||[]), ...rd.subraces[sr].traits];
+  } else if (!rd.subraces) {
+    bonuses = rd.bonuses || {};
+    traits  = rd.traits || rd.baseTraits || [];
+  } else {
+    traits = rd.baseTraits || [];
+  }
+  const bChips = Object.entries(bonuses).map(([s,v]) => `<span class="tip-bonus">+${v} ${s.toUpperCase()}</span>`).join('');
+  const tChips = traits.map(t => `<span class="tip-chip">${t}</span>`).join('');
+  return `<div class="tip-title">${r}${sr?' — '+sr:''}</div>Speed: ${rd.speed} ft
+${bChips ? `<div style="margin-top:5px">${bChips}</div>` : ''}
+${tChips ? `<div style="margin-top:5px">${tChips}</div>` : ''}`;
+}
+
 function _cwBuildRaceGrid() {
   document.getElementById('cwiz-race-grid').innerHTML = Object.keys(CWIZ_RACES).map(r => {
     const rd = CWIZ_RACES[r];
     const sub = rd.subraces ? 'Choose subrace' :
       Object.entries(rd.bonuses||{}).map(([s,v]) => `+${v} ${s.toUpperCase()}`).join(', ');
-    return `<div class="cwiz-card" data-race="${r}" onclick="cwizPickRace(this.dataset.race)">
+    const tip = _cwRaceTipHtml(r, null).replace(/"/g,'&quot;');
+    return `<div class="cwiz-card" data-race="${r}" data-tip-html="${tip}" onclick="cwizPickRace(this.dataset.race)">
       <div class="cwiz-card-name">${r}</div><div class="cwiz-card-sub">${sub}</div></div>`;
   }).join('');
 }
@@ -8021,7 +8104,8 @@ function cwizPickRace(race) {
     wrap.style.display = 'block';
     document.getElementById('cwiz-subrace-grid').innerHTML = Object.entries(rd.subraces).map(([sr,sd]) => {
       const b = Object.entries(sd.bonuses).map(([s,v]) => `+${v} ${s.toUpperCase()}`).join(', ');
-      return `<div class="cwiz-card" data-sr="${sr}" onclick="cwizPickSubrace(this.dataset.sr)">
+      const tip = _cwRaceTipHtml(race, sr).replace(/"/g,'&quot;');
+      return `<div class="cwiz-card" data-sr="${sr}" data-tip-html="${tip}" onclick="cwizPickSubrace(this.dataset.sr)">
         <div class="cwiz-card-name">${sr}</div><div class="cwiz-card-sub">${b}</div></div>`;
     }).join('');
     document.getElementById('cwiz-race-info').style.display = 'none';
@@ -8286,9 +8370,21 @@ function _cwAsiPanel(lvl, ch) {
   if (ch.type === 'asi11') return `<div style="display:flex;gap:7px">
     <select class="cwiz-sel" onchange="_cw.asiChoices[${lvl}].stat1=this.value"><option value="">— Stat 1 —</option>${opts}</select>
     <select class="cwiz-sel" onchange="_cw.asiChoices[${lvl}].stat2=this.value"><option value="">— Stat 2 —</option>${opts}</select></div>`;
-  if (ch.type === 'feat') return `<select class="cwiz-sel" style="width:100%"
-    onchange="_cw.asiChoices[${lvl}].feat=this.value"><option value="">— Choose feat —</option>
-    ${CWIZ_FEATS.map(f=>`<option value="${f}">${f.split('—')[0].trim()}</option>`).join('')}</select>`;
+  if (ch.type === 'feat') return `
+    <select class="cwiz-sel" style="width:100%" onchange="_cw.asiChoices[${lvl}].feat=this.value">
+      <option value="">— Choose feat —</option>
+      ${CWIZ_FEATS.map(f=>`<option value="${f}">${f}</option>`).join('')}
+    </select>
+    <div style="margin-top:7px;display:flex;flex-wrap:wrap;gap:5px">
+      ${CWIZ_FEATS.map(f=>{
+        const parts = f.split('—'); const name=parts[0].trim(); const desc=(parts[1]||'').trim();
+        const tip = `<div class=\\"tip-title\\">${name}</div>${desc}`;
+        return `<span class="cwiz-chip-blue" style="cursor:pointer"
+          data-tip-html="${tip.replace(/"/g,'&quot;')}"
+          onclick="const s=document.querySelector('#cwasiP-${lvl} select');if(s){s.value=${JSON.stringify(f)};_cw.asiChoices[${lvl}].feat=${JSON.stringify(f)};}"
+          >${name}</span>`;
+      }).join('')}
+    </div>`;
   return '';
 }
 
@@ -8304,11 +8400,16 @@ function cwizAsiTab(lvl, type) {
 
 // ── Background ────────────────────────────────────────────────────────────────
 function _cwBuildBgGrid() {
-  document.getElementById('cwiz-bg-grid').innerHTML = Object.keys(CWIZ_BACKGROUNDS).map(b =>
-    `<div class="cwiz-card" data-bg="${b}" onclick="cwizPickBg(this.dataset.bg)">
+  document.getElementById('cwiz-bg-grid').innerHTML = Object.keys(CWIZ_BACKGROUNDS).map(b => {
+    const bd  = CWIZ_BACKGROUNDS[b];
+    const tip = (`<div class="tip-title">${b}</div>` +
+      `<span class="tip-chip">${bd.skills.join('</span><span class="tip-chip">')}</span><br>` +
+      `<strong>Feature:</strong> ${bd.feature}<br>` +
+      `<strong>Equipment:</strong> ${bd.extra}`).replace(/"/g,'&quot;');
+    return `<div class="cwiz-card" data-bg="${b}" data-tip-html="${tip}" onclick="cwizPickBg(this.dataset.bg)">
       <div class="cwiz-card-name">${b}</div>
-      <div class="cwiz-card-sub">${CWIZ_BACKGROUNDS[b].skills.join(', ')}</div></div>`
-  ).join('');
+      <div class="cwiz-card-sub">${bd.skills.join(', ')}</div></div>`;
+  }).join('');
 }
 
 function cwizPickBg(bg) {
@@ -8491,6 +8592,8 @@ async function _cwCreate() {
   }
 }
 </script>
+
+<div id="app-tooltip"></div>
 
 <!-- ═══ Character Creation Wizard Modal ═══ -->
 <div class="modal-overlay" id="char-wizard-modal">
