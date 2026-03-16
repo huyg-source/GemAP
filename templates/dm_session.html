@@ -7266,8 +7266,7 @@ function esc(str) {
       <div style="color:var(--text-dim);font-size:.82rem;padding:16px;text-align:center;">Loading...</div>
     </div>
     <div style="padding:12px 18px;border-top:1px solid var(--border);flex-shrink:0;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-      <span style="font-size:.82rem;color:var(--text-dim);">Generate invite for character:</span>
-      <input class="cs-input" id="pl-char-input" placeholder="Character name..." style="flex:1;min-width:160px;">
+      <input class="cs-input" id="pl-char-input" placeholder="Character name (optional — leave blank for new player setup)" style="flex:1;min-width:200px;">
       <button class="modal-btn primary" onclick="generateInvite()" style="padding:5px 14px;">&#x2B;&#xFE0F; Generate Link</button>
     </div>
   </div>
@@ -7408,13 +7407,20 @@ async function loadPlayerInvites() {
       return;
     }
     list.innerHTML = rows.map(r => {
-      const link     = `${window.location.origin}/play/${r.token}`;
-      const isOnline = _playersOnline.has(r.character_name);
+      const link      = `${window.location.origin}/play/${r.token}`;
+      const pending   = !r.character_name;
+      const charLabel = pending
+        ? `<span style="color:var(--gold);font-size:.75rem;">⏳ Pending Setup</span>`
+        : `<span class="pl-char-name">${esc(r.character_name)}</span>`;
+      const playerLabel = r.player_display_name
+        ? `<span style="font-size:.72rem;color:var(--text-dim);">(${esc(r.player_display_name)})</span>`
+        : '';
+      const isOnline = r.character_name && _playersOnline.has(r.character_name);
+      const statusBadge = pending ? '' : `<span class="pl-status ${isOnline ? 'online' : 'offline'}">${isOnline ? 'Online' : 'Offline'}</span>`;
       return `<div class="pl-invite-row">
-        <span class="pl-char-name">${esc(r.character_name)}</span>
-        <span class="pl-status ${isOnline ? 'online' : 'offline'}">${isOnline ? 'Online' : 'Offline'}</span>
-        <span class="pl-link" title="${link}" onclick="copyLink('${link}')">${link}</span>
-        <button class="modal-btn secondary" style="padding:2px 7px;font-size:.7rem;" onclick="showQr('${r.token}','${esc(r.character_name)}')">QR</button>
+        ${charLabel} ${playerLabel} ${statusBadge}
+        <span class="pl-link" title="${link}" onclick="copyLink('${link}')" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;font-size:.72rem;color:var(--text-dim);">${link}</span>
+        <button class="modal-btn secondary" style="padding:2px 7px;font-size:.7rem;" onclick="copyLink('${link}')">Copy</button>
         <button class="modal-btn secondary" style="padding:2px 7px;font-size:.7rem;color:var(--red-lt);" onclick="revokeInvite('${r.token}')">Revoke</button>
       </div>`;
     }).join('');
@@ -7425,8 +7431,7 @@ async function loadPlayerInvites() {
 
 async function generateInvite() {
   const input = document.getElementById('pl-char-input');
-  const name  = input.value.trim();
-  if (!name) { alert('Enter a character name first.'); return; }
+  const name  = input.value.trim(); // blank = new player will set up their own character
   const res  = await fetch('/invites/generate', {
     method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ character_name: name })
@@ -7434,10 +7439,11 @@ async function generateInvite() {
   const d = await res.json();
   if (d.ok) {
     input.value = '';
-    appendSystemMsg(`&#x1F517; Invite generated for <strong>${esc(name)}</strong> — link copied to clipboard.`);
+    const label = name || 'new player (no character yet)';
+    appendSystemMsg(`&#x1F517; Invite generated for <strong>${esc(label)}</strong> — link copied to clipboard.`);
     copyLink(d.link);
     await loadPlayerInvites();
-    if (d.qr_b64) showQrFromData(d.link, d.qr_b64, name);
+    if (d.qr_b64) showQrFromData(d.link, d.qr_b64, label);
   } else {
     alert('Error: ' + (d.error || 'unknown'));
   }
@@ -7451,13 +7457,7 @@ async function revokeInvite(token) {
 
 function showQr(token, charName) {
   const link = `${window.location.origin}/play/${token}`;
-  fetch(`/invites/generate`, {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ character_name: charName })
-  }).then(r => r.json()).then(d => {
-    if (d.qr_b64) showQrFromData(link, d.qr_b64, charName);
-    else showQrFromData(link, '', charName);
-  });
+  showQrFromData(link, '', charName);
 }
 
 function showQrFromData(link, qr_b64, charName) {

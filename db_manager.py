@@ -263,11 +263,19 @@ def init_db():
             UNIQUE(campaign_id, org_id_a, org_id_b)
         );
 
+        CREATE TABLE IF NOT EXISTS players (
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            display_name   TEXT    NOT NULL DEFAULT '',
+            created_at     TEXT    DEFAULT '',
+            last_seen      TEXT    DEFAULT ''
+        );
+
         CREATE TABLE IF NOT EXISTS player_tokens (
             id             INTEGER PRIMARY KEY AUTOINCREMENT,
             token          TEXT    NOT NULL UNIQUE,
             campaign_id    INTEGER NOT NULL DEFAULT 0,
-            character_name TEXT    NOT NULL,
+            character_name TEXT    NOT NULL DEFAULT '',
+            player_id      INTEGER REFERENCES players(id),
             created_at     TEXT    DEFAULT '',
             last_seen      TEXT    DEFAULT '',
             is_active      INTEGER DEFAULT 1
@@ -424,6 +432,30 @@ def _migrate(con):
         con.execute("ALTER TABLE mobs ADD COLUMN languages TEXT DEFAULT ''")
     if table_exists("mobs") and not has_column("mobs", "image_path"):
         con.execute("ALTER TABLE mobs ADD COLUMN image_path TEXT DEFAULT ''")
+
+    # Add player_id to characters if missing
+    if table_exists("characters") and not has_column("characters", "player_id"):
+        con.execute("ALTER TABLE characters ADD COLUMN player_id INTEGER REFERENCES players(id)")
+
+    # Rebuild player_tokens to make character_name nullable and add player_id
+    if table_exists("player_tokens") and not has_column("player_tokens", "player_id"):
+        con.executescript("""
+            ALTER TABLE player_tokens RENAME TO _player_tokens_old;
+            CREATE TABLE player_tokens (
+                id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                token          TEXT    NOT NULL UNIQUE,
+                campaign_id    INTEGER NOT NULL DEFAULT 0,
+                character_name TEXT    NOT NULL DEFAULT '',
+                player_id      INTEGER REFERENCES players(id),
+                created_at     TEXT    DEFAULT '',
+                last_seen      TEXT    DEFAULT '',
+                is_active      INTEGER DEFAULT 1
+            );
+            INSERT INTO player_tokens (id, token, campaign_id, character_name, created_at, last_seen, is_active)
+            SELECT id, token, campaign_id, character_name, created_at, last_seen, is_active
+            FROM _player_tokens_old;
+            DROP TABLE _player_tokens_old;
+        """)
 
     # Add is_store to npcs if missing
     if table_exists("npcs") and not has_column("npcs", "is_store"):
@@ -2321,9 +2353,33 @@ def compute_interaction_org_score(campaign_id: int, char_name: str, npc_id: int)
             "char_orgs": char_orgs, "npc_orgs": npc_orgs}
 
 
+# ── Players ──────────────────────────────────────────────────────────────────────
+
+def create_player(display_name: str) -> int:
+    """Create a new player identity and return its id."""
+    with _conn() as con:
+        cur = con.execute(
+            "INSERT INTO players (display_name, created_at, last_seen) VALUES (?, ?, ?)",
+            (display_name, datetime.now().isoformat(), datetime.now().isoformat())
+        )
+        return cur.lastrowid
+
+
+def get_player(player_id: int) -> dict | None:
+    with _conn() as con:
+        row = con.execute("SELECT * FROM players WHERE id=?", (player_id,)).fetchone()
+    return dict(row) if row else None
+
+
+def touch_player(player_id: int):
+    with _conn() as con:
+        con.execute("UPDATE players SET last_seen=? WHERE id=?",
+                    (datetime.now().isoformat(), player_id))
+
+
 # ── Player tokens ───────────────────────────────────────────────────────────────
 
-def create_player_token(campaign_id: int, character_name: str) -> str:
+def create_player_token(campaign_id: int, character_name: str = '') -> str:
     import secrets
     token = secrets.token_urlsafe(24)
     with _conn() as con:
@@ -2344,11 +2400,24 @@ def get_player_token(token: str) -> dict | None:
 
 def list_player_tokens(campaign_id: int) -> list:
     with _conn() as con:
-        rows = con.execute(
-            "SELECT * FROM player_tokens WHERE campaign_id=? ORDER BY character_name",
-            (campaign_id,)
-        ).fetchall()
+        rows = con.execute("""
+            SELECT pt.*, p.display_name as player_display_name
+            FROM player_tokens pt
+            LEFT JOIN players p ON p.id = pt.player_id
+            WHERE pt.campaign_id=?
+            ORDER BY CASE WHEN pt.character_name='' THEN 1 ELSE 0 END, pt.character_name
+        """, (campaign_id,)).fetchall()
     return [dict(r) for r in rows]
+
+
+def update_player_token(token: str, character_name: str, player_id: int):
+    """Attach a character and player identity to an existing token (called at setup)."""
+    with _conn() as con:
+        con.execute("""
+            UPDATE player_tokens
+            SET character_name=?, player_id=?, last_seen=?
+            WHERE token=?
+        """, (character_name, player_id, datetime.now().isoformat(), token))
 
 
 def touch_player_token(token: str):

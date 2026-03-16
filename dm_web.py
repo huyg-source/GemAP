@@ -89,8 +89,9 @@ from db_manager import (
     get_mob_override, set_mob_override, clear_mob_override,
     get_mob_knowledge, set_mob_knowledge, advance_mob_knowledge,
     list_mobs_for_manual, KNOWLEDGE_RANKS,
+    create_player, get_player, touch_player,
     create_player_token, get_player_token, list_player_tokens,
-    touch_player_token, deactivate_player_token,
+    update_player_token, touch_player_token, deactivate_player_token,
     save_round_submission, get_round_submissions, clear_round_submissions,
     save_player_message, get_player_messages, get_all_player_messages,
     mark_messages_read,
@@ -2333,8 +2334,7 @@ def list_invites():
 def generate_invite():
     data = request.json or {}
     char_name = (data.get("character_name") or "").strip()
-    if not char_name:
-        return jsonify({"ok": False, "error": "character_name required"})
+    # character_name is now optional — blank means the player will set up their own character
     cid = state.get("campaign_id")
     if cid is None:
         campaigns = list_campaigns()
@@ -2371,10 +2371,21 @@ def player_index(token):
     if not rec:
         return "<h2>Invalid or expired invite link.</h2>", 404
     touch_player_token(token)
-    # Store identity in player's browser session
-    flask_session["player_token"]   = token
-    flask_session["player_char"]    = rec["character_name"]
+    flask_session["player_token"]    = token
     flask_session["player_campaign"] = rec["campaign_id"]
+
+    # No character yet — send player to setup wizard
+    if not rec.get("character_name"):
+        campaign = get_campaign(rec["campaign_id"]) or {}
+        resp = app.make_response(render_template(
+            "player_setup.html",
+            token=token,
+            campaign_name=campaign.get("name", "Adventure"),
+        ))
+        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+        return resp
+
+    flask_session["player_char"] = rec["character_name"]
     resp = app.make_response(render_template(
         "player_session.html",
         character_name=rec["character_name"],
@@ -2383,6 +2394,47 @@ def player_index(token):
     ))
     resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
     return resp
+
+
+@app.route("/play/<token>/setup", methods=["POST"])
+def player_setup(token):
+    """Called by player_setup.html when the player finishes creating their character."""
+    rec = get_player_token(token)
+    if not rec:
+        return jsonify({"ok": False, "error": "Invalid token"}), 404
+    if rec.get("character_name"):
+        return jsonify({"ok": False, "error": "Character already set up"}), 400
+
+    data = request.json or {}
+    display_name = (data.get("display_name") or "").strip()
+    character    = data.get("character") or {}
+    char_name    = (character.get("name") or "").strip()
+
+    if not display_name:
+        return jsonify({"ok": False, "error": "Display name required"})
+    if not char_name:
+        return jsonify({"ok": False, "error": "Character name required"})
+
+    campaign_id = rec["campaign_id"]
+
+    # Create player identity
+    player_id = create_player(display_name)
+
+    # Create the character
+    character["campaign_id"] = campaign_id
+    try:
+        upsert_character(character, campaign_id)
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Could not save character: {e}"})
+
+    # Link token to player + character
+    update_player_token(token, char_name, player_id)
+    touch_player(player_id)
+
+    flask_session["player_char"]     = char_name
+    flask_session["player_campaign"] = campaign_id
+
+    return jsonify({"ok": True, "character_name": char_name})
 
 
 @app.route("/player/state")

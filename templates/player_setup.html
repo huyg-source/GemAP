@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Character Setup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:       #1b1b1f;
+      --panel:    #242528;
+      --panel2:   #2c2d31;
+      --border:   #3a3b40;
+      --blue:     #1565c2;
+      --blue2:    #1976d2;
+      --blue-lt:  #4fc3f7;
+      --red:      #c41e1e;
+      --red-lt:   #ef5350;
+      --gold:     #c9a84c;
+      --green-lt: #4caf50;
+      --text:     #e8e8ec;
+      --text-dim: #9a9ba5;
+    }
+    html, body { min-height: 100%; font-family: 'Roboto', sans-serif; background: var(--bg); color: var(--text); }
+
+    /* Top bar */
+    #top-bar {
+      background: var(--panel); border-bottom: 2px solid var(--red);
+      padding: 10px 20px; display: flex; align-items: center; gap: 12px;
+    }
+    .logo-mark { font-family: 'Roboto Condensed', sans-serif; font-weight: 700; font-size: 1rem; color: var(--red-lt); }
+    .logo-mark span { color: var(--gold); }
+    #campaign-label { font-size: .85rem; color: var(--text-dim); }
+
+    /* Main layout */
+    #main { max-width: 900px; margin: 0 auto; padding: 24px 16px; }
+
+    /* Welcome card */
+    #welcome-card {
+      background: var(--panel); border: 1px solid var(--border); border-top: 3px solid var(--gold);
+      border-radius: 8px; padding: 20px 24px; margin-bottom: 20px;
+    }
+    #welcome-card h1 { font-family: 'Roboto Condensed', sans-serif; font-size: 1.3rem; color: var(--gold); margin-bottom: 6px; }
+    #welcome-card p  { font-size: .85rem; color: var(--text-dim); line-height: 1.6; }
+    .display-name-row { margin-top: 14px; display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+    .display-name-row label { font-size: .68rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: .07em; }
+    .display-name-row input {
+      background: var(--bg); border: 1px solid var(--border); color: var(--text);
+      padding: 7px 10px; border-radius: 4px; font-size: .9rem; font-family: inherit; width: 280px;
+    }
+    .display-name-row input:focus { outline: none; border-color: var(--blue2); }
+
+    /* Wizard container (inline, not modal) */
+    #wizard-wrap {
+      background: var(--panel); border: 1px solid var(--border); border-top: 3px solid var(--red);
+      border-radius: 8px; display: flex; flex-direction: column; max-height: 78vh; overflow: hidden;
+    }
+    .cwiz-header { padding:16px 22px 12px; border-bottom:1px solid var(--border); flex-shrink:0; }
+    .cwiz-title-row { display:flex; justify-content:space-between; align-items:center; }
+    .cwiz-title { font-family:'Roboto Condensed',sans-serif; font-size:1.05rem; font-weight:700; color:var(--red-lt); }
+    .cwiz-step-label { font-size:.75rem; color:var(--text-dim); }
+    .cwiz-progress-bar { display:flex; gap:3px; margin-top:10px; }
+    .cwiz-prog-seg { flex:1; height:3px; background:var(--border); border-radius:2px; transition:background .2s; }
+    .cwiz-prog-seg.done { background:var(--blue); }
+    .cwiz-prog-seg.active { background:var(--blue-lt); }
+    .cwiz-body { flex:1; overflow-y:auto; padding:16px 22px; }
+    .cwiz-footer { display:flex; justify-content:space-between; align-items:center; padding:12px 22px; border-top:1px solid var(--border); flex-shrink:0; }
+    .cwiz-step { display:none; }
+    .cwiz-step.active { display:block; }
+    .cwiz-sec { font-family:'Roboto Condensed',sans-serif; font-weight:700; color:var(--gold); font-size:.8rem; letter-spacing:.08em; text-transform:uppercase; margin-bottom:10px; }
+    .cwiz-card-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:7px; }
+    .cwiz-card { background:var(--panel2); border:2px solid var(--border); border-radius:6px; padding:9px 7px; cursor:pointer; text-align:center; transition:border-color .15s,background .15s; user-select:none; }
+    .cwiz-card:hover { border-color:var(--blue2); }
+    .cwiz-card.selected { border-color:var(--blue-lt); background:rgba(79,195,247,.1); }
+    .cwiz-card-name { font-weight:600; font-size:.82rem; }
+    .cwiz-card-sub { font-size:.68rem; color:var(--text-dim); margin-top:3px; }
+    .cwiz-info { background:var(--panel2); border:1px solid var(--border); border-radius:6px; padding:11px 13px; margin-top:10px; font-size:.8rem; color:var(--text-dim); line-height:1.5; }
+    .cwiz-info strong { color:var(--text); }
+    .cwiz-chips { display:flex; flex-wrap:wrap; gap:4px; margin-top:7px; }
+    .cwiz-chip-blue { background:rgba(21,101,194,.2); border:1px solid var(--blue); border-radius:10px; padding:2px 8px; font-size:.7rem; color:var(--blue-lt); }
+    .cwiz-chip-gold { background:rgba(201,168,76,.15); border:1px solid var(--gold); border-radius:10px; padding:2px 8px; font-size:.7rem; color:var(--gold); }
+    .cwiz-method-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px; }
+    .cwiz-method-card { background:var(--panel2); border:2px solid var(--border); border-radius:6px; padding:13px 10px; cursor:pointer; text-align:center; transition:border-color .15s; }
+    .cwiz-method-card:hover { border-color:var(--blue2); }
+    .cwiz-method-card.selected { border-color:var(--blue-lt); background:rgba(79,195,247,.1); }
+    .cwiz-method-name { font-weight:700; font-size:.88rem; margin-bottom:4px; }
+    .cwiz-method-desc { font-size:.72rem; color:var(--text-dim); line-height:1.4; }
+    .cwiz-scores-panel { display:none; }
+    .cwiz-scores-panel.active { display:block; }
+    .cwiz-stat-row { display:flex; align-items:center; gap:8px; margin-bottom:7px; }
+    .cwiz-stat-label { width:40px; font-weight:700; font-size:.82rem; text-transform:uppercase; color:var(--text-dim); }
+    .cwiz-stat-val { width:38px; text-align:center; font-size:1rem; font-weight:700; color:var(--blue-lt); }
+    .cwiz-stat-mod { width:32px; font-size:.75rem; color:var(--text-dim); }
+    .cwiz-stat-racial { font-size:.7rem; color:var(--gold); }
+    .cwiz-pb-btn { width:22px; height:22px; border-radius:3px; border:1px solid var(--border); background:var(--panel); color:var(--text); cursor:pointer; font-size:.85rem; line-height:1; padding:0; }
+    .cwiz-pb-btn:hover { background:var(--blue); border-color:var(--blue); }
+    .cwiz-sel { background:var(--panel2); border:1px solid var(--border); border-radius:4px; color:var(--text); padding:3px 5px; font-size:.82rem; }
+    .cwiz-lvl-block { background:var(--panel2); border:1px solid var(--border); border-radius:6px; padding:10px 13px; margin-bottom:8px; }
+    .cwiz-lvl-block h4 { font-family:'Roboto Condensed',sans-serif; color:var(--blue-lt); font-size:.88rem; margin-bottom:5px; }
+    .cwiz-feat-list { font-size:.77rem; color:var(--text-dim); margin-bottom:7px; line-height:1.5; }
+    .cwiz-feat-list span { color:var(--text); font-weight:500; }
+    .cwiz-asi-tabs { display:flex; gap:5px; margin-bottom:7px; }
+    .cwiz-asi-tab { padding:3px 10px; border-radius:4px; border:1px solid var(--border); background:var(--panel); font-size:.76rem; cursor:pointer; transition:background .12s; }
+    .cwiz-asi-tab.active { background:var(--blue); border-color:var(--blue); color:#fff; }
+    .cwiz-review-col { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .cwiz-rev-block { background:var(--panel2); border:1px solid var(--border); border-radius:6px; padding:10px 13px; margin-bottom:8px; }
+    .cwiz-rev-block h4 { font-family:'Roboto Condensed',sans-serif; color:var(--gold); font-size:.75rem; text-transform:uppercase; letter-spacing:.06em; margin-bottom:7px; }
+    .cwiz-rev-row { display:flex; justify-content:space-between; font-size:.8rem; padding:2px 0; border-bottom:1px solid rgba(255,255,255,.04); }
+    .cwiz-rev-row:last-child { border-bottom:none; }
+    .cwiz-rev-val { color:var(--blue-lt); font-weight:500; }
+    .cwiz-stat-grid6 { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; }
+    .cwiz-stat-box { background:var(--panel); border:1px solid var(--border); border-radius:5px; padding:7px 5px; text-align:center; }
+    .cwiz-stat-box-name { font-size:.62rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:.05em; }
+    .cwiz-stat-box-score { font-size:1.3rem; font-weight:700; }
+    .cwiz-stat-box-mod { font-size:.72rem; color:var(--text-dim); }
+    .cwiz-err { color:var(--red-lt); font-size:.78rem; }
+    .cwiz-dnd-pool { display:flex; gap:7px; flex-wrap:wrap; margin-bottom:14px; min-height:42px; padding:8px; background:var(--panel2); border:1px dashed var(--border); border-radius:5px; align-items:center; }
+    .cwiz-dnd-chip { background:var(--panel); border:2px solid var(--gold); border-radius:5px; padding:5px 14px; font-size:1rem; font-weight:700; cursor:grab; color:var(--gold); transition:opacity .15s; user-select:none; }
+    .cwiz-dnd-chip:active { cursor:grabbing; }
+    .cwiz-dnd-chip.dragging { opacity:.35; }
+    .cwiz-dnd-chip.used { border-color:var(--blue); color:var(--blue-lt); background:rgba(21,101,194,.15); opacity:.5; pointer-events:none; }
+    .cwiz-dnd-slots { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:4px; }
+    .cwiz-dnd-slot { background:var(--panel2); border:2px dashed var(--border); border-radius:6px; padding:8px 6px; text-align:center; min-height:64px; transition:border-color .15s, background .15s; position:relative; }
+    .cwiz-dnd-slot.over { border-color:var(--blue-lt); background:rgba(79,195,247,.08); }
+    .cwiz-dnd-slot.filled { border-style:solid; border-color:var(--blue); }
+    .cwiz-dnd-slot-label { font-size:.6rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:.09em; }
+    .cwiz-dnd-slot-val { font-size:1.5rem; font-weight:700; color:var(--blue-lt); line-height:1.2; min-height:1.8rem; }
+    .cwiz-dnd-slot-racial { font-size:.65rem; color:var(--gold); }
+    .cwiz-dnd-slot-total { font-size:.65rem; color:var(--text-dim); }
+    .cwiz-dnd-slot-clear { position:absolute; top:2px; right:4px; font-size:.62rem; color:var(--text-dim); cursor:pointer; background:none; border:none; line-height:1; padding:1px 3px; }
+    .cwiz-dnd-slot-clear:hover { color:var(--red-lt); }
+    .cs-label { font-size: .68rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: .07em; }
+    .cs-input { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 5px 8px; border-radius: 4px; font-size: .85rem; font-family: inherit; }
+    .cs-input:focus { outline: none; border-color: var(--blue2); }
+    .modal-btn { padding: 8px 18px; border-radius: 5px; border: none; cursor: pointer; font-size: .85rem; font-weight: 600; }
+    .modal-btn.primary { background: var(--blue); color: #fff; }
+    .modal-btn.primary:hover { background: var(--blue2); }
+    .modal-btn.secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
+    .modal-btn.secondary:hover { background: var(--border); }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<div id="top-bar">
+  <div class="logo-mark">⚔ D&<span>D</span></div>
+  <div id="campaign-label">{{ campaign_name }}</div>
+</div>
+
+<div id="main">
+  <div id="welcome-card">
+    <h1>Welcome to {{ campaign_name }}!</h1>
+    <p>Your Game Master has invited you to join this campaign. Enter your name and create your character below — when you're done, you'll go straight to your player portal.</p>
+    <div class="display-name-row">
+      <div>
+        <label for="setup-display-name">Your Name (shown to the GM)</label><br>
+        <input id="setup-display-name" type="text" placeholder="e.g. Alex" autocomplete="off">
+      </div>
+    </div>
+  </div>
+
+  <div id="wizard-wrap">
+    <div class="cwiz-header">
+      <div class="cwiz-title-row">
+        <div class="cwiz-title">Create Your Character</div>
+        <div class="cwiz-step-label" id="cwiz-step-label"></div>
+      </div>
+      <div class="cwiz-progress-bar" id="cwiz-progress-bar"></div>
+    </div>
+    <div class="cwiz-body" id="cwiz-body">
+
+      <!-- Step: basic -->
+      <div class="cwiz-step" id="cwiz-step-basic">
+        <div class="cwiz-sec">Character Basics</div>
+        <div style="display:flex;flex-direction:column;gap:12px;max-width:420px">
+          <div><label class="cs-label">Character Name</label>
+            <input class="cs-input" id="cwiz-name" placeholder="Enter name…" style="width:100%;margin-top:4px"></div>
+          <div style="display:flex;gap:16px;align-items:flex-end">
+            <div><label class="cs-label">Target Level (1–20)</label>
+              <input class="cs-input" id="cwiz-level" type="number" min="1" max="20" value="1" style="width:72px;text-align:center;margin-top:4px"></div>
+            <div style="flex:1"><label class="cs-label">Alignment</label>
+              <select class="cwiz-sel" id="cwiz-alignment" style="width:100%;margin-top:4px">
+                <option value="">— Choose —</option>
+                <option>Lawful Good</option><option>Neutral Good</option><option>Chaotic Good</option>
+                <option>Lawful Neutral</option><option>True Neutral</option><option>Chaotic Neutral</option>
+                <option>Lawful Evil</option><option>Neutral Evil</option><option>Chaotic Evil</option>
+              </select></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step: race -->
+      <div class="cwiz-step" id="cwiz-step-race">
+        <div class="cwiz-sec">Choose Race</div>
+        <div class="cwiz-card-grid" id="cwiz-race-grid"></div>
+        <div id="cwiz-subrace-wrap" style="display:none">
+          <div class="cwiz-sec" style="margin-top:14px">Choose Subrace</div>
+          <div class="cwiz-card-grid" id="cwiz-subrace-grid"></div>
+        </div>
+        <div class="cwiz-info" id="cwiz-race-info" style="display:none"></div>
+      </div>
+
+      <!-- Step: class -->
+      <div class="cwiz-step" id="cwiz-step-class">
+        <div class="cwiz-sec">Choose Class</div>
+        <div class="cwiz-card-grid" id="cwiz-class-grid"></div>
+        <div class="cwiz-info" id="cwiz-class-info" style="display:none"></div>
+      </div>
+
+      <!-- Step: abilities -->
+      <div class="cwiz-step" id="cwiz-step-abilities">
+        <div class="cwiz-sec">Ability Scores</div>
+        <div class="cwiz-method-grid">
+          <div class="cwiz-method-card" id="cwiz-meth-array" onclick="cwizSelectMethod('array')">
+            <div class="cwiz-method-name">Standard Array</div>
+            <div class="cwiz-method-desc">15, 14, 13, 12, 10, 8<br>Assign as you like</div>
+          </div>
+          <div class="cwiz-method-card" id="cwiz-meth-pointbuy" onclick="cwizSelectMethod('pointbuy')">
+            <div class="cwiz-method-name">Point Buy</div>
+            <div class="cwiz-method-desc">27 points to spend<br>Each stat starts at 8</div>
+          </div>
+          <div class="cwiz-method-card" id="cwiz-meth-roll" onclick="cwizSelectMethod('roll')">
+            <div class="cwiz-method-name">Roll Dice</div>
+            <div class="cwiz-method-desc">4d6 drop lowest × 6<br>Assign to stats</div>
+          </div>
+        </div>
+        <div class="cwiz-scores-panel" id="cwiz-panel-array">
+          <div style="font-size:.78rem;color:var(--text-dim);margin-bottom:6px">Drag each value to a stat slot. Click ✕ to return it to the pool.</div>
+          <div class="cwiz-dnd-pool" id="cwiz-array-pool"></div>
+          <div class="cwiz-dnd-slots" id="cwiz-array-slots"></div>
+        </div>
+        <div class="cwiz-scores-panel" id="cwiz-panel-pointbuy">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <span style="font-size:.82rem">Points remaining:</span>
+            <span id="cwiz-pb-pts" style="font-size:1.05rem;font-weight:700;color:var(--gold)">27</span>
+          </div>
+          <div id="cwiz-pb-rows"></div>
+          <div style="font-size:.7rem;color:var(--text-dim);margin-top:6px">Cost: 8=0 · 9=1 · 10=2 · 11=3 · 12=4 · 13=5 · 14=7 · 15=9</div>
+        </div>
+        <div class="cwiz-scores-panel" id="cwiz-panel-roll">
+          <button class="modal-btn primary" onclick="cwizRollAll()" style="margin-bottom:8px">🎲 Roll 4d6 Drop Lowest</button>
+          <div style="font-size:.78rem;color:var(--text-dim);margin-bottom:6px">Drag rolled values to stat slots. Click ✕ to unassign.</div>
+          <div class="cwiz-dnd-pool" id="cwiz-roll-pool"></div>
+          <div class="cwiz-dnd-slots" id="cwiz-roll-slots"></div>
+        </div>
+      </div>
+
+      <!-- Step: levelup -->
+      <div class="cwiz-step" id="cwiz-step-levelup">
+        <div class="cwiz-sec">Level-Up Decisions</div>
+        <div id="cwiz-levelup-body"></div>
+      </div>
+
+      <!-- Step: bg -->
+      <div class="cwiz-step" id="cwiz-step-bg">
+        <div class="cwiz-sec">Choose Background</div>
+        <div class="cwiz-card-grid" id="cwiz-bg-grid"></div>
+        <div class="cwiz-info" id="cwiz-bg-info" style="display:none"></div>
+      </div>
+
+      <!-- Step: skills -->
+      <div class="cwiz-step" id="cwiz-step-skills">
+        <div class="cwiz-sec">Skill Proficiencies</div>
+        <div id="cwiz-skills-body"></div>
+      </div>
+
+      <!-- Step: spells -->
+      <div class="cwiz-step" id="cwiz-step-spells">
+        <div class="cwiz-sec">Cantrips &amp; Spells</div>
+        <div id="cwiz-spells-body"></div>
+      </div>
+
+      <!-- Step: review -->
+      <div class="cwiz-step" id="cwiz-step-review">
+        <div class="cwiz-sec">Review &amp; Confirm</div>
+        <div id="cwiz-review-body"></div>
+      </div>
+
+    </div><!-- /cwiz-body -->
+    <div class="cwiz-footer">
+      <button class="modal-btn secondary" id="cwiz-back-btn" onclick="cwizBack()">← Back</button>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="cwiz-err" id="cwiz-err"></span>
+        <button class="modal-btn primary" id="cwiz-next-btn" onclick="cwizNext()">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SETUP_TOKEN = "{{ token }}";
+
+// ── Data ──────────────────────────────────────────────────────────────────────
+const CWIZ_RACES = {
+  'Dwarf':      { speed:25, baseTraits:['Darkvision 60ft','Dwarven Resilience','Dwarven Combat Training','Stonecunning'],
+    subraces:{ 'Hill Dwarf':    {bonuses:{wis:1,con:2},  traits:['Dwarven Toughness (+1 HP/level)']},
+               'Mountain Dwarf':{bonuses:{str:2,con:2},  traits:['Dwarven Armor Training (light & medium)']} }},
+  'Elf':        { speed:30, baseTraits:['Darkvision 60ft','Keen Senses (Perception prof)','Fey Ancestry','Trance (4hr rest)'],
+    subraces:{ 'High Elf':      {bonuses:{dex:2,int:1},  traits:['Elf Weapon Training','Cantrip (INT)','Extra Language']},
+               'Wood Elf':      {bonuses:{dex:2,wis:1},  traits:['Elf Weapon Training','Fleet of Foot (35ft)','Mask of the Wild']},
+               'Dark Elf (Drow)':{bonuses:{dex:2,cha:1}, traits:['Superior Darkvision 120ft','Sunlight Sensitivity','Drow Magic','Drow Weapon Training']} }},
+  'Halfling':   { speed:25, baseTraits:['Lucky (reroll 1s)','Brave (adv vs frightened)','Halfling Nimbleness'],
+    subraces:{ 'Lightfoot':{bonuses:{dex:2,cha:1}, traits:['Naturally Stealthy']},
+               'Stout':    {bonuses:{dex:2,con:1}, traits:['Stout Resilience (adv vs poison, resist poison dmg)']} }},
+  'Human':      { speed:30, baseTraits:[],
+    subraces:{ 'Standard':{bonuses:{str:1,dex:1,con:1,int:1,wis:1,cha:1}, traits:['Extra Language']},
+               'Variant': {bonuses:{}, traits:['+1 to two ability scores of choice','One skill proficiency','One feat']} }},
+  'Dragonborn': { speed:30, bonuses:{str:2,cha:1}, traits:['Draconic Ancestry','Breath Weapon (2d6)','Damage Resistance'], subraces:null },
+  'Gnome':      { speed:25, baseTraits:['Darkvision 60ft','Gnome Cunning (adv INT/WIS/CHA saves vs magic)'],
+    subraces:{ 'Forest Gnome':{bonuses:{int:2,dex:1}, traits:['Natural Illusionist (Minor Illusion cantrip)','Speak with Small Beasts']},
+               'Rock Gnome':  {bonuses:{int:2,con:1}, traits:["Artificer's Lore","Tinker"]} }},
+  'Half-Elf':   { speed:30, bonuses:{cha:2}, traits:['Darkvision 60ft','Fey Ancestry','Skill Versatility (2 skills of choice)','+1 to two ability scores of choice'], subraces:null },
+  'Half-Orc':   { speed:30, bonuses:{str:2,con:1}, traits:['Darkvision 60ft','Menacing (Intimidation prof)','Relentless Endurance','Savage Attacks'], subraces:null },
+  'Tiefling':   { speed:30, bonuses:{int:1,cha:2}, traits:['Darkvision 60ft','Hellish Resistance (fire)','Infernal Legacy (Thaumaturgy, Hellish Rebuke, Darkness)'], subraces:null },
+};
+
+const CWIZ_CLASSES = {
+  'Barbarian': { hitDie:12, avgHpPerLevel:7, saves:['STR','CON'], armorProf:'Light & medium armor, shields', weaponProf:'Simple & martial weapons', skillCount:2, skills:['Animal Handling','Athletics','Intimidation','Nature','Perception','Survival'], spellcaster:false, features:{ 1:['Rage (2/long rest, +2 dmg)','Unarmored Defense (10+DEX+CON AC)'],2:['Reckless Attack','Danger Sense'],3:['Primal Path (choose subclass)'],4:['ASI / Feat'],5:['Extra Attack','Fast Movement (+10 ft)'],6:['Path feature','Rage (3/long rest)'],7:['Feral Instinct'],8:['ASI / Feat'],9:['Brutal Critical (1 die)'],10:['Path feature'],11:['Relentless Rage'],12:['ASI / Feat','Rage (4/long rest)'],13:['Brutal Critical (2 dice)'],14:['Path feature'],15:['Persistent Rage'],16:['ASI / Feat','Rage (5/long rest)'],17:['Brutal Critical (3 dice)'],18:['Indomitable Might'],19:['ASI / Feat'],20:['Primal Champion (+4 STR, +4 CON)'] }, asiLevels:[4,8,12,16,19], subclassLevel:3, subclassLabel:'Primal Path', subclasses:['Path of the Berserker','Path of the Totem Warrior','Path of the Battlerager','Path of the Storm Herald','Path of the Zealot'] },
+  'Bard': { hitDie:8, avgHpPerLevel:5, saves:['DEX','CHA'], armorProf:'Light armor', weaponProf:'Simple weapons, hand crossbows, longswords, rapiers, shortswords', skillCount:3, skills:['Acrobatics','Animal Handling','Arcana','Athletics','Deception','History','Insight','Intimidation','Investigation','Medicine','Nature','Perception','Performance','Persuasion','Religion','Sleight of Hand','Stealth','Survival'], spellcaster:true, spellAbility:'CHA', spellcastType:'full', cantripCount:[2,2,2,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4], spellsKnown:[4,5,6,7,8,9,10,11,12,12,13,13,14,14,15,15,16,16,18,20], features:{ 1:['Spellcasting (CHA)','Bardic Inspiration (d6)'],2:['Jack of All Trades','Song of Rest (d6)'],3:['Bard College (subclass)','Expertise (2 skills)'],4:['ASI / Feat'],5:['Bardic Inspiration (d8)','Font of Inspiration'],6:['College feature','Countercharm'],7:[],8:['ASI / Feat'],9:['Song of Rest (d8)'],10:['Bardic Inspiration (d10)','Expertise','Magical Secrets'],11:[],12:['ASI / Feat'],13:['Song of Rest (d10)'],14:['Magical Secrets','College feature'],15:['Bardic Inspiration (d12)'],16:['ASI / Feat'],17:['Song of Rest (d12)'],18:['Magical Secrets'],19:['ASI / Feat'],20:['Superior Inspiration'] }, asiLevels:[4,8,12,16,19], subclassLevel:3, subclassLabel:'Bard College', subclasses:['College of Lore','College of Valor','College of Glamour','College of Swords','College of Whispers'] },
+  'Cleric': { hitDie:8, avgHpPerLevel:5, saves:['WIS','CHA'], armorProf:'All armor, shields', weaponProf:'Simple weapons', skillCount:2, skills:['History','Insight','Medicine','Persuasion','Religion'], spellcaster:true, spellAbility:'WIS', spellcastType:'full', cantripCount:[3,3,3,4,4,4,4,4,4,5,5,5,5,5,5,5,5,5,5,5], spellsKnown:null, features:{ 1:['Spellcasting (WIS)','Divine Domain (subclass)','Domain Spells'],2:['Channel Divinity (1/rest)','Domain feature'],3:[],4:['ASI / Feat'],5:['Destroy Undead (CR ½)'],6:['Channel Divinity (2/rest)','Domain feature'],7:[],8:['ASI / Feat','Destroy Undead (CR 1)','Domain feature'],9:[],10:['Divine Intervention'],11:['Destroy Undead (CR 2)'],12:['ASI / Feat'],13:[],14:['Destroy Undead (CR 3)'],15:[],16:['ASI / Feat'],17:['Destroy Undead (CR 4)','Domain feature'],18:['Channel Divinity (3/rest)'],19:['ASI / Feat'],20:['Divine Intervention improvement'] }, asiLevels:[4,8,12,16,19], subclassLevel:1, subclassLabel:'Divine Domain', subclasses:['Life Domain','Light Domain','Nature Domain','Tempest Domain','Trickery Domain','War Domain','Knowledge Domain'] },
+  'Druid': { hitDie:8, avgHpPerLevel:5, saves:['INT','WIS'], armorProf:'Light & medium non-metal armor, shields', weaponProf:'Clubs, daggers, darts, javelins, maces, quarterstaffs, scimitars, sickles, slings, spears', skillCount:2, skills:['Arcana','Animal Handling','Insight','Medicine','Nature','Perception','Religion','Survival'], spellcaster:true, spellAbility:'WIS', spellcastType:'full', cantripCount:[2,2,2,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4], spellsKnown:null, features:{ 1:['Druidic language','Spellcasting (WIS)'],2:['Wild Shape (CR ¼)','Druid Circle (subclass)'],3:[],4:['ASI / Feat','Wild Shape (CR ½, swim)'],5:[],6:['Circle feature'],7:[],8:['ASI / Feat','Wild Shape (CR 1, fly)'],9:[],10:['Circle feature'],11:[],12:['ASI / Feat'],13:[],14:['Circle feature'],15:[],16:['ASI / Feat'],17:[],18:['Timeless Body','Beast Spells'],19:['ASI / Feat'],20:['Archdruid'] }, asiLevels:[4,8,12,16,19], subclassLevel:2, subclassLabel:'Druid Circle', subclasses:['Circle of the Land','Circle of the Moon','Circle of Dreams','Circle of the Shepherd','Circle of Spores'] },
+  'Fighter': { hitDie:10, avgHpPerLevel:6, saves:['STR','CON'], armorProf:'All armor, shields', weaponProf:'Simple & martial weapons', skillCount:2, skills:['Acrobatics','Animal Handling','Athletics','History','Insight','Intimidation','Perception','Survival'], spellcaster:false, features:{ 1:['Fighting Style (choose)','Second Wind'],2:['Action Surge'],3:['Martial Archetype (subclass)'],4:['ASI / Feat'],5:['Extra Attack (2×)'],6:['ASI / Feat'],7:['Archetype Feature'],8:['ASI / Feat'],9:['Indomitable (1/long rest)'],10:['Archetype Feature'],11:['Extra Attack (3×)'],12:['ASI / Feat'],13:['Indomitable (2/long rest)'],14:['Archetype Feature'],15:['Relentless'],16:['ASI / Feat'],17:['Action Surge (2/short rest)','Indomitable (3/long rest)'],18:['Archetype Feature'],19:['ASI / Feat'],20:['Extra Attack (4×)'] }, asiLevels:[4,6,8,12,14,16,19], subclassLevel:3, subclassLabel:'Martial Archetype', fightingStyleLevel:1, subclasses:['Champion','Battle Master','Eldritch Knight'], fightingStyles:['Archery — +2 bonus to ranged attack rolls','Defense — +1 AC while wearing armor','Dueling — +2 damage with one-handed weapon (no other weapons)','Great Weapon Fighting — reroll 1s & 2s on damage with two-handed weapons','Protection — impose disadvantage on attacks against adjacent allies (requires shield)','Two-Weapon Fighting — add ability modifier to off-hand attack damage'] },
+  'Monk': { hitDie:8, avgHpPerLevel:5, saves:['STR','DEX'], armorProf:'None', weaponProf:'Simple weapons, shortswords', skillCount:2, skills:['Acrobatics','Athletics','History','Insight','Religion','Stealth'], spellcaster:false, features:{ 1:['Unarmored Defense (10+DEX+WIS)','Martial Arts (d4)'],2:['Ki (2 pts)','Unarmored Movement (+10 ft)'],3:['Monastic Tradition (subclass)','Deflect Missiles'],4:['ASI / Feat','Slow Fall'],5:['Extra Attack','Stunning Strike'],6:['Ki-Empowered Strikes','Tradition feature'],7:['Evasion','Stillness of Mind'],8:['ASI / Feat'],9:['Unarmored Movement (+15 ft, walls)'],10:['Purity of Body'],11:['Tradition feature'],12:['ASI / Feat'],13:['Tongue of the Sun and Moon'],14:['Diamond Soul'],15:['Timeless Body'],16:['ASI / Feat'],17:['Tradition feature'],18:['Empty Body'],19:['ASI / Feat'],20:['Perfect Self'] }, asiLevels:[4,8,12,16,19], subclassLevel:3, subclassLabel:'Monastic Tradition', subclasses:['Way of the Open Hand','Way of Shadow','Way of the Four Elements','Way of the Drunken Master','Way of the Kensei','Way of the Sun Soul'] },
+  'Paladin': { hitDie:10, avgHpPerLevel:6, saves:['WIS','CHA'], armorProf:'All armor, shields', weaponProf:'Simple & martial weapons', skillCount:2, skills:['Athletics','Insight','Intimidation','Medicine','Persuasion','Religion'], spellcaster:true, spellAbility:'CHA', spellcastType:'half', cantripCount:null, spellsKnown:null, features:{ 1:['Divine Sense','Lay on Hands'],2:['Fighting Style (choose)','Spellcasting (CHA)','Divine Smite'],3:['Divine Health','Sacred Oath (subclass)','Oath Spells'],4:['ASI / Feat'],5:['Extra Attack'],6:['Aura of Protection (+CHA saves, 10 ft)'],7:['Sacred Oath feature'],8:['ASI / Feat'],9:[],10:['Aura of Courage (immune frightened, 10 ft)'],11:['Improved Divine Smite'],12:['ASI / Feat'],13:[],14:['Cleansing Touch'],15:['Sacred Oath feature'],16:['ASI / Feat'],17:[],18:['Aura improvements (30 ft)'],19:['ASI / Feat'],20:['Sacred Oath capstone'] }, asiLevels:[4,8,12,16,19], subclassLevel:3, subclassLabel:'Sacred Oath', fightingStyleLevel:2, subclasses:['Oath of Devotion','Oath of the Ancients','Oath of Vengeance','Oath of Conquest','Oath of Redemption','Oathbreaker'], fightingStyles:['Defense — +1 AC while wearing armor','Dueling — +2 damage with one-handed weapon','Great Weapon Fighting — reroll 1s & 2s on damage with two-handed weapons','Protection — impose disadvantage on attacks against adjacent allies (requires shield)'] },
+  'Ranger': { hitDie:10, avgHpPerLevel:6, saves:['STR','DEX'], armorProf:'Light & medium armor, shields', weaponProf:'Simple & martial weapons', skillCount:3, skills:['Animal Handling','Athletics','Insight','Investigation','Nature','Perception','Stealth','Survival'], spellcaster:true, spellAbility:'WIS', spellcastType:'half', cantripCount:null, spellsKnown:[2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,9,10,10,10,11], features:{ 1:['Favored Enemy','Natural Explorer'],2:['Fighting Style (choose)','Spellcasting (WIS)'],3:['Ranger Archetype (subclass)','Primeval Awareness'],4:['ASI / Feat'],5:['Extra Attack'],6:['Favored Enemy (2nd type)','Natural Explorer (2nd terrain)'],7:['Archetype feature'],8:['ASI / Feat',"Land's Stride"],9:[],10:['Natural Explorer (3rd)','Hide in Plain Sight'],11:['Archetype feature'],12:['ASI / Feat'],13:[],14:['Vanish'],15:['Archetype feature'],16:['ASI / Feat'],17:[],18:['Feral Senses'],19:['ASI / Feat'],20:['Foe Slayer'] }, asiLevels:[4,8,12,16,19], subclassLevel:3, subclassLabel:'Ranger Archetype', fightingStyleLevel:2, subclasses:['Hunter','Beast Master','Gloom Stalker','Horizon Walker','Monster Slayer'], fightingStyles:['Archery — +2 bonus to ranged attack rolls','Defense — +1 AC while wearing armor','Dueling — +2 damage with one-handed weapon','Two-Weapon Fighting — add ability modifier to off-hand attack damage'] },
+  'Rogue': { hitDie:8, avgHpPerLevel:5, saves:['DEX','INT'], armorProf:'Light armor', weaponProf:'Simple weapons, hand crossbows, longswords, rapiers, shortswords', skillCount:4, skills:['Acrobatics','Athletics','Deception','Insight','Intimidation','Investigation','Perception','Performance','Persuasion','Sleight of Hand','Stealth'], spellcaster:false, features:{ 1:['Expertise (2 skills)','Sneak Attack (1d6)',"Thieves' Cant"],2:['Cunning Action'],3:['Roguish Archetype (subclass)','Sneak Attack (2d6)'],4:['ASI / Feat'],5:['Uncanny Dodge','Sneak Attack (3d6)'],6:['Expertise (2 more)','Sneak Attack (4d6)'],7:['Evasion','Sneak Attack (5d6)'],8:['ASI / Feat','Sneak Attack (6d6)'],9:['Archetype feature','Sneak Attack (7d6)'],10:['ASI / Feat','Sneak Attack (8d6)'],11:['Reliable Talent','Sneak Attack (9d6)'],12:['ASI / Feat','Sneak Attack (10d6)'],13:['Archetype feature','Sneak Attack (11d6)'],14:['Blindsense 10 ft','Sneak Attack (12d6)'],15:['Slippery Mind','Sneak Attack (13d6)'],16:['ASI / Feat','Sneak Attack (14d6)'],17:['Archetype feature','Sneak Attack (15d6)'],18:['Elusive','Sneak Attack (16d6)'],19:['ASI / Feat','Sneak Attack (17d6)'],20:['Stroke of Luck','Sneak Attack (18d6)'] }, asiLevels:[4,8,10,12,16,19], subclassLevel:3, subclassLabel:'Roguish Archetype', subclasses:['Thief','Assassin','Arcane Trickster','Inquisitive','Mastermind','Scout','Swashbuckler'] },
+  'Sorcerer': { hitDie:6, avgHpPerLevel:4, saves:['CON','CHA'], armorProf:'None', weaponProf:'Daggers, darts, slings, quarterstaffs, light crossbows', skillCount:2, skills:['Arcana','Deception','Insight','Intimidation','Persuasion','Religion'], spellcaster:true, spellAbility:'CHA', spellcastType:'full', cantripCount:[4,4,4,5,5,5,5,5,5,6,6,6,6,6,6,6,6,6,6,6], spellsKnown:[2,3,4,5,6,7,8,9,10,11,12,12,13,13,14,14,15,15,15,15], features:{ 1:['Spellcasting (CHA)','Sorcerous Origin (subclass)'],2:['Font of Magic'],3:['Metamagic (choose 2)'],4:['ASI / Feat'],5:[],6:['Origin feature'],7:[],8:['ASI / Feat'],9:[],10:['Metamagic (1 more)'],11:[],12:['ASI / Feat'],13:[],14:['Origin feature'],15:[],16:['ASI / Feat'],17:['Metamagic (1 more)'],18:['Origin feature'],19:['ASI / Feat'],20:['Sorcerous Restoration'] }, asiLevels:[4,8,12,16,19], subclassLevel:1, subclassLabel:'Sorcerous Origin', subclasses:['Draconic Bloodline','Wild Magic','Divine Soul','Shadow Magic','Storm Sorcery'] },
+  'Warlock': { hitDie:8, avgHpPerLevel:5, saves:['WIS','CHA'], armorProf:'Light armor', weaponProf:'Simple weapons', skillCount:2, skills:['Arcana','Deception','History','Intimidation','Investigation','Nature','Religion'], spellcaster:true, spellAbility:'CHA', spellcastType:'warlock', cantripCount:[2,2,2,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4], spellsKnown:[2,3,4,5,6,7,8,9,10,10,11,11,12,12,13,13,14,14,15,15], features:{ 1:['Otherworldly Patron (subclass)','Pact Magic (1 slot, L1)'],2:['Eldritch Invocations (choose 2)'],3:['Pact Boon (choose)'],4:['ASI / Feat'],5:[],6:['Patron feature'],7:[],8:['ASI / Feat'],9:[],10:['Patron feature'],11:['Mystic Arcanum (L6)'],12:['ASI / Feat'],13:['Mystic Arcanum (L7)'],14:['Patron feature'],15:['Mystic Arcanum (L8)'],16:['ASI / Feat'],17:['Mystic Arcanum (L9)'],18:[],19:['ASI / Feat'],20:['Eldritch Master'] }, asiLevels:[4,8,12,16,19], subclassLevel:1, subclassLabel:'Otherworldly Patron', subclasses:['The Fiend','The Great Old One','The Archfey','The Hexblade','The Undying','The Celestial'] },
+  'Wizard': { hitDie:6, avgHpPerLevel:4, saves:['INT','WIS'], armorProf:'None', weaponProf:'Daggers, darts, slings, quarterstaffs, light crossbows', skillCount:2, skills:['Arcana','History','Insight','Investigation','Medicine','Religion'], spellcaster:true, spellAbility:'INT', spellcastType:'full', cantripCount:[3,3,3,4,4,4,4,4,4,5,5,5,5,5,5,5,5,5,5,5], spellsKnown:null, features:{ 1:['Spellcasting (INT, spellbook)','Arcane Recovery'],2:['Arcane Tradition (subclass)'],3:[],4:['ASI / Feat'],5:[],6:['Tradition feature'],7:[],8:['ASI / Feat'],9:[],10:['Tradition feature'],11:[],12:['ASI / Feat'],13:[],14:['Tradition feature'],15:[],16:['ASI / Feat'],17:[],18:['Spell Mastery'],19:['ASI / Feat'],20:['Signature Spells'] }, asiLevels:[4,8,12,16,19], subclassLevel:2, subclassLabel:'Arcane Tradition', subclasses:['School of Evocation','School of Abjuration','School of Conjuration','School of Divination','School of Enchantment','School of Illusion','School of Necromancy','School of Transmutation'] },
+};
+
+const CWIZ_BACKGROUNDS = {
+  'Acolyte':      {skills:['Insight','Religion'],       feature:'Shelter of the Faithful', extra:'2 languages'},
+  'Charlatan':    {skills:['Deception','Sleight of Hand'],feature:'False Identity',         extra:'Disguise kit, forgery kit'},
+  'Criminal':     {skills:['Deception','Stealth'],       feature:'Criminal Contact',        extra:"Gaming set, thieves' tools"},
+  'Entertainer':  {skills:['Acrobatics','Performance'],  feature:'By Popular Demand',       extra:'Disguise kit, musical instrument'},
+  'Folk Hero':    {skills:['Animal Handling','Survival'],feature:'Rustic Hospitality',      extra:"Artisan's tools, vehicles (land)"},
+  'Guild Artisan':{skills:['Insight','Persuasion'],      feature:'Guild Membership',        extra:"Artisan's tools, 1 language"},
+  'Hermit':       {skills:['Medicine','Religion'],       feature:'Discovery',               extra:'Herbalism kit, 1 language'},
+  'Noble':        {skills:['History','Persuasion'],      feature:'Position of Privilege',   extra:'Gaming set, 1 language'},
+  'Outlander':    {skills:['Athletics','Survival'],      feature:'Wanderer',                extra:'Musical instrument, 1 language'},
+  'Sage':         {skills:['Arcana','History'],          feature:'Researcher',              extra:'2 languages'},
+  'Sailor':       {skills:['Athletics','Perception'],    feature:"Ship's Passage",          extra:"Navigator's tools, vehicles (water)"},
+  'Soldier':      {skills:['Athletics','Intimidation'],  feature:'Military Rank',           extra:'Gaming set, vehicles (land)'},
+  'Urchin':       {skills:['Sleight of Hand','Stealth'], feature:'City Secrets',            extra:"Disguise kit, thieves' tools"},
+};
+
+const CWIZ_FEATS = [
+  'Alert — +5 initiative; can\'t be surprised while conscious',
+  'Athlete — +1 STR or DEX; improved climbing/jumping',
+  'Actor — +1 CHA; advantage on Deception/Performance for mimicry',
+  'Charger — bonus action charge attack or shove',
+  'Crossbow Expert — ignore loading; no disadv in melee; bonus hand crossbow attack',
+  'Defensive Duelist — reaction: add prof bonus to AC when hit with finesse weapon',
+  'Dual Wielder — +1 AC with two weapons; use non-light weapons for TWF',
+  'Dungeon Delver — advantage on trap detection; resist trap damage',
+  'Durable — +1 CON; minimum 2×CON mod on Hit Die rolls',
+  'Grappler — advantage on attacks vs grappled creatures; can pin',
+  'Great Weapon Master — −5 attack/+10 damage; bonus attack on crit or kill',
+  "Healer — use healer's kit to restore 1d6+4+level HP",
+  'Heavily Armored — +1 STR; proficiency with heavy armor',
+  'Heavy Armor Master — +1 STR; reduce B/P/S damage by 3 in heavy armor',
+  'Inspiring Leader — 10-min speech grants temp HP to 6 creatures',
+  'Keen Mind — +1 INT; always know compass direction and time',
+  'Lucky — 3 luck points/day; reroll attacks, ability checks, or saves',
+  'Mage Slayer — reaction attack vs nearby spellcaster; disadv on concentration',
+  'Magic Initiate — 2 cantrips + 1 1st-level spell from a class',
+  'Martial Adept — 2 Battle Master maneuvers + 1 superiority die',
+  'Mobile — +10 speed; Dash ignores difficult terrain; no OA after melee attack',
+  'Moderately Armored — +1 STR or DEX; medium armor & shield proficiency',
+  'Mounted Combatant — advantage on melee vs unmounted smaller creatures',
+  'Observant — +1 INT or WIS; +5 passive Perception & Investigation; lip reading',
+  'Polearm Master — bonus attack with polearm butt; OA when entering reach',
+  'Resilient — +1 to one ability; saving throw proficiency for that ability',
+  'Savage Attacker — once per turn reroll weapon damage, take higher result',
+  'Sentinel — stop movement on OA; reaction attack vs ally\'s attacker',
+  'Sharpshooter — ignore long range/cover; −5 attack/+10 damage ranged',
+  'Shield Master — bonus shove; add shield bonus to DEX saves',
+  'Skilled — proficiency in any 3 skills or tools',
+  'Tavern Brawler — +1 STR or CON; prof with improvised weapons; grapple as bonus',
+  'Tough — +2 HP per level (retroactive)',
+  'War Caster — advantage on concentration; somatic with weapon/shield; OA spells',
+  'Weapon Master — +1 STR or DEX; proficiency with 4 weapons of choice',
+];
+
+const CANTRIPS_BY_CLASS = {
+  bard:    ['Blade Ward','Dancing Lights','Friends','Light','Mage Hand','Mending','Message','Minor Illusion','Prestidigitation','True Strike','Vicious Mockery'],
+  cleric:  ['Guidance','Light','Mending','Resistance','Sacred Flame','Spare the Dying','Thaumaturgy'],
+  druid:   ['Druidcraft','Guidance','Mending','Poison Spray','Produce Flame','Resistance','Shillelagh','Thorn Whip'],
+  sorcerer:['Acid Splash','Blade Ward','Chill Touch','Dancing Lights','Fire Bolt','Friends','Light','Mage Hand','Mending','Message','Minor Illusion','Poison Spray','Prestidigitation','Ray of Frost','Shocking Grasp','True Strike'],
+  warlock: ['Blade Ward','Chill Touch','Eldritch Blast','Friends','Mage Hand','Minor Illusion','Poison Spray','Prestidigitation','True Strike'],
+  wizard:  ['Acid Splash','Blade Ward','Chill Touch','Dancing Lights','Fire Bolt','Friends','Light','Mage Hand','Mending','Message','Minor Illusion','Prestidigitation','Ray of Frost','Shocking Grasp','True Strike'],
+  any:     ['Acid Splash','Blade Ward','Chill Touch','Dancing Lights','Druidcraft','Eldritch Blast','Fire Bolt','Friends','Guidance','Light','Mage Hand','Mending','Message','Minor Illusion','Poison Spray','Prestidigitation','Produce Flame','Ray of Frost','Resistance','Sacred Flame','Shillelagh','Shocking Grasp','Spare the Dying','Thaumaturgy','Thorn Whip','True Strike','Vicious Mockery'],
+};
+const RACE_BASE_LANGS = {
+  'Dwarf':'Common, Dwarvish', 'Elf':'Common, Elvish', 'Halfling':'Common, Halfling',
+  'Human':'Common + one of choice', 'Dragonborn':'Common, Draconic', 'Gnome':'Common, Gnomish',
+  'Half-Elf':'Common, Elvish + one of choice', 'Half-Orc':'Common, Orc', 'Tiefling':'Common, Infernal',
+};
+const PB_COSTS   = {8:0,9:1,10:2,11:3,12:4,13:5,14:7,15:9};
+const STAT_NAMES  = ['str','dex','con','int','wis','cha'];
+const STAT_LABELS = {str:'STR',dex:'DEX',con:'CON',int:'INT',wis:'WIS',cha:'CHA'};
+const STD_ARRAY   = [15,14,13,12,10,8];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let _cw = {};
+function _cwReset() {
+  _cw = { stepIdx:0, name:'', level:1, alignment:'', race:'', subrace:'', cls:'Fighter',
+    abilityMethod:'', arrayAssign:{}, pbScores:{str:8,dex:8,con:8,int:8,wis:8,cha:8},
+    rollPool:[], rollAssign:{str:null,dex:null,con:null,int:null,wis:null,cha:null},
+    fightingStyle:'', subclass:'', asiChoices:{}, background:'', skillChoices:[],
+    cantrips:[], spells:[], racialCantrip:'' };
+}
+
+function _cwSteps() {
+  const s = ['basic','race','class','abilities'];
+  if (_cw.level > 1) s.push('levelup');
+  s.push('bg','skills');
+  if (_cwNeedsSpellStep()) s.push('spells');
+  s.push('review');
+  return s;
+}
+function _cwNeedsSpellStep() {
+  const cd = CWIZ_CLASSES[_cw.cls];
+  if (cd && cd.spellcaster) return true;
+  if (_cw.race === 'Elf'   && _cw.subrace === 'High Elf')    return true;
+  if (_cw.race === 'Gnome' && _cw.subrace === 'Forest Gnome') return true;
+  return false;
+}
+function _cwStepId() { return _cwSteps()[_cw.stepIdx]; }
+
+function cwizBack() { if (_cw.stepIdx > 0) { _cw.stepIdx--; _cwShow(); } }
+function cwizNext() {
+  const err = _cwValidate();
+  if (err) { document.getElementById('cwiz-err').textContent = err; return; }
+  document.getElementById('cwiz-err').textContent = '';
+  const steps = _cwSteps();
+  if (_cw.stepIdx === steps.length - 1) { _cwCreate(); return; }
+  _cw.stepIdx++;
+  _cwShow();
+}
+
+function _cwShow() {
+  document.querySelectorAll('.cwiz-step').forEach(e => e.classList.remove('active'));
+  const id = _cwStepId();
+  const el = document.getElementById('cwiz-step-' + id);
+  if (el) el.classList.add('active');
+  const steps = _cwSteps();
+  document.getElementById('cwiz-back-btn').style.visibility = _cw.stepIdx > 0 ? 'visible' : 'hidden';
+  const nb = document.getElementById('cwiz-next-btn');
+  nb.textContent = _cw.stepIdx === steps.length - 1 ? 'Create Character' : 'Next →';
+  document.getElementById('cwiz-err').textContent = '';
+  document.getElementById('cwiz-step-label').textContent =
+    'Step ' + (_cw.stepIdx + 1) + ' of ' + steps.length + ' — ' + id.charAt(0).toUpperCase() + id.slice(1);
+  const bar = document.getElementById('cwiz-progress-bar');
+  bar.innerHTML = steps.map((s,i) =>
+    `<div class="cwiz-prog-seg ${i < _cw.stepIdx ? 'done' : i === _cw.stepIdx ? 'active' : ''}"></div>`
+  ).join('');
+  if (id === 'abilities') _cwSetupAbilities();
+  if (id === 'levelup')   _cwRenderLevelUp();
+  if (id === 'skills')    _cwRenderSkills();
+  if (id === 'spells')    _cwRenderSpells();
+  if (id === 'review')    _cwRenderReview();
+  document.getElementById('cwiz-body').scrollTop = 0;
+}
+
+function _cwValidate() {
+  const id = _cwStepId();
+  if (id === 'basic') {
+    const n = document.getElementById('cwiz-name').value.trim();
+    if (!n) return 'Enter a character name.';
+    const l = parseInt(document.getElementById('cwiz-level').value) || 0;
+    if (l < 1 || l > 20) return 'Level must be 1–20.';
+    _cw.name = n; _cw.level = l;
+    _cw.alignment = document.getElementById('cwiz-alignment').value || '';
+    return null;
+  }
+  if (id === 'race') {
+    if (!_cw.race) return 'Choose a race.';
+    if (CWIZ_RACES[_cw.race].subraces && !_cw.subrace) return 'Choose a subrace.';
+    return null;
+  }
+  if (id === 'class') { if (!_cw.cls) return 'Choose a class.'; return null; }
+  if (id === 'abilities') {
+    if (!_cw.abilityMethod) return 'Choose an ability score method.';
+    if (_cw.abilityMethod === 'array' && STAT_NAMES.some(s => !_cw.arrayAssign[s])) return 'Drag all 6 values to stat slots.';
+    if (_cw.abilityMethod === 'roll') {
+      if (!_cw.rollPool.length) return 'Roll your dice first.';
+      if (STAT_NAMES.some(s => _cw.rollAssign[s] === null || _cw.rollAssign[s] === undefined)) return 'Drag all 6 rolled scores to stat slots.';
+    }
+    return null;
+  }
+  if (id === 'levelup') {
+    const cd = CWIZ_CLASSES[_cw.cls];
+    const fsLevel = cd.fightingStyleLevel || 1;
+    if (cd.fightingStyles && _cw.level >= fsLevel && !_cw.fightingStyle) return 'Choose a Fighting Style.';
+    if (_cw.level >= cd.subclassLevel && !_cw.subclass) return `Choose a ${cd.subclassLabel || 'Subclass'} at level ${cd.subclassLevel}.`;
+    for (const lvl of cd.asiLevels) {
+      if (lvl > _cw.level) break;
+      const ch = _cw.asiChoices[lvl];
+      if (!ch) return `Make a choice at level ${lvl} (ASI/Feat).`;
+      if (ch.type === 'asi2'  && !ch.stat)              return `Choose a stat for +2 at level ${lvl}.`;
+      if (ch.type === 'asi11' && (!ch.stat1||!ch.stat2)) return `Choose both stats for +1/+1 at level ${lvl}.`;
+      if (ch.type === 'feat'  && !ch.feat)              return `Choose a feat at level ${lvl}.`;
+    }
+    return null;
+  }
+  if (id === 'bg') { if (!_cw.background) return 'Choose a background.'; return null; }
+  if (id === 'skills') {
+    const needed = CWIZ_CLASSES[_cw.cls].skillCount;
+    if (_cw.skillChoices.length < needed) return `Choose ${needed} class skills.`;
+    return null;
+  }
+  if (id === 'spells') {
+    const cd = CWIZ_CLASSES[_cw.cls];
+    if (cd && cd.spellcaster && cd.cantripCount) {
+      const needed = cd.cantripCount[_cw.level-1] || cd.cantripCount[0];
+      if (_cw.cantrips.length < needed) return `Choose ${needed} class cantrip${needed>1?'s':''}.`;
+    }
+    if (_cw.race === 'Elf' && _cw.subrace === 'High Elf' && !_cw.racialCantrip) return 'Choose your High Elf racial cantrip.';
+    return null;
+  }
+  return null;
+}
+
+// ── Race Grid ─────────────────────────────────────────────────────────────────
+function _cwBuildRaceGrid() {
+  document.getElementById('cwiz-race-grid').innerHTML = Object.keys(CWIZ_RACES).map(r => {
+    const rd = CWIZ_RACES[r];
+    const sub = rd.subraces ? 'Choose subrace' : Object.entries(rd.bonuses||{}).map(([s,v]) => `+${v} ${s.toUpperCase()}`).join(', ');
+    return `<div class="cwiz-card" data-race="${r}" onclick="cwizPickRace(this.dataset.race)">
+      <div class="cwiz-card-name">${r}</div><div class="cwiz-card-sub">${sub}</div></div>`;
+  }).join('');
+}
+function cwizPickRace(race) {
+  _cw.race = race; _cw.subrace = '';
+  document.querySelectorAll('#cwiz-race-grid .cwiz-card').forEach(c => c.classList.toggle('selected', c.dataset.race === race));
+  const rd = CWIZ_RACES[race];
+  const wrap = document.getElementById('cwiz-subrace-wrap');
+  if (rd.subraces) {
+    wrap.style.display = 'block';
+    document.getElementById('cwiz-subrace-grid').innerHTML = Object.entries(rd.subraces).map(([sr,sd]) => {
+      const b = Object.entries(sd.bonuses).map(([s,v]) => `+${v} ${s.toUpperCase()}`).join(', ');
+      return `<div class="cwiz-card" data-sr="${sr}" onclick="cwizPickSubrace(this.dataset.sr)">
+        <div class="cwiz-card-name">${sr}</div><div class="cwiz-card-sub">${b}</div></div>`;
+    }).join('');
+    document.getElementById('cwiz-race-info').style.display = 'none';
+  } else {
+    wrap.style.display = 'none';
+    _cwShowRaceInfo(race, null);
+  }
+}
+function cwizPickSubrace(sr) {
+  _cw.subrace = sr;
+  document.querySelectorAll('#cwiz-subrace-grid .cwiz-card').forEach(c => c.classList.toggle('selected', c.dataset.sr === sr));
+  _cwShowRaceInfo(_cw.race, sr);
+}
+function _cwShowRaceInfo(race, sr) {
+  const rd = CWIZ_RACES[race];
+  let bonuses = {}, traits = [];
+  if (rd.subraces && sr && rd.subraces[sr]) { bonuses = rd.subraces[sr].bonuses; traits = [...(rd.baseTraits||[]), ...rd.subraces[sr].traits]; }
+  else { bonuses = rd.bonuses || {}; traits = rd.traits || rd.baseTraits || []; }
+  const bChips = Object.entries(bonuses).map(([s,v]) => `<span class="cwiz-chip-gold">+${v} ${s.toUpperCase()}</span>`).join('');
+  const tChips = traits.map(t => `<span class="cwiz-chip-blue">${t}</span>`).join('');
+  const el = document.getElementById('cwiz-race-info');
+  el.style.display = 'block';
+  el.innerHTML = `<strong>Speed:</strong> ${rd.speed} ft
+    ${bChips ? `<div class="cwiz-chips" style="margin-top:6px">${bChips}</div>` : ''}
+    ${tChips ? `<div class="cwiz-chips" style="margin-top:5px">${tChips}</div>` : ''}`;
+}
+
+// ── Class Grid ─────────────────────────────────────────────────────────────────
+function _cwBuildClassGrid() {
+  document.getElementById('cwiz-class-grid').innerHTML = Object.keys(CWIZ_CLASSES).map(c =>
+    `<div class="cwiz-card${c===_cw.cls?' selected':''}" data-cls="${c}" onclick="cwizPickClass(this.dataset.cls)">
+      <div class="cwiz-card-name">${c}</div>
+      <div class="cwiz-card-sub">d${CWIZ_CLASSES[c].hitDie} hit die</div></div>`
+  ).join('');
+  _cwShowClassInfo(_cw.cls || 'Fighter');
+}
+function cwizPickClass(cls) {
+  _cw.cls = cls;
+  document.querySelectorAll('#cwiz-class-grid .cwiz-card').forEach(c => c.classList.toggle('selected', c.dataset.cls === cls));
+  _cwShowClassInfo(cls);
+}
+function _cwShowClassInfo(cls) {
+  const cd = CWIZ_CLASSES[cls], lvl = _cw.level || 1;
+  const featureChips = Object.entries(cd.features).filter(([l]) => parseInt(l) <= lvl)
+    .flatMap(([l,fs]) => fs.map(f => `<span class="cwiz-chip-blue">L${l}: ${f}</span>`)).join('');
+  const el = document.getElementById('cwiz-class-info');
+  el.style.display = 'block';
+  el.innerHTML = `<strong>Hit Die:</strong> d${cd.hitDie} &nbsp;|&nbsp; <strong>Saves:</strong> ${cd.saves.join(', ')} &nbsp;|&nbsp; <strong>Armor:</strong> ${cd.armorProf}<br>
+    <strong>Weapons:</strong> ${cd.weaponProf}<br><strong>Skills:</strong> Choose ${cd.skillCount} from: ${cd.skills.join(', ')}
+    ${featureChips ? `<div class="cwiz-chips" style="margin-top:8px">${featureChips}</div>` : ''}`;
+}
+
+// ── Ability Scores ─────────────────────────────────────────────────────────────
+function _cwSetupAbilities() { _cwBuildArrayDnD(); _cwBuildPbRows(); _cwBuildRollDnD(); }
+function cwizSelectMethod(m) {
+  _cw.abilityMethod = m;
+  ['array','pointbuy','roll'].forEach(x => {
+    document.getElementById('cwiz-meth-' + x).classList.toggle('selected', x === m);
+    document.getElementById('cwiz-panel-' + x).classList.toggle('active', x === m);
+  });
+}
+function _cwRacialBonus(stat) {
+  const rd = CWIZ_RACES[_cw.race];
+  if (!rd) return 0;
+  const b = rd.subraces ? (_cw.subrace && rd.subraces[_cw.subrace] ? rd.subraces[_cw.subrace].bonuses : {}) : (rd.bonuses || {});
+  return b[stat] || 0;
+}
+function _cwBuildArrayDnD() {
+  const usedVals = new Set(Object.values(_cw.arrayAssign).filter(Boolean).map(String));
+  const pool = document.getElementById('cwiz-array-pool');
+  if (pool) pool.innerHTML = STD_ARRAY.map(v => {
+    const used = usedVals.has(String(v));
+    return `<div class="cwiz-dnd-chip${used?' used':''}" draggable="${!used}"
+      ondragstart="cwizDndStart(event,'array','${v}')" ondragend="cwizDndEnd(event)">${v}</div>`;
+  }).join('');
+  _cwRenderArraySlots();
+}
+function _cwRenderArraySlots() {
+  const slots = document.getElementById('cwiz-array-slots');
+  if (!slots) return;
+  slots.innerHTML = STAT_NAMES.map(s => {
+    const val = _cw.arrayAssign[s], rb = _cwRacialBonus(s), tot = val ? (parseInt(val)+rb) : '';
+    return `<div class="cwiz-dnd-slot${val?' filled':''}" data-stat="${s}"
+      ondragover="cwizDndOver(event)" ondragleave="cwizDndLeave(event)" ondrop="cwizDndDrop(event,'array','${s}')">
+      <div class="cwiz-dnd-slot-label">${STAT_LABELS[s]}</div>
+      <div class="cwiz-dnd-slot-val">${val||'—'}</div>
+      ${rb ? `<div class="cwiz-dnd-slot-racial">+${rb} racial${tot?` = ${tot}`:''}</div>` : (tot?`<div class="cwiz-dnd-slot-total">= ${tot}</div>`:'')}
+      ${val ? `<button class="cwiz-dnd-slot-clear" onclick="cwizDndClear('array','${s}')">✕</button>` : ''}
+    </div>`;
+  }).join('');
+}
+function _cwBuildPbRows() {
+  document.getElementById('cwiz-pb-rows').innerHTML = STAT_NAMES.map(s => {
+    const rb = _cwRacialBonus(s);
+    return `<div class="cwiz-stat-row">
+      <div class="cwiz-stat-label">${STAT_LABELS[s]}</div>
+      <button class="cwiz-pb-btn" onclick="cwizPbAdj('${s}',-1)">−</button>
+      <div class="cwiz-stat-val" id="cwpb-${s}">${_cw.pbScores[s]}</div>
+      <button class="cwiz-pb-btn" onclick="cwizPbAdj('${s}',1)">+</button>
+      <div class="cwiz-stat-mod">(cost ${PB_COSTS[_cw.pbScores[s]]})</div>
+      ${rb ? `<div class="cwiz-stat-racial">+${rb} racial</div>` : ''}
+    </div>`;
+  }).join('');
+  _cwPbUpdatePts();
+}
+function cwizPbAdj(stat, d) {
+  const cur = _cw.pbScores[stat], nxt = cur + d;
+  if (nxt < 8 || nxt > 15) return;
+  const spent = Object.values(_cw.pbScores).reduce((a,v) => a + (PB_COSTS[v]||0), 0);
+  if (d > 0 && spent - (PB_COSTS[cur]||0) + (PB_COSTS[nxt]||0) > 27) return;
+  _cw.pbScores[stat] = nxt;
+  const el = document.getElementById('cwpb-' + stat);
+  if (el) el.textContent = nxt;
+  _cwPbUpdatePts();
+}
+function _cwPbUpdatePts() {
+  const spent = Object.values(_cw.pbScores).reduce((a,v) => a + (PB_COSTS[v]||0), 0);
+  const el = document.getElementById('cwiz-pb-pts');
+  if (el) { el.textContent = 27 - spent; el.style.color = spent > 27 ? 'var(--red-lt)' : 'var(--gold)'; }
+}
+function cwizRollAll() {
+  function r4d6() { const d=[1,2,3,4].map(()=>Math.floor(Math.random()*6)+1).sort((a,b)=>a-b); return d[1]+d[2]+d[3]; }
+  _cw.rollPool  = [0,0,0,0,0,0].map(()=>r4d6());
+  _cw.rollAssign = {str:null,dex:null,con:null,int:null,wis:null,cha:null};
+  _cwBuildRollDnD();
+}
+function _cwBuildRollDnD() {
+  const usedIdx = new Set(Object.values(_cw.rollAssign).filter(v => v !== null));
+  const pool = document.getElementById('cwiz-roll-pool');
+  if (pool) {
+    if (!_cw.rollPool.length) { pool.innerHTML = '<span style="color:var(--text-dim);font-size:.8rem">Click Roll to generate scores, then drag to slots.</span>'; }
+    else { pool.innerHTML = _cw.rollPool.map((v,i) => { const used = usedIdx.has(i);
+      return `<div class="cwiz-dnd-chip${used?' used':''}" draggable="${!used}"
+        ondragstart="cwizDndStart(event,'roll','${i}')" ondragend="cwizDndEnd(event)">${v}</div>`; }).join(''); }
+  }
+  _cwRenderRollSlots();
+}
+function _cwRenderRollSlots() {
+  const slots = document.getElementById('cwiz-roll-slots');
+  if (!slots) return;
+  slots.innerHTML = STAT_NAMES.map(s => {
+    const idx = _cw.rollAssign[s], val = (idx !== null && idx !== undefined) ? _cw.rollPool[idx] : null;
+    const rb = _cwRacialBonus(s), tot = val !== null ? (val + rb) : '';
+    return `<div class="cwiz-dnd-slot${val!==null?' filled':''}" data-stat="${s}"
+      ondragover="cwizDndOver(event)" ondragleave="cwizDndLeave(event)" ondrop="cwizDndDrop(event,'roll','${s}')">
+      <div class="cwiz-dnd-slot-label">${STAT_LABELS[s]}</div>
+      <div class="cwiz-dnd-slot-val">${val!==null ? val : '—'}</div>
+      ${rb ? `<div class="cwiz-dnd-slot-racial">+${rb} racial${tot?` = ${tot}`:''}</div>` : (tot?`<div class="cwiz-dnd-slot-total">= ${tot}</div>`:'')}
+      ${val!==null ? `<button class="cwiz-dnd-slot-clear" onclick="cwizDndClear('roll','${s}')">✕</button>` : ''}
+    </div>`;
+  }).join('');
+}
+let _dndDragVal = null;
+function cwizDndStart(e, method, val) { _dndDragVal = val; e.dataTransfer.effectAllowed = 'move'; e.target.classList.add('dragging'); }
+function cwizDndEnd(e) { e.target.classList.remove('dragging'); }
+function cwizDndOver(e)  { e.preventDefault(); e.currentTarget.classList.add('over'); }
+function cwizDndLeave(e) { e.currentTarget.classList.remove('over'); }
+function cwizDndDrop(e, method, stat) {
+  e.preventDefault(); e.currentTarget.classList.remove('over');
+  if (method === 'array') {
+    for (const s of STAT_NAMES) { if (_cw.arrayAssign[s] == _dndDragVal) _cw.arrayAssign[s] = ''; }
+    _cw.arrayAssign[stat] = String(_dndDragVal); _cwBuildArrayDnD();
+  } else {
+    const idx = parseInt(_dndDragVal);
+    for (const s of STAT_NAMES) { if (_cw.rollAssign[s] === idx) _cw.rollAssign[s] = null; }
+    _cw.rollAssign[stat] = idx; _cwBuildRollDnD();
+  }
+}
+function cwizDndClear(method, stat) {
+  if (method === 'array') { _cw.arrayAssign[stat] = ''; _cwBuildArrayDnD(); }
+  else                    { _cw.rollAssign[stat] = null; _cwBuildRollDnD(); }
+}
+
+// ── Spells ─────────────────────────────────────────────────────────────────────
+function _cwRenderSpells() {
+  const cd = CWIZ_CLASSES[_cw.cls] || {}, html = [];
+  if (_cw.race === 'Gnome' && _cw.subrace === 'Forest Gnome') {
+    _cw.racialCantrip = 'Minor Illusion';
+    html.push(`<div class="cwiz-info" style="margin-bottom:12px"><strong>Forest Gnome Racial Cantrip (auto-granted):</strong> Minor Illusion</div>`);
+  }
+  if (_cw.race === 'Elf' && _cw.subrace === 'High Elf') {
+    html.push(`<div class="cwiz-sec">High Elf Racial Cantrip — Choose 1 (INT-based, any class)</div>`);
+    html.push(_cwCantripBlock('racial', 1, _cw.racialCantrip ? [_cw.racialCantrip] : [], 'any'));
+  }
+  if (cd.spellcaster && cd.cantripCount) {
+    const needed = cd.cantripCount[_cw.level-1] || cd.cantripCount[0];
+    const clsKey = _cw.cls.toLowerCase();
+    html.push(`<div class="cwiz-sec" style="margin-top:${html.length?'14px':'0'}">Choose ${needed} Cantrip${needed>1?'s':''} (${_cw.cls})</div>`);
+    html.push(_cwCantripBlock('class', needed, _cw.cantrips, clsKey));
+  }
+  if (cd.spellcaster && cd.spellsKnown) {
+    const needed = cd.spellsKnown[_cw.level-1] || 0;
+    html.push(`<div class="cwiz-sec" style="margin-top:14px">Choose ${needed} Spell${needed>1?'s':''} Known (${_cw.cls})</div>`);
+    html.push(`<div class="cwiz-info">
+      <div id="cwiz-spell-load-row"><div style="font-size:.78rem;color:var(--text-dim);margin-bottom:8px">Choose up to ${needed} spells.</div>
+        <button class="modal-btn secondary" style="font-size:.78rem" onclick="_cwLoadSpells(${needed})">Load ${_cw.cls} Spells</button></div>
+      <div id="cwiz-spell-list" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px"></div>
+      <div style="font-size:.72rem;color:var(--text-dim);margin-top:6px"><span id="cwiz-spell-count">${_cw.spells.length}</span>/${needed} chosen</div></div>`);
+  } else if (cd.spellcaster && !cd.spellsKnown) {
+    const spellMod = cd.spellAbility || 'WIS';
+    html.push(`<div class="cwiz-info" style="margin-top:10px"><strong>${_cw.cls} spells are prepared daily.</strong><br>
+      You prepare <strong>${_cw.cls === 'Wizard' ? 'INT mod + level' : spellMod + ' mod + half level (min 1)'}</strong> spells after each long rest.</div>`);
+  }
+  if (!html.length) html.push('<div class="cwiz-info">No spell choices needed for this character.</div>');
+  document.getElementById('cwiz-spells-body').innerHTML = html.join('');
+}
+function _cwCantripBlock(type, needed, chosen, clsKey) {
+  const list = CANTRIPS_BY_CLASS[clsKey] || CANTRIPS_BY_CLASS.any;
+  return `<div style="display:flex;flex-wrap:wrap;gap:6px">
+    ${list.map(c => { const sel = chosen.includes(c);
+      return `<div class="cwiz-card${sel?' selected':''}" style="min-width:130px"
+        data-cantrip="${c.replace(/"/g,'&quot;')}" data-type="${type}"
+        onclick="cwizToggleCantrip(this)"><div class="cwiz-card-name" style="font-size:.75rem">${c}</div></div>`; }).join('')}
+  </div>
+  <div style="font-size:.72rem;color:var(--text-dim);margin-top:6px" id="cwiz-cantrip-count-${type}">${chosen.length}/${needed} chosen</div>`;
+}
+function cwizToggleCantrip(el) {
+  const name = el.dataset.cantrip, type = el.dataset.type;
+  if (type === 'racial') {
+    _cw.racialCantrip = (_cw.racialCantrip === name) ? '' : name;
+    document.querySelectorAll('[data-type="racial"]').forEach(c => c.classList.toggle('selected', c.dataset.cantrip === _cw.racialCantrip));
+    const cc = document.getElementById('cwiz-cantrip-count-racial');
+    if (cc) cc.textContent = (_cw.racialCantrip ? 1 : 0) + '/1 chosen';
+    return;
+  }
+  const cd = CWIZ_CLASSES[_cw.cls], needed = cd && cd.cantripCount ? (cd.cantripCount[_cw.level-1] || cd.cantripCount[0]) : 0;
+  const idx = _cw.cantrips.indexOf(name);
+  if (idx >= 0) { _cw.cantrips.splice(idx, 1); el.classList.remove('selected'); }
+  else { if (_cw.cantrips.length >= needed) return; _cw.cantrips.push(name); el.classList.add('selected'); }
+  const cc = document.getElementById('cwiz-cantrip-count-class');
+  if (cc) cc.textContent = _cw.cantrips.length + '/' + needed + ' chosen';
+}
+async function _cwLoadSpells(needed) {
+  const row = document.getElementById('cwiz-spell-load-row');
+  if (row) row.innerHTML = '<span style="color:var(--text-dim);font-size:.78rem">Loading…</span>';
+  try {
+    const r = await fetch(`/spells/search?q=&limit=120`);
+    const data = await r.json();
+    const spells = (data.results || data.spells || data || []).slice(0, 80);
+    const listEl = document.getElementById('cwiz-spell-list');
+    if (listEl) listEl.innerHTML = spells.map(s => {
+      const name = typeof s === 'string' ? s : (s.name || '');
+      const lvl  = typeof s === 'object' ? s.level : '';
+      const sel  = _cw.spells.includes(name);
+      return `<div class="cwiz-card${sel?' selected':''}" style="min-width:140px"
+        data-spell="${name.replace(/"/g,'&quot;')}" onclick="cwizToggleSpell(this,${needed})">
+        <div class="cwiz-card-name" style="font-size:.72rem">${name}</div>
+        ${lvl!==''?`<div class="cwiz-card-sub">Lvl ${lvl}</div>`:''}</div>`;
+    }).join('');
+    if (row) row.innerHTML = '';
+  } catch(e) {
+    if (row) row.innerHTML = `<div style="color:var(--text-dim);font-size:.78rem">Could not load spells — add from character sheet later.</div>`;
+  }
+}
+function cwizToggleSpell(el, needed) {
+  const name = el.dataset.spell, idx = _cw.spells.indexOf(name);
+  if (idx >= 0) { _cw.spells.splice(idx, 1); el.classList.remove('selected'); }
+  else { if (_cw.spells.length >= needed) return; _cw.spells.push(name); el.classList.add('selected'); }
+  const cc = document.getElementById('cwiz-spell-count');
+  if (cc) cc.textContent = _cw.spells.length;
+}
+
+// ── Level Up ──────────────────────────────────────────────────────────────────
+function _cwRenderLevelUp() {
+  const cd = CWIZ_CLASSES[_cw.cls], fsLevel = cd.fightingStyleLevel || 1;
+  let html = '';
+  for (let lvl = 1; lvl <= _cw.level; lvl++) {
+    const feats = cd.features[lvl];
+    if (!feats || !feats.length) continue;
+    const isFS = cd.fightingStyles && lvl === fsLevel, isSC = lvl === cd.subclassLevel, isASI = cd.asiLevels.includes(lvl);
+    html += `<div class="cwiz-lvl-block"><h4>Level ${lvl}</h4>
+      <div class="cwiz-feat-list">${feats.map(f=>`<span>${f}</span>`).join(' · ')}</div>`;
+    if (isFS) html += `<div style="margin-top:6px"><div style="font-size:.78rem;color:var(--text-dim);margin-bottom:5px">Choose Fighting Style:</div>
+      <select class="cwiz-sel" style="width:100%" onchange="_cw.fightingStyle=this.value">
+        <option value="">— Select —</option>
+        ${cd.fightingStyles.map(fs=>`<option value="${fs}" ${_cw.fightingStyle===fs?'selected':''}>${fs}</option>`).join('')}
+      </select></div>`;
+    if (isSC) html += `<div style="margin-top:8px"><div style="font-size:.78rem;color:var(--text-dim);margin-bottom:5px">Choose ${cd.subclassLabel || 'Subclass'}:</div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap">
+        ${cd.subclasses.map(sc=>`<div class="cwiz-card ${_cw.subclass===sc?'selected':''}" data-sc="${sc}"
+          onclick="cwizPickSubclass(this.dataset.sc)" style="min-width:110px">
+          <div class="cwiz-card-name" style="font-size:.75rem">${sc}</div></div>`).join('')}
+      </div></div>`;
+    if (isASI) {
+      if (!_cw.asiChoices[lvl]) _cw.asiChoices[lvl] = {type:'asi2',stat:'',stat1:'',stat2:'',feat:''};
+      const ch = _cw.asiChoices[lvl];
+      html += `<div class="cwiz-asi-choice" id="cwasi-${lvl}" style="margin-top:8px">
+        <div class="cwiz-asi-tabs">
+          <div class="cwiz-asi-tab ${ch.type==='asi2' ?'active':''}" onclick="cwizAsiTab(${lvl},'asi2')">+2 One Stat</div>
+          <div class="cwiz-asi-tab ${ch.type==='asi11'?'active':''}" onclick="cwizAsiTab(${lvl},'asi11')">+1/+1 Two Stats</div>
+          <div class="cwiz-asi-tab ${ch.type==='feat' ?'active':''}" onclick="cwizAsiTab(${lvl},'feat')">Feat</div>
+        </div>
+        <div class="cwiz-asi-panel" id="cwasiP-${lvl}">${_cwAsiPanel(lvl, ch)}</div>
+      </div>`;
+    }
+    html += '</div>';
+  }
+  document.getElementById('cwiz-levelup-body').innerHTML = html;
+}
+function cwizPickSubclass(sc) {
+  _cw.subclass = sc;
+  document.querySelectorAll('[data-sc]').forEach(el => el.classList.toggle('selected', el.dataset.sc === sc));
+}
+function _cwAsiPanel(lvl, ch) {
+  const opts = STAT_NAMES.map(s=>`<option value="${s}">${STAT_LABELS[s]}</option>`).join('');
+  if (ch.type === 'asi2') return `<select class="cwiz-sel" onchange="_cw.asiChoices[${lvl}].stat=this.value"><option value="">— Choose stat —</option>${opts}</select>`;
+  if (ch.type === 'asi11') return `<div style="display:flex;gap:7px"><select class="cwiz-sel" onchange="_cw.asiChoices[${lvl}].stat1=this.value"><option value="">— Stat 1 —</option>${opts}</select><select class="cwiz-sel" onchange="_cw.asiChoices[${lvl}].stat2=this.value"><option value="">— Stat 2 —</option>${opts}</select></div>`;
+  if (ch.type === 'feat') return `<select class="cwiz-sel" style="width:100%" onchange="_cw.asiChoices[${lvl}].feat=this.value"><option value="">— Choose feat —</option>${CWIZ_FEATS.map(f=>`<option value="${f}">${f.split('—')[0].trim()}</option>`).join('')}</select>`;
+  return '';
+}
+function cwizAsiTab(lvl, type) {
+  _cw.asiChoices[lvl] = {type, stat:'', stat1:'', stat2:'', feat:''};
+  const container = document.getElementById('cwasi-' + lvl);
+  if (!container) return;
+  container.querySelectorAll('.cwiz-asi-tab').forEach((t,i) => t.classList.toggle('active', ['asi2','asi11','feat'][i] === type));
+  const panel = document.getElementById('cwasiP-' + lvl);
+  if (panel) panel.innerHTML = _cwAsiPanel(lvl, _cw.asiChoices[lvl]);
+}
+
+// ── Background ─────────────────────────────────────────────────────────────────
+function _cwBuildBgGrid() {
+  document.getElementById('cwiz-bg-grid').innerHTML = Object.keys(CWIZ_BACKGROUNDS).map(b => {
+    const bd = CWIZ_BACKGROUNDS[b];
+    return `<div class="cwiz-card" data-bg="${b}" onclick="cwizPickBg(this.dataset.bg)">
+      <div class="cwiz-card-name">${b}</div><div class="cwiz-card-sub">${bd.skills.join(', ')}</div></div>`;
+  }).join('');
+}
+function cwizPickBg(bg) {
+  _cw.background = bg;
+  document.querySelectorAll('#cwiz-bg-grid .cwiz-card').forEach(c => c.classList.toggle('selected', c.dataset.bg === bg));
+  const info = CWIZ_BACKGROUNDS[bg], el = document.getElementById('cwiz-bg-info');
+  el.style.display = 'block';
+  el.innerHTML = `<strong>Skills:</strong> ${info.skills.join(', ')}<br><strong>Feature:</strong> ${info.feature}<br><strong>Equipment:</strong> ${info.extra}`;
+}
+
+// ── Skills ─────────────────────────────────────────────────────────────────────
+function _cwRenderSkills() {
+  const cd = CWIZ_CLASSES[_cw.cls], bgSk = (CWIZ_BACKGROUNDS[_cw.background]||{}).skills || [], needed = cd.skillCount;
+  _cw.skillChoices = _cw.skillChoices.filter(s => !bgSk.includes(s));
+  document.getElementById('cwiz-skills-body').innerHTML = `
+    <div class="cwiz-info" style="margin-bottom:10px"><strong>Background skills (auto-granted):</strong> ${bgSk.join(', ')||'—'}</div>
+    <div style="font-size:.82rem;margin-bottom:8px">Choose <strong>${needed}</strong> class skill${needed>1?'s':''}:</div>
+    <div style="display:flex;flex-wrap:wrap;gap:7px">
+      ${cd.skills.map(s => { const auto=bgSk.includes(s), chosen=_cw.skillChoices.includes(s);
+        return `<div class="cwiz-card ${auto||chosen?'selected':''}" data-skill="${s}"
+          style="min-width:130px;opacity:${auto?.55:1};cursor:${auto?'default':'pointer'}"
+          onclick="${auto?'':'cwizToggleSkill(this.dataset.skill)'}">
+          <div class="cwiz-card-name">${s}</div><div class="cwiz-card-sub">${auto?'(background)':''}</div></div>`; }).join('')}
+    </div>
+    <div style="font-size:.78rem;color:var(--text-dim);margin-top:9px">${_cw.skillChoices.length}/${needed} chosen</div>`;
+}
+function cwizToggleSkill(skill) {
+  const bgSk = (CWIZ_BACKGROUNDS[_cw.background]||{}).skills || [];
+  if (bgSk.includes(skill)) return;
+  const idx = _cw.skillChoices.indexOf(skill);
+  if (idx >= 0) { _cw.skillChoices.splice(idx, 1); }
+  else { if (_cw.skillChoices.length >= CWIZ_CLASSES[_cw.cls].skillCount) return; _cw.skillChoices.push(skill); }
+  _cwRenderSkills();
+}
+
+// ── Review ─────────────────────────────────────────────────────────────────────
+function _cwFinalScores() {
+  const sc = {str:0,dex:0,con:0,int:0,wis:0,cha:0}, m = _cw.abilityMethod;
+  if (m==='array')    STAT_NAMES.forEach(s => { sc[s] = parseInt(_cw.arrayAssign[s])||8; });
+  if (m==='pointbuy') STAT_NAMES.forEach(s => { sc[s] = _cw.pbScores[s]; });
+  if (m==='roll')     STAT_NAMES.forEach(s => { const i=_cw.rollAssign[s]; sc[s]=i!==null&&i!==undefined?_cw.rollPool[i]:8; });
+  STAT_NAMES.forEach(s => { sc[s] += _cwRacialBonus(s); });
+  for (const lvl of CWIZ_CLASSES[_cw.cls].asiLevels) {
+    if (lvl > _cw.level) break;
+    const ch = _cw.asiChoices[lvl];
+    if (!ch) continue;
+    if (ch.type==='asi2' && ch.stat) sc[ch.stat] = Math.min(20, sc[ch.stat]+2);
+    if (ch.type==='asi11') { if (ch.stat1) sc[ch.stat1]=Math.min(20,sc[ch.stat1]+1); if (ch.stat2) sc[ch.stat2]=Math.min(20,sc[ch.stat2]+1); }
+  }
+  return sc;
+}
+function _cwMod(s) { return Math.floor((s-10)/2); }
+function _cwModStr(s) { const m=_cwMod(s); return (m>=0?'+':'')+m; }
+function _cwCalcHp(sc) {
+  const cd = CWIZ_CLASSES[_cw.cls], cm = _cwMod(sc.con);
+  let hp = cd.hitDie + cm;
+  for (let l=2; l<=_cw.level; l++) hp += cd.avgHpPerLevel + cm;
+  return Math.max(1, hp);
+}
+function _cwRenderReview() {
+  const sc = _cwFinalScores(), hp = _cwCalcHp(sc), rd = CWIZ_RACES[_cw.race]||{}, cd = CWIZ_CLASSES[_cw.cls]||{};
+  const bgD = CWIZ_BACKGROUNDS[_cw.background]||{skills:[]}, allSk = [...bgD.skills,..._cw.skillChoices];
+  const feats = Object.values(_cw.asiChoices).filter(c=>c.type==='feat'&&c.feat).map(c=>c.feat.split('—')[0].trim());
+  const raceStr = _cw.race + (_cw.subrace ? ` (${_cw.subrace})` : '');
+  let langs = RACE_BASE_LANGS[_cw.race] || 'Common';
+  const bgExtra = bgD.extra || '';
+  if (/2 language/i.test(bgExtra)) langs += ', + 2 languages (background)';
+  else if (/1 language/i.test(bgExtra)) langs += ', + 1 language (background)';
+  let defaultAC = '10 + DEX';
+  if (/all armor|medium armor|light armor/i.test(cd.armorProf||'')) defaultAC = '16 (chain mail)';
+  if (_cw.cls === 'Barbarian') defaultAC = `${10+_cwMod(sc.dex)+_cwMod(sc.con)} (unarmored)`;
+  if (_cw.cls === 'Monk') defaultAC = `${10+_cwMod(sc.dex)+_cwMod(sc.wis)} (unarmored)`;
+  const allCantrips = [..._cw.cantrips, ...(_cw.racialCantrip&&_cw.racialCantrip!=='Minor Illusion'?[_cw.racialCantrip]:[])];
+  if (_cw.race==='Gnome'&&_cw.subrace==='Forest Gnome') allCantrips.push('Minor Illusion');
+  document.getElementById('cwiz-review-body').innerHTML = `
+    <div class="cwiz-review-col">
+      <div>
+        <div class="cwiz-rev-block"><h4>Identity</h4>
+          ${[['Name',_cw.name],['Race',raceStr],['Class',_cw.cls+(_cw.subclass?` (${_cw.subclass})`:'')+` Lvl ${_cw.level}`],
+             ['Background',_cw.background||'—'],['Alignment',_cw.alignment||'—'],['Speed',(rd.speed||30)+' ft']]
+            .map(([k,v])=>`<div class="cwiz-rev-row"><span>${k}</span><span class="cwiz-rev-val">${v}</span></div>`).join('')}
+        </div>
+        <div class="cwiz-rev-block"><h4>Combat</h4>
+          ${[['Max HP',hp],['AC',defaultAC],...(cd.fightingStyles&&_cw.fightingStyle?[['Fighting Style',_cw.fightingStyle.split('—')[0].trim()]]:[])].map(([k,v])=>`<div class="cwiz-rev-row"><span>${k}</span><span class="cwiz-rev-val">${v}</span></div>`).join('')}
+        </div>
+        <div class="cwiz-rev-block"><h4>Proficiencies</h4>
+          <div style="font-size:.76rem;color:var(--text-dim);line-height:1.6">
+            <strong style="color:var(--text)">Armor:</strong> ${cd.armorProf||'None'}<br>
+            <strong style="color:var(--text)">Weapons:</strong> ${cd.weaponProf||'—'}<br>
+            <strong style="color:var(--text)">Saves:</strong> ${(cd.saves||[]).join(', ')||'—'}
+          </div></div>
+        <div class="cwiz-rev-block"><h4>Languages</h4><div style="font-size:.78rem;color:var(--blue-lt)">${langs}</div></div>
+      </div>
+      <div>
+        <div class="cwiz-rev-block"><h4>Ability Scores</h4>
+          <div class="cwiz-stat-grid6">
+            ${STAT_NAMES.map(s=>`<div class="cwiz-stat-box"><div class="cwiz-stat-box-name">${STAT_LABELS[s]}</div><div class="cwiz-stat-box-score">${sc[s]}</div><div class="cwiz-stat-box-mod">${_cwModStr(sc[s])}</div></div>`).join('')}
+          </div></div>
+        ${feats.length?`<div class="cwiz-rev-block"><h4>Feats</h4>${feats.map(f=>`<div class="cwiz-rev-row"><span class="cwiz-rev-val">${f}</span></div>`).join('')}</div>`:''}
+        <div class="cwiz-rev-block"><h4>Skills</h4><div style="font-size:.78rem;color:var(--blue-lt)">${allSk.join(', ')||'—'}</div></div>
+        ${allCantrips.length?`<div class="cwiz-rev-block"><h4>Cantrips</h4><div style="font-size:.78rem;color:var(--blue-lt)">${allCantrips.join(', ')}</div></div>`:''}
+        ${_cw.spells.length?`<div class="cwiz-rev-block"><h4>Spells Known</h4><div style="font-size:.78rem;color:var(--blue-lt)">${_cw.spells.join(', ')}</div></div>`:''}
+      </div>
+    </div>`;
+}
+
+// ── Create (POSTs to setup endpoint) ──────────────────────────────────────────
+async function _cwCreate() {
+  const displayName = document.getElementById('setup-display-name').value.trim();
+  if (!displayName) {
+    document.getElementById('cwiz-err').textContent = 'Enter your name at the top of the page first.';
+    return;
+  }
+  const sc = _cwFinalScores(), hp = _cwCalcHp(sc), cd = CWIZ_CLASSES[_cw.cls]||{}, rd = CWIZ_RACES[_cw.race]||{};
+  const bgD = CWIZ_BACKGROUNDS[_cw.background]||{skills:[]}, allSk = [...bgD.skills,..._cw.skillChoices];
+  const feats = Object.values(_cw.asiChoices).filter(c=>c.type==='feat'&&c.feat).map(c=>c.feat.split('—')[0].trim());
+  const allCantrips = [..._cw.cantrips];
+  if (_cw.racialCantrip) allCantrips.push(_cw.racialCantrip);
+  if (_cw.race==='Gnome'&&_cw.subrace==='Forest Gnome'&&!allCantrips.includes('Minor Illusion')) allCantrips.push('Minor Illusion');
+  let defaultAc = 10 + _cwMod(sc.dex);
+  if (/all armor|medium armor/i.test(cd.armorProf||'')) defaultAc = 16;
+  if (_cw.cls==='Barbarian') defaultAc = 10+_cwMod(sc.dex)+_cwMod(sc.con);
+  if (_cw.cls==='Monk')      defaultAc = 10+_cwMod(sc.dex)+_cwMod(sc.wis);
+  const notes = [
+    _cw.fightingStyle ? `Fighting Style: ${_cw.fightingStyle.split('—')[0].trim()}` : '',
+    feats.length      ? `Feats: ${feats.join(', ')}` : '',
+    allSk.length      ? `Skills: ${allSk.join(', ')}` : '',
+    allCantrips.length ? `Cantrips: ${allCantrips.join(', ')}` : '',
+    _cw.spells.length  ? `Spells: ${_cw.spells.join(', ')}` : '',
+    _cw.alignment      ? `Alignment: ${_cw.alignment}` : '',
+  ].filter(Boolean).join('\n');
+  const character = {
+    name: _cw.name, race: _cw.race+(_cw.subrace?` (${_cw.subrace})`:''),
+    class: _cw.cls, subclass: _cw.subclass||'', level: _cw.level,
+    hp, max_hp: hp, ac: defaultAc, speed: String(rd.speed||30),
+    str: sc.str, dex: sc.dex, con: sc.con,
+    int: sc.int, wis: sc.wis, cha: sc.cha,
+    group: 'Y', profession: _cw.background, notes,
+    classes: [{class: _cw.cls, level: _cw.level, subclass: _cw.subclass||''}],
+    items: [], buffs: [], debuffs: [],
+    spells: [...allCantrips.map(n=>({name:n,level:0})), ..._cw.spells.map(n=>({name:n,level:1}))],
+  };
+  const btn = document.getElementById('cwiz-next-btn');
+  btn.disabled = true; btn.textContent = 'Creating…';
+  try {
+    const res  = await fetch(`/play/${SETUP_TOKEN}/setup`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({display_name: displayName, character}),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      window.location.href = `/play/${SETUP_TOKEN}`;
+    } else {
+      document.getElementById('cwiz-err').textContent = data.error || 'Failed to create character.';
+      btn.disabled = false; btn.textContent = 'Create Character';
+    }
+  } catch(e) {
+    document.getElementById('cwiz-err').textContent = 'Network error — try again.';
+    btn.disabled = false; btn.textContent = 'Create Character';
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+_cwReset();
+_cwBuildRaceGrid();
+_cwBuildClassGrid();
+_cwBuildBgGrid();
+_cwShow();
+setTimeout(() => document.getElementById('setup-display-name').focus(), 60);
+</script>
+</body>
+</html>
