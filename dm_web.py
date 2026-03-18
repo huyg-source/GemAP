@@ -876,6 +876,18 @@ def health():
 def index():
     if flask_session.get("gm_logged_in"):
         return redirect(url_for("gm_index"))
+    return render_template("landing.html")
+
+
+@app.route("/login")
+def user_login():
+    # Placeholder — full user auth coming in Step 2
+    return redirect(url_for("gm_login"))
+
+
+@app.route("/signup")
+def user_signup():
+    # Placeholder — full user auth coming in Step 2
     return redirect(url_for("gm_login"))
 
 
