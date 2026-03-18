@@ -1395,10 +1395,9 @@ function _cwRenderReview() {
   const bgD = CWIZ_BACKGROUNDS[_cw.background]||{skills:[]}, allSk = [...bgD.skills,..._cw.skillChoices];
   const feats = Object.values(_cw.asiChoices).filter(c=>c.type==='feat'&&c.feat).map(c=>c.feat.split('—')[0].trim());
   const raceStr = _cw.race + (_cw.subrace ? ` (${_cw.subrace})` : '');
-  let langs = RACE_BASE_LANGS[_cw.race] || 'Common';
-  const bgExtra = bgD.extra || '';
-  if (/2 language/i.test(bgExtra)) langs += ', + 2 languages (background)';
-  else if (/1 language/i.test(bgExtra)) langs += ', + 1 language (background)';
+  const langParts = [RACE_BASE_LANGS[_cw.race] || 'Common'];
+  if (_cw.languages && _cw.languages.length) langParts.push(..._cw.languages);
+  const langs = langParts.join(', ');
   let defaultAC = '10 + DEX';
   if (/all armor|medium armor|light armor/i.test(cd.armorProf||'')) defaultAC = '16 (chain mail)';
   if (_cw.cls === 'Barbarian') defaultAC = `${10+_cwMod(sc.dex)+_cwMod(sc.con)} (unarmored)`;
@@ -1433,11 +1432,10 @@ function _cwRenderReview() {
         <div class="cwiz-rev-block"><h4>Skills</h4><div style="font-size:.78rem;color:var(--blue-lt)">${allSk.join(', ')||'—'}</div></div>
         ${allCantrips.length?`<div class="cwiz-rev-block"><h4>Cantrips</h4><div style="font-size:.78rem;color:var(--blue-lt)">${allCantrips.join(', ')}</div></div>`:''}
         ${_cw.spells.length?`<div class="cwiz-rev-block"><h4>Spells Known</h4><div style="font-size:.78rem;color:var(--blue-lt)">${_cw.spells.join(', ')}</div></div>`:''}
-        ${_cw.languages.length?`<div class="cwiz-rev-block"><h4>Bonus Languages</h4><div style="font-size:.78rem;color:var(--blue-lt)">${_cw.languages.join(', ')}</div></div>`:''}
         <div class="cwiz-rev-block"><h4>Starting Equipment</h4>
           ${(()=>{const sl=_cwStartingEquipList();return sl.length?sl.map(it=>`<div class="cwiz-rev-row"><span class="cwiz-rev-val">${it.name}</span></div>`).join(''):'<div style="font-size:.76rem;color:var(--text-dim)">None</div>';})()}
         </div>
-        <div class="cwiz-rev-block"><h4>Starting Gold &amp; Shop Purchases</h4>
+        <div class="cwiz-rev-block"><h4>Starting Gold &amp; Items</h4>
           <div class="cwiz-rev-row"><span>Gold</span><span class="cwiz-rev-val" style="color:var(--gold)">${_cw.goldTotal} gp</span></div>
           ${_cw.cart.length ? _cw.cart.map(it=>`<div class="cwiz-rev-row"><span>${it.name}</span><span class="cwiz-rev-val" style="color:var(--gold)">${it.cost} gp</span></div>`).join('')
             : '<div style="font-size:.76rem;color:var(--text-dim)">No shop purchases</div>'}
