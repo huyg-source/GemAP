@@ -34,7 +34,7 @@ stripe_bp = Blueprint("stripe_bp", __name__, url_prefix="/stripe")
 
 # ── Checkout ──────────────────────────────────────────────────────────────────
 
-@stripe_bp.route("/checkout", methods=["POST"])
+@stripe_bp.route("/checkout", methods=["GET", "POST"])
 @login_required
 def checkout():
     if not stripe.api_key:
@@ -77,7 +77,7 @@ def stripe_cancel():
 
 # ── Customer Portal ───────────────────────────────────────────────────────────
 
-@stripe_bp.route("/portal", methods=["POST"])
+@stripe_bp.route("/portal", methods=["GET", "POST"])
 @login_required
 def portal():
     if not current_user.stripe_customer_id:
