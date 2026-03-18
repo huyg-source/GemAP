@@ -8972,9 +8972,8 @@ function _cwRenderEquipment() {
         <option value="">All</option>
         <option value="Weapon">Weapons</option>
         <option value="Armor">Armor</option>
-        <option value="Adventuring Gear">Adventuring Gear</option>
+        <option value="Gear">Adventuring Gear</option>
         <option value="Tool">Tools</option>
-        <option value="Mount/Animal">Mounts</option>
       </select>
     </div>
     <div class="cwiz-shop-grid" id="cwiz-shop-grid">
@@ -9152,30 +9151,22 @@ function cwizUseAvgGold() {
   cwizRenderCart();
 }
 
-let _cwShopTimer = null;
 function cwizShopLoad() {
-  clearTimeout(_cwShopTimer);
-  _cwShopTimer = setTimeout(async () => {
-    const q   = (document.getElementById('cwiz-shop-q')   || {value:''}).value.trim();
-    const cat = (document.getElementById('cwiz-shop-cat') || {value:''}).value;
-    const grid = document.getElementById('cwiz-shop-grid');
-    if (!grid) return;
-    grid.innerHTML = '<div style="font-size:.78rem;color:var(--text-dim);padding:6px">Loading…</div>';
-    try {
-      const r = await fetch(`/mundane-items/search?q=${encodeURIComponent(q)}&category=${encodeURIComponent(cat)}&limit=60`);
-      const items = await r.json();
-      if (!items.length) { grid.innerHTML = '<div style="font-size:.78rem;color:var(--text-dim);padding:6px">No items found.</div>'; return; }
-      const fmt = c => c == null ? '—' : (Number.isInteger(c) ? c + ' gp' : Number(c).toFixed(2) + ' gp');
-      grid.innerHTML = items.map(it =>
-        `<div class="cwiz-shop-card" onclick="cwizBuyItem(${JSON.stringify(it.name)},${it.cost_gp||0})" title="${(it.description||it.properties||'').replace(/"/g,'&quot;')}">
-          <div class="cwiz-shop-card-name">${it.name}</div>
-          <div class="cwiz-shop-card-cost">${fmt(it.cost_gp)}</div>
-          <div class="cwiz-shop-card-cat">${it.subcategory||it.category||''}</div>
-        </div>`).join('');
-    } catch(e) {
-      grid.innerHTML = '<div style="font-size:.78rem;color:var(--text-dim);padding:6px">Could not load items.</div>';
-    }
-  }, 200);
+  const q   = ((document.getElementById('cwiz-shop-q')   || {}).value || '').trim().toLowerCase();
+  const cat = ((document.getElementById('cwiz-shop-cat') || {}).value || '');
+  const grid = document.getElementById('cwiz-shop-grid');
+  if (!grid) return;
+  let items = BASIC_GEAR;
+  if (cat) items = items.filter(it => it.cat === cat);
+  if (q)   items = items.filter(it => it.name.toLowerCase().includes(q));
+  if (!items.length) { grid.innerHTML = '<div style="font-size:.78rem;color:var(--text-dim);padding:6px">No items found.</div>'; return; }
+  const fmt = c => c == null ? '—' : (Number.isInteger(c) ? c + ' gp' : Number(c).toFixed(2) + ' gp');
+  grid.innerHTML = items.map(it =>
+    `<div class="cwiz-shop-card" onclick="cwizBuyItem(${JSON.stringify(it.name)},${it.cost})" title="${(it.tip||'').replace(/"/g,'&quot;')}">
+      <div class="cwiz-shop-card-name">${it.name}</div>
+      <div class="cwiz-shop-card-cost">${fmt(it.cost)}</div>
+      <div class="cwiz-shop-card-cat">${it.cat||''}</div>
+    </div>`).join('');
 }
 
 function cwizBuyItem(name, cost) {
