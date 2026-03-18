@@ -66,7 +66,7 @@ from db_manager import (
     append_chronicle, append_story,
     upsert_character, read_all_characters,
     upsert_magic_item, search_magic_items, get_magic_item, count_magic_items,
-    search_mundane_items,
+    search_mundane_items, count_mundane_items,
     upsert_spell_reference, search_spells_reference, get_spell_reference,
     get_spell_with_override, delete_spell_reference, get_spellbook, add_to_spellbook,
     get_spell_override, set_spell_override, clear_spell_override,
@@ -1703,10 +1703,12 @@ def mundane_items_search():
 
 @app.route("/spells/search")
 def spells_search():
-    q      = request.args.get("q", "").strip()
-    level  = request.args.get("level", type=int)       # None if omitted
-    school = request.args.get("school", "").strip()
-    results = search_spells_reference(query=q, level=level, school=school)
+    q          = request.args.get("q", "").strip()
+    level      = request.args.get("level", type=int)
+    school     = request.args.get("school", "").strip()
+    char_class = request.args.get("char_class", "").strip()
+    results = search_spells_reference(query=q, level=level, school=school,
+                                      char_class=char_class)
     return jsonify(results)
 
 
@@ -3191,6 +3193,34 @@ def _auto_seed_reference_data():
             log.info("Spell auto-seed done — %d spells in reference.", count_spells_reference())
         else:
             log.warning("Spells table is empty but Spells.csv not found at %s", spells_csv)
+
+    # ── Mundane items ─────────────────────────────────────────────────────────
+    # init_db() seeds only Lifestyle items; check for Weapon category as sentinel
+    import sqlite3 as _sqlite3
+    from db_manager import DB_PATH as _DB_PATH
+    with _sqlite3.connect(_DB_PATH) as _chk:
+        _has_weapons = _chk.execute(
+            "SELECT 1 FROM mundane_items WHERE category='Weapon' LIMIT 1"
+        ).fetchone()
+    if not _has_weapons:
+        log.info("Auto-seeding mundane items (weapons/armor/gear) …")
+        try:
+            from seed_mundane_items import ITEMS as _MUNDANE_ITEMS
+            for _item in _MUNDANE_ITEMS:
+                upsert_mundane_item(_item)
+            log.info("Mundane items auto-seed done — %d items total.", count_mundane_items())
+        except Exception as _e:
+            log.error("Mundane items auto-seed failed: %s", _e)
+
+    # ── Magic items ───────────────────────────────────────────────────────────
+    if count_magic_items() == 0:
+        log.info("Auto-seeding magic items …")
+        try:
+            from seed_magic_items import seed as _seed_magic
+            _seed_magic()
+            log.info("Magic items auto-seed done — %d items total.", count_magic_items())
+        except Exception as _e:
+            log.error("Magic items auto-seed failed: %s", _e)
 
 
 _auto_seed_reference_data()

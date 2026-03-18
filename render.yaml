@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: gemini-dnd
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --config gunicorn_config.py dm_web:app
+
+    # Environment variables — set secrets (ANTHROPIC_API_KEY, DND_GM_PASSWORD)
+    # in the Render dashboard under Environment, not here.
+    envVars:
+      - key: DND_DB_PATH
+        value: /data/dnd_game.db
+      - key: DND_DATA_DIR
+        value: /data
+      - key: LOG_LEVEL
+        value: info
+
+    # Persistent disk — keeps the SQLite database and uploaded files
+    # across deploys and restarts.  1 GB is plenty for SQLite + portraits.
+    disk:
+      name: dnd-data
+      mountPath: /data
+      sizeGB: 1

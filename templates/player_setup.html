@@ -147,6 +147,11 @@
     .cwiz-dnd-slot-total { font-size:.65rem; color:var(--text-dim); }
     .cwiz-dnd-slot-clear { position:absolute; top:2px; right:4px; font-size:.62rem; color:var(--text-dim); cursor:pointer; background:none; border:none; line-height:1; padding:1px 3px; }
     .cwiz-dnd-slot-clear:hover { color:var(--red-lt); }
+    .cwiz-dnd-slot-mod { font-size:.7rem; color:#81c784; font-weight:700; margin-top:2px; }
+    .cwiz-tip { position:relative; cursor:help; border-bottom:1px dotted var(--text-dim); }
+    .cwiz-tip::after { content:attr(data-tip); display:none; position:absolute; bottom:calc(100% + 5px); left:0; background:var(--panel2); border:1px solid var(--border); border-radius:5px; padding:7px 10px; font-size:.72rem; color:var(--text); white-space:pre-line; min-width:180px; max-width:270px; z-index:600; line-height:1.45; font-weight:400; pointer-events:none; }
+    .cwiz-tip:hover::after { display:block; }
+    .cwiz-shop-card-tip { font-size:.68rem; color:var(--text-dim); margin-top:2px; }
     .cs-label { font-size: .68rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: .07em; }
     .cs-input { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 5px 8px; border-radius: 4px; font-size: .85rem; font-family: inherit; }
     .cs-input:focus { outline: none; border-color: var(--blue2); }
@@ -436,18 +441,98 @@ const CLASS_STARTING_GOLD = {
   'Warlock':{dice:'4d4',mult:10,avg:100},   'Wizard':{dice:'4d4',mult:10,avg:100},
 };
 const CLASS_STARTING_EQUIP = {
-  'Barbarian':['Greataxe or any martial melee weapon','Two handaxes or any simple weapon',"Explorer's Pack",'Four javelins'],
-  'Bard':['Rapier, longsword, or any simple weapon',"Diplomat's Pack or Entertainer's Pack",'Lute or any musical instrument','Leather armor & dagger'],
-  'Cleric':['Mace or warhammer (if proficient)','Scale mail, leather armor, or chain mail','Light crossbow + 20 bolts or any simple weapon',"Priest's Pack or Explorer's Pack",'Shield & holy symbol'],
-  'Druid':['Wooden shield or any simple weapon','Scimitar or any simple melee weapon',"Leather armor, explorer's pack & druidic focus"],
-  'Fighter':['Chain mail or leather armor + longbow + 20 arrows','Martial weapon + shield, or two martial weapons','Light crossbow + 20 bolts or two handaxes',"Dungeoneer's Pack or Explorer's Pack"],
-  'Monk':['Shortsword or any simple weapon',"Dungeoneer's Pack or Explorer's Pack",'Ten darts'],
-  'Paladin':['Martial weapon + shield or two martial weapons','Five javelins or any simple melee weapon',"Priest's Pack or Explorer's Pack",'Chain mail & holy symbol'],
-  'Ranger':['Scale mail or leather armor','Two shortswords or two simple melee weapons',"Dungeoneer's Pack or Explorer's Pack",'Longbow + quiver of 20 arrows'],
-  'Rogue':['Rapier or shortsword','Shortbow + quiver of 20 arrows or a shortsword',"Burglar's Pack, Dungeoneer's Pack, or Explorer's Pack",'Leather armor, two daggers & thieves\' tools'],
-  'Sorcerer':['Light crossbow + 20 bolts or any simple weapon',"Component pouch or arcane focus","Dungeoneer's Pack or Explorer's Pack",'Two daggers'],
-  'Warlock':['Light crossbow + 20 bolts or any simple weapon',"Component pouch or arcane focus","Scholar's Pack or Dungeoneer's Pack",'Leather armor, any simple weapon & two daggers'],
-  'Wizard':['Quarterstaff or dagger',"Component pouch or arcane focus","Scholar's Pack or Explorer's Pack",'Spellbook'],
+  'Barbarian':[{pick:['Greataxe','Any martial melee weapon']},{pick:['Two handaxes','Any simple weapon']},"Explorer's Pack",'Four javelins'],
+  'Bard':     [{pick:['Rapier','Longsword','Any simple weapon']},{pick:["Diplomat's Pack","Entertainer's Pack"]},{pick:['Lute','Any musical instrument']},'Leather armor','Dagger'],
+  'Cleric':   [{pick:['Mace','Warhammer (if proficient)']},{pick:['Scale mail','Leather armor','Chain mail (if proficient)']},{pick:['Light crossbow + 20 bolts','Any simple weapon']},{pick:["Priest's Pack","Explorer's Pack"]},'Shield','Holy symbol'],
+  'Druid':    [{pick:['Wooden shield','Any simple weapon']},{pick:['Scimitar','Any simple melee weapon']},'Leather armor',"Explorer's Pack",'Druidic focus'],
+  'Fighter':  [{pick:['Chain mail','Leather armor + longbow + 20 arrows']},{pick:['Martial weapon + shield','Two martial weapons']},{pick:['Light crossbow + 20 bolts','Two handaxes']},{pick:["Dungeoneer's Pack","Explorer's Pack"]}],
+  'Monk':     [{pick:['Shortsword','Any simple weapon']},{pick:["Dungeoneer's Pack","Explorer's Pack"]},'Ten darts'],
+  'Paladin':  [{pick:['Martial weapon + shield','Two martial weapons']},{pick:['Five javelins','Any simple melee weapon']},{pick:["Priest's Pack","Explorer's Pack"]},'Chain mail','Holy symbol'],
+  'Ranger':   [{pick:['Scale mail','Leather armor']},{pick:['Two shortswords','Two simple melee weapons']},{pick:["Dungeoneer's Pack","Explorer's Pack"]},'Longbow','Quiver of 20 arrows'],
+  'Rogue':    [{pick:['Rapier','Shortsword']},{pick:['Shortbow + quiver of 20 arrows','Shortsword']},{pick:["Burglar's Pack","Dungeoneer's Pack","Explorer's Pack"]},'Leather armor','Two daggers',"Thieves' tools"],
+  'Sorcerer': [{pick:['Light crossbow + 20 bolts','Any simple weapon']},{pick:['Component pouch','Arcane focus']},{pick:["Dungeoneer's Pack","Explorer's Pack"]},'Two daggers'],
+  'Warlock':  [{pick:['Light crossbow + 20 bolts','Any simple weapon']},{pick:['Component pouch','Arcane focus']},{pick:["Scholar's Pack","Dungeoneer's Pack"]},'Leather armor','Any simple weapon','Two daggers'],
+  'Wizard':   [{pick:['Quarterstaff','Dagger']},{pick:['Component pouch','Arcane focus']},{pick:["Scholar's Pack","Explorer's Pack"]},'Spellbook'],
+};
+
+const PACKS = {
+  "Burglar's Pack":    ['Backpack','1,000 ball bearings','10 ft. of string','Bell','5 candles','Crowbar','Hammer','10 pitons','Hooded lantern','2 flasks of oil','5 days rations','Tinderbox','Waterskin','50 ft. hempen rope'],
+  "Diplomat's Pack":   ['Chest','2 map/scroll cases','Fine clothes','Bottle of ink','Ink pen','Lamp','2 flasks of oil','5 sheets of paper','Vial of perfume','Sealing wax','Soap'],
+  "Dungeoneer's Pack": ['Backpack','Crowbar','Hammer','10 pitons','10 torches','Tinderbox','10 days rations','Waterskin','50 ft. hempen rope'],
+  "Entertainer's Pack":['Backpack','Bedroll','2 costumes','5 candles','5 days rations','Waterskin','Disguise kit'],
+  "Explorer's Pack":   ['Backpack','Bedroll','Mess kit','Tinderbox','10 torches','10 days rations','Waterskin','50 ft. hempen rope'],
+  "Priest's Pack":     ['Backpack','Blanket','10 candles','Tinderbox','Alms box','2 blocks of incense','Censer','Vestments','2 days rations','Waterskin'],
+  "Scholar's Pack":    ['Backpack','Book of lore','Bottle of ink','Ink pen','10 sheets of parchment','Little bag of sand','Small knife'],
+};
+
+const BASIC_GEAR = [
+  // Weapons
+  {name:'Dagger',          cost:2,    cat:'Weapon', tip:'1d4 piercing · Finesse, Light, Thrown (20/60 ft)'},
+  {name:'Handaxe',         cost:5,    cat:'Weapon', tip:'1d6 slashing · Light, Thrown (20/60 ft)'},
+  {name:'Mace',            cost:5,    cat:'Weapon', tip:'1d6 bludgeoning'},
+  {name:'Quarterstaff',    cost:0.2,  cat:'Weapon', tip:'1d6 bludgeoning · Versatile (1d8)'},
+  {name:'Javelin',         cost:0.5,  cat:'Weapon', tip:'1d6 piercing · Thrown (30/120 ft)'},
+  {name:'Shortsword',      cost:10,   cat:'Weapon', tip:'1d6 piercing · Finesse, Light'},
+  {name:'Longsword',       cost:15,   cat:'Weapon', tip:'1d8 slashing · Versatile (1d10)'},
+  {name:'Rapier',          cost:25,   cat:'Weapon', tip:'1d8 piercing · Finesse'},
+  {name:'Battleaxe',       cost:10,   cat:'Weapon', tip:'1d8 slashing · Versatile (1d10)'},
+  {name:'Greataxe',        cost:30,   cat:'Weapon', tip:'1d12 slashing · Heavy, Two-Handed'},
+  {name:'Greatsword',      cost:50,   cat:'Weapon', tip:'2d6 slashing · Heavy, Two-Handed'},
+  {name:'Shortbow',        cost:25,   cat:'Weapon', tip:'1d6 piercing · Range 80/320 ft · Two-Handed'},
+  {name:'Longbow',         cost:50,   cat:'Weapon', tip:'1d8 piercing · Range 150/600 ft · Heavy, Two-Handed'},
+  {name:'Light Crossbow',  cost:25,   cat:'Weapon', tip:'1d8 piercing · Range 80/320 ft · Two-Handed, Loading'},
+  {name:'Hand Crossbow',   cost:75,   cat:'Weapon', tip:'1d6 piercing · Range 30/120 ft · Light, Loading'},
+  {name:'Arrows (20)',     cost:1,    cat:'Weapon', tip:'Ammunition for shortbow and longbow'},
+  {name:'Crossbow Bolts (20)',cost:1, cat:'Weapon', tip:'Ammunition for crossbows'},
+  // Armor
+  {name:'Leather Armor',   cost:10,   cat:'Armor', tip:'Light Armor · AC 11 + DEX mod · 10 lb'},
+  {name:'Studded Leather', cost:45,   cat:'Armor', tip:'Light Armor · AC 12 + DEX mod · 13 lb'},
+  {name:'Chain Shirt',     cost:50,   cat:'Armor', tip:'Medium Armor · AC 13 + DEX (max +2) · 20 lb'},
+  {name:'Scale Mail',      cost:50,   cat:'Armor', tip:'Medium Armor · AC 14 + DEX (max +2) · 45 lb · Disadvantage on Stealth'},
+  {name:'Breastplate',     cost:400,  cat:'Armor', tip:'Medium Armor · AC 14 + DEX (max +2) · 20 lb'},
+  {name:'Half Plate',      cost:750,  cat:'Armor', tip:'Medium Armor · AC 15 + DEX (max +2) · 40 lb · Disadvantage on Stealth'},
+  {name:'Chain Mail',      cost:75,   cat:'Armor', tip:'Heavy Armor · AC 16 · 55 lb · STR 13 required · Disadvantage on Stealth'},
+  {name:'Splint Armor',    cost:200,  cat:'Armor', tip:'Heavy Armor · AC 17 · 60 lb · STR 15 required · Disadvantage on Stealth'},
+  {name:'Plate Armor',     cost:1500, cat:'Armor', tip:'Heavy Armor · AC 18 · 65 lb · STR 15 required · Disadvantage on Stealth'},
+  {name:'Shield',          cost:10,   cat:'Armor', tip:'+2 AC · 6 lb · Requires free hand'},
+  // Adventuring Gear
+  {name:'Backpack',         cost:2,   cat:'Gear', tip:'Holds up to 30 lb / 1 cu ft of gear'},
+  {name:'Bedroll',          cost:1,   cat:'Gear', tip:'Sleep comfortably in the field'},
+  {name:'Rope, Hempen (50 ft)',cost:1,cat:'Gear', tip:'2 hit points, DC 17 STR to break'},
+  {name:'Torches (10)',     cost:1,   cat:'Gear', tip:'Each burns 1 hr, 20 ft bright + 20 ft dim light'},
+  {name:'Rations (5 days)', cost:2.5, cat:'Gear', tip:'Preserved trail food for 5 days'},
+  {name:'Waterskin',        cost:0.2, cat:'Gear', tip:'Holds up to 4 pints of liquid'},
+  {name:'Tinderbox',        cost:0.5, cat:'Gear', tip:'Strike a fire; takes 1 action'},
+  {name:'Lantern, Bullseye',cost:10,  cat:'Gear', tip:'60 ft cone bright + 60 ft dim light, burns 6 hrs/flask'},
+  {name:'Oil (flask)',      cost:0.1, cat:'Gear', tip:'Fuel for lantern; can be ignited as improvised weapon (1d4 fire)'},
+  {name:'Crowbar',          cost:2,   cat:'Gear', tip:'Advantage on STR checks to pry things open'},
+  {name:'Grappling Hook',   cost:2,   cat:'Gear', tip:'Thrown to anchor a rope; DC 13 DEX to set'},
+  {name:"Healer's Kit",     cost:5,   cat:'Gear', tip:'10 uses · Stabilize a creature at 0 HP without a Medicine check'},
+  {name:"Climber's Kit",    cost:25,  cat:'Gear', tip:'Pitons, boots, gloves, harness; anchor a climb, cannot fall more than 25 ft'},
+  {name:'Mirror, Steel',    cost:5,   cat:'Gear', tip:'Useful for seeing around corners or signaling'},
+  {name:'Mess Kit',         cost:0.2, cat:'Gear', tip:'Tin box with cup, fork, knife, spoon'},
+  // Tools
+  {name:"Thieves' Tools",   cost:25,  cat:'Tool', tip:'Picks, files, pliers for picking locks and disabling traps · Requires proficiency'},
+  {name:'Herbalism Kit',    cost:5,   cat:'Tool', tip:'Create antitoxin and healing potion components · Requires proficiency'},
+  {name:"Disguise Kit",     cost:25,  cat:'Tool', tip:'Cosmetics, hair dye, props for creating disguises · Requires proficiency'},
+  {name:"Poisoner's Kit",   cost:50,  cat:'Tool', tip:'Craft and apply poisons · Requires proficiency'},
+  {name:'Lute',             cost:35,  cat:'Tool', tip:'Musical instrument · Bards use instruments as spellcasting foci'},
+  {name:'Flute',            cost:2,   cat:'Tool', tip:'Musical instrument · Bards use instruments as spellcasting foci'},
+  {name:'Component Pouch',  cost:25,  cat:'Tool', tip:'Spellcasting focus holding material components for spells'},
+  {name:'Arcane Focus (wand)',cost:10,cat:'Tool', tip:'Wand as spellcasting focus for Wizard/Sorcerer (replaces material components)'},
+  {name:'Druidic Focus (staff)',cost:5,cat:'Tool',tip:'Staff as spellcasting focus for Druid (replaces material components)'},
+  {name:'Holy Symbol',      cost:5,   cat:'Tool', tip:'Spellcasting focus for Cleric/Paladin (amulet, emblem, or reliquary)'},
+];
+
+const PROF_TIPS = {
+  'Light armor':     'AC = base + DEX (no max)\nLeather 11+DEX, Studded Leather 12+DEX\nNo STR requirement, no Stealth penalty',
+  'Medium armor':    'AC = base + DEX (max +2)\nChain Shirt 13, Scale Mail 14,\nBreastplate 14, Half Plate 15\nMost impose Stealth disadvantage',
+  'Heavy armor':     'Fixed AC, no DEX added\nRing 14, Chain Mail 16, Splint 17, Plate 18\nRequires STR 13–15; Disadvantage on Stealth',
+  'All armor':       'Can wear Light, Medium, and Heavy armor\nplus Shields without penalty',
+  'Shields':         '+2 AC · 6 lb · Requires one free hand\nCannot be used with two-handed weapons',
+  'Simple weapons':  'Basic weapons needing minimal training:\nClub 1d4 · Dagger 1d4 · Handaxe 1d6\nMace 1d6 · Quarterstaff 1d6\nShortbow 1d6 · Light Crossbow 1d8',
+  'Martial weapons': 'Advanced weapons requiring training:\nShortsword 1d6 · Longsword 1d8\nRapier 1d8 · Greatsword 2d6\nLongbow 1d8 · Hand Crossbow 1d6',
+  'Improvised weapons': 'Non-weapon objects used to attack: 1d4 damage',
 };
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -457,7 +542,7 @@ function _cwReset() {
     abilityMethod:'', arrayAssign:{}, pbScores:{str:8,dex:8,con:8,int:8,wis:8,cha:8},
     rollPool:[], rollAssign:{str:null,dex:null,con:null,int:null,wis:null,cha:null},
     fightingStyle:'', subclass:'', asiChoices:{}, background:'', skillChoices:[],
-    cantrips:[], spells:[], racialCantrip:'', goldTotal:0, cart:[] };
+    cantrips:[], spells:[], racialCantrip:'', goldTotal:0, cart:[], equipChoices:{} };
 }
 
 function _cwSteps() {
@@ -569,6 +654,14 @@ function _cwValidate() {
     if (_cw.race === 'Elf' && _cw.subrace === 'High Elf' && !_cw.racialCantrip) return 'Choose your High Elf racial cantrip.';
     return null;
   }
+  if (id === 'equipment') {
+    const entries = CLASS_STARTING_EQUIP[_cw.cls] || [];
+    for (let i = 0; i < entries.length; i++) {
+      if (typeof entries[i] === 'object' && entries[i].pick && !_cw.equipChoices[i])
+        return 'Make all equipment choices before continuing.';
+    }
+    return null;
+  }
   return null;
 }
 
@@ -632,14 +725,20 @@ function cwizPickClass(cls) {
   document.querySelectorAll('#cwiz-class-grid .cwiz-card').forEach(c => c.classList.toggle('selected', c.dataset.cls === cls));
   _cwShowClassInfo(cls);
 }
+function _cwProfWithTip(str) {
+  return str.split(/,\s*/).map(p => {
+    const key = Object.keys(PROF_TIPS).find(k => p.toLowerCase().includes(k.toLowerCase()));
+    return key ? `<span class="cwiz-tip" data-tip="${PROF_TIPS[key]}">${p}</span>` : p;
+  }).join(', ');
+}
 function _cwShowClassInfo(cls) {
   const cd = CWIZ_CLASSES[cls], lvl = _cw.level || 1;
   const featureChips = Object.entries(cd.features).filter(([l]) => parseInt(l) <= lvl)
     .flatMap(([l,fs]) => fs.map(f => `<span class="cwiz-chip-blue">L${l}: ${f}</span>`)).join('');
   const el = document.getElementById('cwiz-class-info');
   el.style.display = 'block';
-  el.innerHTML = `<strong>Hit Die:</strong> d${cd.hitDie} &nbsp;|&nbsp; <strong>Saves:</strong> ${cd.saves.join(', ')} &nbsp;|&nbsp; <strong>Armor:</strong> ${cd.armorProf}<br>
-    <strong>Weapons:</strong> ${cd.weaponProf}<br><strong>Skills:</strong> Choose ${cd.skillCount} from: ${cd.skills.join(', ')}
+  el.innerHTML = `<strong>Hit Die:</strong> d${cd.hitDie} &nbsp;|&nbsp; <strong>Saves:</strong> ${cd.saves.join(', ')} &nbsp;|&nbsp; <strong>Armor:</strong> ${_cwProfWithTip(cd.armorProf)}<br>
+    <strong>Weapons:</strong> ${_cwProfWithTip(cd.weaponProf)}<br><strong>Skills:</strong> Choose ${cd.skillCount} from: ${cd.skills.join(', ')}
     ${featureChips ? `<div class="cwiz-chips" style="margin-top:8px">${featureChips}</div>` : ''}`;
 }
 
@@ -659,7 +758,6 @@ function _cwRenderEquipment() {
     _cw.goldTotal = gd ? gd.avg : 0;
   }
   const gd = CLASS_STARTING_GOLD[_cw.cls] || {dice:'?d4',mult:10,avg:0};
-  const classEquip = CLASS_STARTING_EQUIP[_cw.cls] || [];
   const bgD = CWIZ_BACKGROUNDS[_cw.background] || {};
   const bgEquip = bgD.extra || '';
   document.getElementById('cwiz-equip-body').innerHTML = `
@@ -671,26 +769,15 @@ function _cwRenderEquipment() {
       <strong class="cwiz-gold-amount" id="cwiz-gold-amount">${_cw.goldTotal} gp</strong>
     </div>
     <div class="cwiz-sec">Class Equipment (${_cw.cls})</div>
-    <div class="cwiz-equip-pkg"><ul>${classEquip.map(e=>`<li>${e}</li>`).join('')}</ul></div>
+    <div id="cwiz-class-equip-body"></div>
     ${bgEquip ? `<div class="cwiz-sec">Background Equipment (${_cw.background})</div>
     <div class="cwiz-equip-pkg"><div style="font-size:.8rem;color:var(--text-dim)">${bgEquip}</div></div>` : ''}
     <div class="cwiz-sec">Shop — Buy Additional Gear</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
-      <input class="cs-input" id="cwiz-shop-q" placeholder="Search items…"
-        style="width:200px;font-size:.8rem;padding:4px 8px" oninput="cwizShopLoad()">
-      <select class="cwiz-sel" id="cwiz-shop-cat" onchange="cwizShopLoad()" style="font-size:.8rem">
-        <option value="">All Categories</option>
-        <option value="Weapon">Weapons</option>
-        <option value="Armor">Armor</option>
-        <option value="Adventuring Gear">Adventuring Gear</option>
-        <option value="Tool">Tools</option>
-        <option value="Mount & Vehicle">Mounts &amp; Vehicles</option>
-        <option value="Trade Good">Trade Goods</option>
-      </select>
+    <div style="margin-bottom:6px">
+      <input class="cs-input" id="cwiz-shop-q" placeholder="Filter items…"
+        style="width:220px;font-size:.8rem;padding:4px 8px" oninput="cwizShopFilter()">
     </div>
-    <div class="cwiz-shop-grid" id="cwiz-shop-grid">
-      <div style="font-size:.78rem;color:var(--text-dim);padding:6px">Loading…</div>
-    </div>
+    <div class="cwiz-shop-grid" id="cwiz-shop-grid"></div>
     <div class="cwiz-sec" style="margin-top:14px">Cart</div>
     <div id="cwiz-cart-body"></div>
     <div class="cwiz-budget-bar" id="cwiz-budget-bar">
@@ -698,8 +785,95 @@ function _cwRenderEquipment() {
       <div><span style="color:var(--text-dim)">Spent: </span><strong id="cwiz-gold-spent">0 gp</strong></div>
       <div><span style="color:var(--text-dim)">Remaining: </span><strong class="cwiz-budget-rem" id="cwiz-gold-rem">${_cw.goldTotal} gp</strong></div>
     </div>`;
-  cwizShopLoad();
+  _cwRenderClassEquip();
+  cwizShopRender('');
   cwizRenderCart();
+}
+
+function _cwRenderClassEquip() {
+  const el = document.getElementById('cwiz-class-equip-body');
+  if (!el) return;
+  const entries = CLASS_STARTING_EQUIP[_cw.cls] || [];
+  let html = '';
+  entries.forEach((entry, idx) => {
+    if (typeof entry === 'string') {
+      const isPack = PACKS[entry];
+      const packId = 'pack-contents-' + idx;
+      html += `<div class="cwiz-equip-pkg" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:.82rem">${entry}</span>`;
+      if (isPack) {
+        html += `<button class="modal-btn secondary" style="font-size:.72rem;padding:2px 8px" onclick="cwizTogglePackEl('${packId}')">▶ Contents</button>
+        </div>
+        <div id="${packId}" style="display:none;margin-left:12px;margin-bottom:4px">
+          <ul style="font-size:.78rem;color:var(--text-dim);margin:4px 0;padding-left:18px">
+            ${PACKS[entry].map(c=>`<li>${c}</li>`).join('')}
+          </ul>
+        </div>`;
+      } else {
+        html += `</div>`;
+      }
+    } else if (entry.pick) {
+      const chosen = _cw.equipChoices[idx];
+      html += `<div style="margin-bottom:8px"><div style="font-size:.78rem;color:var(--text-dim);margin-bottom:4px">Choose one:</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">`;
+      entry.pick.forEach(opt => {
+        const isPack = PACKS[opt];
+        const isChosen = chosen === opt;
+        const packId = 'pick-pack-' + idx + '-' + opt.replace(/\s+/g,'_');
+        html += `<div>
+          <div class="cwiz-card${isChosen?' selected':''}" style="min-width:90px;text-align:center;padding:6px 10px;cursor:pointer"
+            onclick="cwizPickEquip(${idx},${JSON.stringify(opt)})">
+            <div class="cwiz-card-name" style="font-size:.8rem">${opt}</div>
+          </div>`;
+        if (isChosen && isPack) {
+          html += `<button class="modal-btn secondary" style="font-size:.72rem;padding:2px 8px;margin-top:3px;width:100%" onclick="cwizTogglePackEl('${packId}')">▶ Contents</button>
+          <div id="${packId}" style="display:none;margin-top:3px">
+            <ul style="font-size:.76rem;color:var(--text-dim);margin:2px 0;padding-left:16px">
+              ${PACKS[opt].map(c=>`<li>${c}</li>`).join('')}
+            </ul>
+          </div>`;
+        }
+        html += `</div>`;
+      });
+      html += `</div></div>`;
+    }
+  });
+  el.innerHTML = html || '<div style="font-size:.78rem;color:var(--text-dim)">No class equipment defined.</div>';
+}
+
+function cwizPickEquip(idx, opt) {
+  _cw.equipChoices[idx] = opt;
+  _cwRenderClassEquip();
+}
+
+function cwizTogglePackEl(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const btn = el.previousElementSibling;
+  if (el.style.display === 'none') {
+    el.style.display = 'block';
+    if (btn && btn.tagName === 'BUTTON') btn.textContent = btn.textContent.replace('▶','▼');
+  } else {
+    el.style.display = 'none';
+    if (btn && btn.tagName === 'BUTTON') btn.textContent = btn.textContent.replace('▼','▶');
+  }
+}
+
+function _cwStartingEquipList() {
+  const entries = CLASS_STARTING_EQUIP[_cw.cls] || [];
+  const items = [];
+  entries.forEach((entry, idx) => {
+    let name = null;
+    if (typeof entry === 'string') name = entry;
+    else if (entry.pick) name = _cw.equipChoices[idx] || null;
+    if (!name) return;
+    if (PACKS[name]) {
+      PACKS[name].forEach(c => items.push({name: c, quantity: 1, cost_gp: 0}));
+    } else {
+      items.push({name, quantity: 1, cost_gp: 0});
+    }
+  });
+  return items;
 }
 
 function cwizRollGold() {
@@ -722,31 +896,27 @@ function cwizUseAvgGold() {
   cwizRenderCart();
 }
 
-let _cwShopTimer = null;
-function cwizShopLoad() {
-  clearTimeout(_cwShopTimer);
-  _cwShopTimer = setTimeout(async () => {
-    const q   = (document.getElementById('cwiz-shop-q')   || {value:''}).value.trim();
-    const cat = (document.getElementById('cwiz-shop-cat') || {value:''}).value;
-    const grid = document.getElementById('cwiz-shop-grid');
-    if (!grid) return;
-    grid.innerHTML = '<div style="font-size:.78rem;color:var(--text-dim);padding:6px">Loading…</div>';
-    try {
-      const r = await fetch(`/mundane-items/search?q=${encodeURIComponent(q)}&category=${encodeURIComponent(cat)}&limit=48`);
-      const items = await r.json();
-      if (!items.length) { grid.innerHTML = '<div style="font-size:.78rem;color:var(--text-dim);padding:6px">No items found.</div>'; return; }
-      grid.innerHTML = items.map(it => {
-        const cost = it.cost_gp != null ? (Number.isInteger(it.cost_gp) ? it.cost_gp + ' gp' : Number(it.cost_gp).toFixed(2) + ' gp') : '—';
-        return `<div class="cwiz-shop-card" onclick="cwizBuyItem(${JSON.stringify(it.name)},${it.cost_gp||0})">
-          <div class="cwiz-shop-card-name">${it.name}</div>
-          <div class="cwiz-shop-card-cost">${cost}</div>
-          <div class="cwiz-shop-card-cat">${it.subcategory||it.category||''}</div>
-        </div>`;
-      }).join('');
-    } catch(e) {
-      grid.innerHTML = '<div style="font-size:.78rem;color:var(--text-dim);padding:6px">Could not load items.</div>';
-    }
-  }, 200);
+function cwizShopRender(q) {
+  const grid = document.getElementById('cwiz-shop-grid');
+  if (!grid) return;
+  const lower = q.toLowerCase();
+  const items = q ? BASIC_GEAR.filter(it => it.name.toLowerCase().includes(lower) || it.cat.toLowerCase().includes(lower)) : BASIC_GEAR;
+  const fmtCost = c => c === 0 ? 'free' : (Number.isInteger(c) ? c + ' gp' : c.toFixed(2) + ' gp');
+  grid.innerHTML = items.map(it =>
+    `<div class="cwiz-shop-card" onclick="cwizBuyItem(${JSON.stringify(it.name)},${it.cost})" title="${it.tip||''}">
+      <div class="cwiz-shop-card-name">${it.name}</div>
+      <div class="cwiz-shop-card-cost">${fmtCost(it.cost)}</div>
+      <div class="cwiz-shop-card-cat">${it.cat}</div>
+    </div>`
+  ).join('') || '<div style="font-size:.78rem;color:var(--text-dim);padding:6px">No items match.</div>';
+}
+let _cwShopFilterTimer = null;
+function cwizShopFilter() {
+  clearTimeout(_cwShopFilterTimer);
+  _cwShopFilterTimer = setTimeout(() => {
+    const q = (document.getElementById('cwiz-shop-q') || {value:''}).value.trim();
+    cwizShopRender(q);
+  }, 150);
 }
 
 function cwizBuyItem(name, cost) {
@@ -813,15 +983,20 @@ function _cwRenderArraySlots() {
   const slots = document.getElementById('cwiz-array-slots');
   if (!slots) return;
   slots.innerHTML = STAT_NAMES.map(s => {
-    const val = _cw.arrayAssign[s], rb = _cwRacialBonus(s), tot = val ? (parseInt(val)+rb) : '';
+    const val = _cw.arrayAssign[s], rb = _cwRacialBonus(s), tot = val ? (parseInt(val)+rb) : null;
     return `<div class="cwiz-dnd-slot${val?' filled':''}" data-stat="${s}"
       ondragover="cwizDndOver(event)" ondragleave="cwizDndLeave(event)" ondrop="cwizDndDrop(event,'array','${s}')">
       <div class="cwiz-dnd-slot-label">${STAT_LABELS[s]}</div>
       <div class="cwiz-dnd-slot-val">${val||'—'}</div>
       ${rb ? `<div class="cwiz-dnd-slot-racial">+${rb} racial${tot?` = ${tot}`:''}</div>` : (tot?`<div class="cwiz-dnd-slot-total">= ${tot}</div>`:'')}
+      ${tot !== null ? `<div class="cwiz-dnd-slot-mod">${_cwModStr(tot)}</div>` : ''}
       ${val ? `<button class="cwiz-dnd-slot-clear" onclick="cwizDndClear('array','${s}')">✕</button>` : ''}
     </div>`;
   }).join('');
+}
+function _cwPbModStr(stat) {
+  const rb = _cwRacialBonus(stat), tot = _cw.pbScores[stat] + rb;
+  return _cwModStr(tot);
 }
 function _cwBuildPbRows() {
   document.getElementById('cwiz-pb-rows').innerHTML = STAT_NAMES.map(s => {
@@ -833,6 +1008,7 @@ function _cwBuildPbRows() {
       <button class="cwiz-pb-btn" onclick="cwizPbAdj('${s}',1)">+</button>
       <div class="cwiz-stat-mod">(cost ${PB_COSTS[_cw.pbScores[s]]})</div>
       ${rb ? `<div class="cwiz-stat-racial">+${rb} racial</div>` : ''}
+      <div class="cwiz-dnd-slot-mod" id="cwpb-mod-${s}" style="min-width:28px">${_cwPbModStr(s)}</div>
     </div>`;
   }).join('');
   _cwPbUpdatePts();
@@ -845,6 +1021,8 @@ function cwizPbAdj(stat, d) {
   _cw.pbScores[stat] = nxt;
   const el = document.getElementById('cwpb-' + stat);
   if (el) el.textContent = nxt;
+  const modEl = document.getElementById('cwpb-mod-' + stat);
+  if (modEl) modEl.textContent = _cwPbModStr(stat);
   _cwPbUpdatePts();
 }
 function _cwPbUpdatePts() {
@@ -874,12 +1052,13 @@ function _cwRenderRollSlots() {
   if (!slots) return;
   slots.innerHTML = STAT_NAMES.map(s => {
     const idx = _cw.rollAssign[s], val = (idx !== null && idx !== undefined) ? _cw.rollPool[idx] : null;
-    const rb = _cwRacialBonus(s), tot = val !== null ? (val + rb) : '';
+    const rb = _cwRacialBonus(s), tot = val !== null ? (val + rb) : null;
     return `<div class="cwiz-dnd-slot${val!==null?' filled':''}" data-stat="${s}"
       ondragover="cwizDndOver(event)" ondragleave="cwizDndLeave(event)" ondrop="cwizDndDrop(event,'roll','${s}')">
       <div class="cwiz-dnd-slot-label">${STAT_LABELS[s]}</div>
       <div class="cwiz-dnd-slot-val">${val!==null ? val : '—'}</div>
-      ${rb ? `<div class="cwiz-dnd-slot-racial">+${rb} racial${tot?` = ${tot}`:''}</div>` : (tot?`<div class="cwiz-dnd-slot-total">= ${tot}</div>`:'')}
+      ${rb ? `<div class="cwiz-dnd-slot-racial">+${rb} racial${tot!==null?` = ${tot}`:''}</div>` : (tot!==null?`<div class="cwiz-dnd-slot-total">= ${tot}</div>`:'')}
+      ${tot !== null ? `<div class="cwiz-dnd-slot-mod">${_cwModStr(tot)}</div>` : ''}
       ${val!==null ? `<button class="cwiz-dnd-slot-clear" onclick="cwizDndClear('roll','${s}')">✕</button>` : ''}
     </div>`;
   }).join('');
@@ -1177,7 +1356,10 @@ function _cwRenderReview() {
         <div class="cwiz-rev-block"><h4>Skills</h4><div style="font-size:.78rem;color:var(--blue-lt)">${allSk.join(', ')||'—'}</div></div>
         ${allCantrips.length?`<div class="cwiz-rev-block"><h4>Cantrips</h4><div style="font-size:.78rem;color:var(--blue-lt)">${allCantrips.join(', ')}</div></div>`:''}
         ${_cw.spells.length?`<div class="cwiz-rev-block"><h4>Spells Known</h4><div style="font-size:.78rem;color:var(--blue-lt)">${_cw.spells.join(', ')}</div></div>`:''}
-        <div class="cwiz-rev-block"><h4>Starting Gold &amp; Equipment</h4>
+        <div class="cwiz-rev-block"><h4>Starting Equipment</h4>
+          ${(()=>{const sl=_cwStartingEquipList();return sl.length?sl.map(it=>`<div class="cwiz-rev-row"><span class="cwiz-rev-val">${it.name}</span></div>`).join(''):'<div style="font-size:.76rem;color:var(--text-dim)">None</div>';})()}
+        </div>
+        <div class="cwiz-rev-block"><h4>Starting Gold &amp; Shop Purchases</h4>
           <div class="cwiz-rev-row"><span>Gold</span><span class="cwiz-rev-val" style="color:var(--gold)">${_cw.goldTotal} gp</span></div>
           ${_cw.cart.length ? _cw.cart.map(it=>`<div class="cwiz-rev-row"><span>${it.name}</span><span class="cwiz-rev-val" style="color:var(--gold)">${it.cost} gp</span></div>`).join('')
             : '<div style="font-size:.76rem;color:var(--text-dim)">No shop purchases</div>'}
@@ -1222,7 +1404,7 @@ async function _cwCreate() {
     group: 'Y', profession: _cw.background, notes,
     classes: [{class: _cw.cls, level: _cw.level, subclass: _cw.subclass||''}],
     gold:   _cw.goldTotal,
-    items:  _cw.cart.map(it => ({name: it.name, quantity: 1, cost_gp: it.cost})),
+    items:  [..._cwStartingEquipList(), ..._cw.cart.map(it => ({name: it.name, quantity: 1, cost_gp: it.cost}))],
     buffs: [], debuffs: [],
     spells: [...allCantrips.map(n=>({name:n,level:0})), ..._cw.spells.map(n=>({name:n,level:1}))],
   };
