@@ -987,14 +987,16 @@ function cwizShopLoad() {
   if (!items.length) { grid.innerHTML = '<div style="font-size:.78rem;color:var(--text-dim);padding:6px">No items found.</div>'; return; }
   const fmt = c => c == null ? '—' : (Number.isInteger(c) ? c + ' gp' : Number(c).toFixed(2) + ' gp');
   grid.innerHTML = items.map(it =>
-    `<div class="cwiz-shop-card" onclick="cwizBuyItem(${JSON.stringify(it.name)},${it.cost})" title="${(it.tip||'').replace(/"/g,'&quot;')}">
+    `<div class="cwiz-shop-card" onclick="cwizBuyItem(this)" data-name="${it.name.replace(/"/g,'&quot;')}" data-cost="${it.cost}" title="${(it.tip||'').replace(/"/g,'&quot;')}">
       <div class="cwiz-shop-card-name">${it.name}</div>
       <div class="cwiz-shop-card-cost">${fmt(it.cost)}</div>
       <div class="cwiz-shop-card-cat">${it.cat||''}</div>
     </div>`).join('');
 }
 
-function cwizBuyItem(name, cost) {
+function cwizBuyItem(el) {
+  const name = el.dataset.name;
+  const cost = parseFloat(el.dataset.cost);
   const spent = _cw.cart.reduce((s,i) => s + i.cost, 0);
   if (cost > _cw.goldTotal - spent) {
     const bar = document.getElementById('cwiz-budget-bar');
