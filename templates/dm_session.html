@@ -7832,7 +7832,7 @@ const CWIZ_RACES = {
                'Mountain Dwarf':{bonuses:{str:2,con:2},  traits:['Dwarven Armor Training (light & medium)']} }},
   'Elf':        { speed:30, baseTraits:['Darkvision 60ft','Keen Senses (Perception prof)','Fey Ancestry','Trance (4hr rest)'],
     subraces:{ 'High Elf':      {bonuses:{dex:2,int:1},  traits:['Elf Weapon Training','Cantrip (INT)','Extra Language']},
-               'Wood Elf':      {bonuses:{dex:2,wis:1},  traits:['Elf Weapon Training','Fleet of Foot (35ft)','Mask of the Wild']},
+               'Wood Elf':      {bonuses:{dex:2,wis:1},  speed:35, traits:['Elf Weapon Training','Fleet of Foot (35ft)','Mask of the Wild']},
                'Dark Elf (Drow)':{bonuses:{dex:2,cha:1}, traits:['Superior Darkvision 120ft','Sunlight Sensitivity','Drow Magic','Drow Weapon Training']} }},
   'Halfling':   { speed:25, baseTraits:['Lucky (reroll 1s)','Brave (adv vs frightened)','Halfling Nimbleness'],
     subraces:{ 'Lightfoot':{bonuses:{dex:2,cha:1}, traits:['Naturally Stealthy']},
@@ -8419,7 +8419,7 @@ function _cwRaceTipHtml(r, sr) {
   }
   const bChips = Object.entries(bonuses).map(([s,v]) => `<span class="tip-bonus">+${v} ${s.toUpperCase()}</span>`).join('');
   const tChips = traits.map(t => `<span class="tip-chip">${t}</span>`).join('');
-  return `<div class="tip-title">${r}${sr?' — '+sr:''}</div>Speed: ${rd.speed} ft
+  return `<div class="tip-title">${r}${sr?' — '+sr:''}</div>Speed: ${_cwRaceSpeed()} ft
 ${bChips ? `<div style="margin-top:5px">${bChips}</div>` : ''}
 ${tChips ? `<div style="margin-top:5px">${tChips}</div>` : ''}`;
 }
@@ -8478,7 +8478,7 @@ function _cwShowRaceInfo(race, sr) {
   const tChips = traits.map(t => `<span class="cwiz-chip-blue">${t}</span>`).join('');
   const el = document.getElementById('cwiz-race-info');
   el.style.display = 'block';
-  el.innerHTML = `<strong>Speed:</strong> ${rd.speed} ft
+  el.innerHTML = `<strong>Speed:</strong> ${_cwRaceSpeed()} ft
     ${bChips ? `<div class="cwiz-chips" style="margin-top:6px">${bChips}</div>` : ''}
     ${tChips ? `<div class="cwiz-chips" style="margin-top:5px">${tChips}</div>` : ''}`;
 }
@@ -8975,6 +8975,13 @@ function _cwRacialBonus(stat) {
     : (rd.bonuses || {});
   return b[stat] || 0;
 }
+function _cwRaceSpeed() {
+  const rd = CWIZ_RACES[_cw.race];
+  if (!rd) return 30;
+  if (rd.subraces && _cw.subrace && rd.subraces[_cw.subrace] && rd.subraces[_cw.subrace].speed)
+    return rd.subraces[_cw.subrace].speed;
+  return rd.speed || 30;
+}
 
 // ── Level Up ──────────────────────────────────────────────────────────────────
 function _cwRenderLevelUp() {
@@ -9193,7 +9200,7 @@ function _cwRenderReview() {
       <div>
         <div class="cwiz-rev-block"><h4>Identity</h4>
           ${[['Name',_cw.name],['Race',raceStr],['Class',_cw.cls+(_cw.subclass?` (${_cw.subclass})`:'')+` Lvl ${_cw.level}`],
-             ['Background',_cw.background||'—'],['Alignment',_cw.alignment||'—'],['Speed',(rd.speed||30)+' ft']]
+             ['Background',_cw.background||'—'],['Alignment',_cw.alignment||'—'],['Speed',_cwRaceSpeed()+' ft']]
             .map(([k,v])=>`<div class="cwiz-rev-row"><span>${k}</span><span class="cwiz-rev-val">${v}</span></div>`).join('')}
         </div>
         <div class="cwiz-rev-block"><h4>Combat</h4>
@@ -9277,7 +9284,7 @@ async function _cwCreate() {
     level:     _cw.level,
     hp:        hp, max_hp: hp,
     ac:        defaultAc,
-    speed:     String(rd.speed || 30),
+    speed:     String(_cwRaceSpeed()),
     str: sc.str, dex: sc.dex, con: sc.con,
     int: sc.int, wis: sc.wis, cha: sc.cha,
     group:     'Y',
