@@ -96,6 +96,7 @@ from db_manager import (
     save_player_message, get_player_messages, get_all_player_messages,
     mark_messages_read,
     log_api_call, get_usage_by_session, get_usage_by_type, get_usage_totals,
+    get_user_campaign_count, get_user_character_count,
 )
 
 try:
@@ -116,6 +117,15 @@ if _cors_origins != "*":
     _cors_origins = [o.strip() for o in _cors_origins.split(",")]
 socketio = SocketIO(app, async_mode="eventlet", cors_allowed_origins=_cors_origins)
 
+# ── Flask-Login ────────────────────────────────────────────────────────────────
+from auth import auth_bp, login_manager, is_pro
+from flask_login import current_user
+from stripe_routes import stripe_bp
+
+login_manager.init_app(app)
+app.register_blueprint(auth_bp)
+app.register_blueprint(stripe_bp)
+
 # GM password — set env var DND_GM_PASSWORD to override default
 GM_PASSWORD = os.environ.get("DND_GM_PASSWORD", "dungeonmaster")
 
@@ -134,12 +144,12 @@ URL  = f"http://localhost:{PORT}/dm/"
 # ── Auth helpers ────────────────────────────────────────────────────────────────
 
 def gm_required(f):
-    """Decorator: redirect to GM login if not authenticated."""
+    """Decorator: allow GM password session OR a logged-in user account."""
     @functools.wraps(f)
     def decorated(*args, **kwargs):
-        if not flask_session.get("gm_logged_in"):
-            return redirect(url_for("gm_login"))
-        return f(*args, **kwargs)
+        if flask_session.get("gm_logged_in") or current_user.is_authenticated:
+            return f(*args, **kwargs)
+        return redirect(url_for("gm_login"))
     return decorated
 
 
@@ -877,18 +887,6 @@ def index():
     if flask_session.get("gm_logged_in"):
         return redirect(url_for("gm_index"))
     return render_template("landing.html")
-
-
-@app.route("/login")
-def user_login():
-    # Placeholder — full user auth coming in Step 2
-    return redirect(url_for("gm_login"))
-
-
-@app.route("/signup")
-def user_signup():
-    # Placeholder — full user auth coming in Step 2
-    return redirect(url_for("gm_login"))
 
 
 @app.route("/gm/login", methods=["GET", "POST"])

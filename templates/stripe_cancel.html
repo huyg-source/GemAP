@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout Cancelled — DM Session</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg:#1a1a2e; --panel:#16213e; --accent:#e94560; --text:#e0e0e0; --text-dim:#8899aa; --border:#2a2a4a; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+    }
+    .box {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+      padding: 56px 48px; max-width: 440px; width: 100%; text-align: center;
+    }
+    .icon { font-size: 3rem; margin-bottom: 20px; }
+    h1 { font-size: 1.6rem; font-weight: 800; margin-bottom: 12px; }
+    p { color: var(--text-dim); font-size: .92rem; margin-bottom: 32px; line-height: 1.6; }
+    .links { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      padding: 12px 28px; background: var(--accent); color: #fff; border-radius: 8px;
+      font-weight: 700; text-decoration: none; font-size: .9rem;
+    }
+    .btn-secondary {
+      padding: 12px 28px; border: 1px solid #2a2a4a; color: var(--text-dim);
+      border-radius: 8px; text-decoration: none; font-size: .9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div class="icon">🛡️</div>
+    <h1>No worries</h1>
+    <p>Your free account is still active. You can upgrade to DM Pro any time from the pricing page.</p>
+    <div class="links">
+      <a class="btn-primary" href="/#pricing">See Pricing</a>
+      <a class="btn-secondary" href="/dm/">Continue to App</a>
+    </div>
+  </div>
+</body>
+</html>

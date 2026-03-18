@@ -49,6 +49,17 @@ def init_db():
     with _conn() as con:
         # ── New tables (campaigns first — others reference it) ──
         con.executescript("""
+        CREATE TABLE IF NOT EXISTS users (
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            email               TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+            password_hash       TEXT    NOT NULL DEFAULT '',
+            created_at          TEXT    NOT NULL DEFAULT '',
+            subscription_status TEXT    NOT NULL DEFAULT 'free',
+            stripe_customer_id  TEXT    DEFAULT NULL,
+            stripe_sub_id       TEXT    DEFAULT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+
         CREATE TABLE IF NOT EXISTS campaigns (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             name        TEXT    UNIQUE NOT NULL,
@@ -470,6 +481,12 @@ def _migrate(con):
         con.execute("ALTER TABLE sessions ADD COLUMN combat_ui_state TEXT DEFAULT '{}'")
     if table_exists("sessions") and not has_column("sessions", "party_loot"):
         con.execute("ALTER TABLE sessions ADD COLUMN party_loot TEXT DEFAULT '[]'")
+
+    # Add user_id to campaigns and characters for multi-user support
+    if table_exists("campaigns") and not has_column("campaigns", "user_id"):
+        con.execute("ALTER TABLE campaigns ADD COLUMN user_id INTEGER REFERENCES users(id)")
+    if table_exists("characters") and not has_column("characters", "user_id"):
+        con.execute("ALTER TABLE characters ADD COLUMN user_id INTEGER REFERENCES users(id)")
 
     # Magic items reference table
     con.execute("""
@@ -2507,4 +2524,71 @@ def mark_messages_read(session_key: str, to_character: str):
             "UPDATE player_messages SET read=1 WHERE session_key=? AND to_character=?",
             (session_key, to_character)
         )
+
+
+# ── User account functions ─────────────────────────────────────────────────────
+
+def create_user(email: str, password_hash: str) -> int:
+    """Insert a new user row and return its id."""
+    with _conn() as con:
+        cur = con.execute(
+            "INSERT INTO users (email, password_hash, created_at) VALUES (?, ?, ?)",
+            (email.lower().strip(), password_hash, datetime.now().isoformat()),
+        )
+        return cur.lastrowid
+
+
+def get_user_by_id(user_id: int) -> dict | None:
+    with _conn() as con:
+        row = con.execute("SELECT * FROM users WHERE id=?", (user_id,)).fetchone()
+        return dict(row) if row else None
+
+
+def get_user_by_email(email: str) -> dict | None:
+    with _conn() as con:
+        row = con.execute(
+            "SELECT * FROM users WHERE email=?", (email.lower().strip(),)
+        ).fetchone()
+        return dict(row) if row else None
+
+
+def update_user_subscription(
+    user_id: int,
+    status: str,
+    stripe_customer_id: str | None = None,
+    stripe_sub_id: str | None = None,
+):
+    with _conn() as con:
+        con.execute(
+            """UPDATE users
+               SET subscription_status=?,
+                   stripe_customer_id=COALESCE(?, stripe_customer_id),
+                   stripe_sub_id=COALESCE(?, stripe_sub_id)
+               WHERE id=?""",
+            (status, stripe_customer_id, stripe_sub_id, user_id),
+        )
+
+
+def get_user_by_stripe_customer(stripe_customer_id: str) -> dict | None:
+    with _conn() as con:
+        row = con.execute(
+            "SELECT * FROM users WHERE stripe_customer_id=?", (stripe_customer_id,)
+        ).fetchone()
+        return dict(row) if row else None
+
+
+def get_user_campaign_count(user_id: int) -> int:
+    with _conn() as con:
+        row = con.execute(
+            "SELECT COUNT(*) FROM campaigns WHERE user_id=?", (user_id,)
+        ).fetchone()
+        return row[0] if row else 0
+
+
+def get_user_character_count(user_id: int) -> int:
+    with _conn() as con:
+        row = con.execute(
+            "SELECT COUNT(*) FROM characters WHERE user_id=?", (user_id,)
+        ).fetchone()
+        return row[0] if row else 0
 
