@@ -25,9 +25,18 @@ import db_manager
 
 log = logging.getLogger("dnd.stripe")
 
+def _stripe_key():
+    if not stripe.api_key:
+        stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
+    return stripe.api_key
+
+def _price_id():
+    return os.environ.get("STRIPE_PRICE_ID", "")
+
+def _webhook_secret():
+    return os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
-STRIPE_PRICE_ID      = os.environ.get("STRIPE_PRICE_ID", "")
-STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 
 stripe_bp = Blueprint("stripe_bp", __name__, url_prefix="/stripe")
 
@@ -37,7 +46,7 @@ stripe_bp = Blueprint("stripe_bp", __name__, url_prefix="/stripe")
 @stripe_bp.route("/checkout", methods=["GET", "POST"])
 @login_required
 def checkout():
-    if not stripe.api_key:
+    if not _stripe_key():
         return jsonify({"error": "Stripe not configured"}), 500
 
     # Create or retrieve a Stripe Customer
@@ -53,7 +62,7 @@ def checkout():
     session = stripe.checkout.Session.create(
         mode="subscription",
         customer=customer_id,
-        line_items=[{"price": STRIPE_PRICE_ID, "quantity": 1}],
+        line_items=[{"price": _price_id(), "quantity": 1}],
         subscription_data={"trial_period_days": 3},
         success_url=url_for("stripe_bp.stripe_success", _external=True)
                     + "?session_id={CHECKOUT_SESSION_ID}",
@@ -98,7 +107,8 @@ def webhook():
     payload = request.get_data()   # raw bytes — must be read before any parsing
     sig     = request.headers.get("Stripe-Signature", "")
 
-    if not STRIPE_WEBHOOK_SECRET:
+    whsec = _webhook_secret()
+    if not whsec:
         log.warning("STRIPE_WEBHOOK_SECRET not set — skipping signature check (dev only)")
         try:
             event = stripe.Event.construct_from(
@@ -109,7 +119,7 @@ def webhook():
             return "Bad request", 400
     else:
         try:
-            event = stripe.Webhook.construct_event(payload, sig, STRIPE_WEBHOOK_SECRET)
+            event = stripe.Webhook.construct_event(payload, sig, whsec)
         except stripe.error.SignatureVerificationError:
             log.warning("Stripe webhook signature verification failed")
             return "Forbidden", 403
