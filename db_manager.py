@@ -901,6 +901,10 @@ def delete_character(name: str, campaign_id: int):
     """Remove a character from the DB."""
     with _conn() as con:
         con.execute(
+            "DELETE FROM character_spellbook WHERE campaign_id=? AND char_name=? COLLATE NOCASE",
+            (campaign_id, name),
+        )
+        con.execute(
             "DELETE FROM characters WHERE campaign_id=? AND name=? COLLATE NOCASE",
             (campaign_id, name),
         )

@@ -92,6 +92,31 @@ def checkout():
 
 @stripe_bp.route("/success")
 def stripe_success():
+    session_id = request.args.get("session_id")
+    if session_id and _stripe_key():
+        try:
+            cs = stripe.checkout.Session.retrieve(session_id)
+            user_id     = cs.get("client_reference_id")
+            customer_id = cs.get("customer")
+            sub_id      = cs.get("subscription")
+            if user_id and cs.get("status") == "complete":
+                # trialing users have no_payment_method until trial ends
+                sub_status = "trialing"
+                if sub_id:
+                    try:
+                        sub = stripe.Subscription.retrieve(sub_id)
+                        raw = sub.get("status", "trialing")
+                        sub_status = {"active": "active", "trialing": "trialing"}.get(raw, "trialing")
+                    except Exception:
+                        pass
+                db_manager.update_user_subscription(
+                    int(user_id), sub_status,
+                    stripe_customer_id=customer_id,
+                    stripe_sub_id=sub_id,
+                )
+                log.info("Success-page activation: user %s → %s", user_id, sub_status)
+        except Exception as e:
+            log.warning("stripe_success session retrieval failed: %s", e)
     return render_template("stripe_success.html")
 
 
