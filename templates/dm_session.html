@@ -4481,8 +4481,10 @@ function invUpdateSpellTracker(spells) {
   const lvl  = clsEntry.level || c.level || 1;
   const mod  = s => Math.floor(((s || 10) - 10) / 2);
 
-  // Cantrips
-  const cantripLimit = cd.cantripCount ? (cd.cantripCount[lvl - 1] || cd.cantripCount[0]) : 0;
+  // Cantrips — base class count + racial bonus
+  let cantripLimit = cd.cantripCount ? (cd.cantripCount[lvl - 1] || cd.cantripCount[0]) : 0;
+  const race = c.race || '';
+  if (race.includes('High Elf') || race.includes('Forest Gnome')) cantripLimit += 1;
   const cantripCount = spells.filter(s => s.level === 0).length;
 
   // Non-cantrip spells
