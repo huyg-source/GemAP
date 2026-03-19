@@ -14,7 +14,10 @@ import os
 import re
 import logging
 
-import requests
+try:
+    import requests
+except ImportError:
+    requests = None
 from flask import Blueprint, jsonify, request
 from flask_login import current_user
 
@@ -50,6 +53,8 @@ def voice_start():
 
     if not DAILY_API_KEY:
         return jsonify({"ok": False, "error": "DAILY_API_KEY not configured"}), 500
+    if not requests:
+        return jsonify({"ok": False, "error": "requests library not available"}), 500
 
     session_key = state.get("session_key")
     if not session_key:
@@ -116,7 +121,7 @@ def voice_token():
     if not flask_session.get("player_token"):
         return jsonify({"ok": False, "error": "Not authenticated"}), 401
 
-    if not DAILY_API_KEY:
+    if not DAILY_API_KEY or not requests:
         return jsonify({"ok": False, "error": "Voice not configured"}), 500
 
     room_name = state.get("voice_room")
