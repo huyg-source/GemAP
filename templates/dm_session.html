@@ -298,6 +298,29 @@
   .mi-opt-rarity-artifact   { color: #e6cc80; }
 
   /* Spells tab */
+  .spell-tracker-bar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    padding: 7px 10px; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 5px; flex-shrink: 0;
+  }
+  .spell-tracker-pill {
+    font-size: .78rem; font-weight: 700; font-family: 'Roboto Condensed', sans-serif;
+    letter-spacing: .04em; padding: 3px 10px; border-radius: 20px;
+    background: var(--panel2); border: 1px solid var(--border); color: var(--text);
+    white-space: nowrap;
+  }
+  .spell-tracker-pill.over { border-color: var(--red); color: var(--red-lt); background: rgba(200,40,40,.12); }
+  .spell-tracker-pill.ok   { border-color: var(--gold); color: var(--gold); }
+  .spell-tracker-info {
+    font-size: .74rem; color: var(--text-dim); margin-left: auto; white-space: nowrap;
+  }
+  .spell-levelup-btn {
+    font-size: .74rem; padding: 3px 10px; border-radius: 20px;
+    border: 1px solid var(--blue); background: transparent; color: var(--blue);
+    cursor: pointer; white-space: nowrap;
+  }
+  .spell-levelup-btn:hover { background: var(--blue); color: #fff; }
+  .spell-section-label { font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-dim); flex-shrink: 0; }
   .spell-search-row { display: flex; gap: 6px; flex-shrink: 0; }
   .spell-filters    { display: flex; gap: 6px; flex-shrink: 0; }
   .spell-filters select { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 5px 8px; border-radius: 4px; font-size: .82rem; }
@@ -1815,7 +1838,8 @@
 
     <!-- Tab: Spells -->
     <div class="inv-tab-pane" id="inv-pane-spells">
-      <div class="spell-section-label" style="flex-shrink:0;">Spellbook — Known</div>
+      <div id="inv-spell-tracker" style="flex-shrink:0;"></div>
+      <div class="spell-section-label" style="flex-shrink:0;margin-top:4px;">Spellbook — Known</div>
       <div class="spellbook-wrap" id="inv-spellbook-list" style="flex:2;"></div>
       <div class="spell-section-label" style="margin-top:6px;flex-shrink:0;">Add from Reference</div>
       <div class="spell-search-row">
@@ -4438,9 +4462,83 @@ async function invLoadSpellbook() {
     const res   = await fetch(`/spells/book?campaign_id=${cid}&char_name=${encodeURIComponent(invEditingName)}`);
     const spells = await res.json();
     renderSpellbook(spells);
+    invUpdateSpellTracker(spells);
   } catch(e) {
     list.innerHTML = '<div class="inv-empty" style="color:var(--red-lt);">Failed to load spellbook.</div>';
   }
+}
+
+function invUpdateSpellTracker(spells) {
+  const el = document.getElementById('inv-spell-tracker');
+  if (!el) return;
+  const c  = (gameState.characters || []).find(x => x.name === invEditingName);
+  if (!c) { el.innerHTML = ''; return; }
+  const cd = CWIZ_CLASSES[c.cls] || {};
+  if (!cd.spellcaster) { el.innerHTML = ''; return; }
+
+  const lvl  = c.level || 1;
+  const mod  = s => Math.floor(((s || 10) - 10) / 2);
+
+  // Cantrips
+  const cantripLimit = cd.cantripCount ? (cd.cantripCount[lvl - 1] || cd.cantripCount[0]) : 0;
+  const cantripCount = spells.filter(s => s.level === 0).length;
+
+  // Non-cantrip spells
+  const nonCantrips   = spells.filter(s => s.level > 0);
+  const preparedCount = nonCantrips.filter(s => s.prepared).length;
+
+  // Prep / known limit
+  let prepLimit = 0, trackerType = 'prepared', limitNote = '';
+  if (cd.spellsKnown) {
+    // Known casters — Bard, Sorcerer, Warlock
+    trackerType = 'known';
+    prepLimit   = cd.spellsKnown[lvl - 1] || cd.spellsKnown[0];
+    limitNote   = `spells known at level ${lvl}`;
+  } else if (c.cls === 'Wizard') {
+    trackerType = 'wizard';
+    const intMod = mod(c.int);
+    prepLimit    = Math.max(1, intMod + lvl);
+    limitNote    = `INT mod (${intMod}) + level (${lvl})`;
+  } else if (c.cls === 'Paladin') {
+    const chaMod = mod(c.cha);
+    prepLimit    = Math.max(1, chaMod + Math.floor(lvl / 2));
+    limitNote    = `CHA mod (${chaMod}) + ½ level (${Math.floor(lvl/2)})`;
+  } else {
+    // Cleric, Druid — spellAbility mod + level
+    const abil    = (cd.spellAbility || 'WIS').toLowerCase();
+    const abilMod = mod(c[abil]);
+    prepLimit     = Math.max(1, abilMod + lvl);
+    limitNote     = `${cd.spellAbility} mod (${abilMod}) + level (${lvl})`;
+  }
+
+  const pills = [];
+
+  // Cantrips pill
+  if (cantripLimit > 0) {
+    const cls = cantripCount > cantripLimit ? 'over' : cantripCount === cantripLimit ? 'ok' : '';
+    pills.push(`<span class="spell-tracker-pill ${cls}">Cantrips ${cantripCount}/${cantripLimit}</span>`);
+  }
+
+  if (trackerType === 'wizard') {
+    const bookCap   = 6 + 2 * (lvl - 1);
+    const bookCount = nonCantrips.length;
+    const bookCls   = bookCount > bookCap ? 'over' : bookCount === bookCap ? 'ok' : '';
+    const prepCls   = preparedCount > prepLimit ? 'over' : preparedCount === prepLimit ? 'ok' : '';
+    pills.push(`<span class="spell-tracker-pill ${bookCls}" title="Spellbook: 6 at level 1, +2 per level">Spellbook ${bookCount}/${bookCap}</span>`);
+    pills.push(`<span class="spell-tracker-pill ${prepCls}" title="Prepared: ${limitNote}">Prepared ${preparedCount}/${prepLimit}</span>`);
+  } else if (trackerType === 'known') {
+    const knownCls = nonCantrips.length > prepLimit ? 'over' : nonCantrips.length === prepLimit ? 'ok' : '';
+    pills.push(`<span class="spell-tracker-pill ${knownCls}" title="${limitNote}">Known ${nonCantrips.length}/${prepLimit}</span>`);
+  } else {
+    const prepCls = preparedCount > prepLimit ? 'over' : preparedCount === prepLimit ? 'ok' : '';
+    pills.push(`<span class="spell-tracker-pill ${prepCls}" title="Prepared: ${limitNote}">Prepared ${preparedCount}/${prepLimit}</span>`);
+  }
+
+  if (limitNote) {
+    pills.push(`<span class="spell-tracker-info">${limitNote}</span>`);
+  }
+
+  el.innerHTML = `<div class="spell-tracker-bar">${pills.join('')}</div>`;
 }
 
 function renderSpellbook(spells) {
