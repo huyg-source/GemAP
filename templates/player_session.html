@@ -791,6 +791,7 @@
       #dm-panel { width: calc(100vw - 36px); right: 18px; left: 18px; }
     }
   </style>
+<script src="https://unpkg.com/@daily-co/daily-js"></script>
 </head>
 <body>
 
@@ -809,6 +810,8 @@
     <button class="sb-btn" onclick="toggleChronicle()">&#x1F4DC; Chronicle</button>
     <button id="dm-notify-btn" class="sb-btn" onclick="openDmNotify()" style="display:none;border-color:var(--blue-lt);color:var(--blue-lt);">&#x1F4AC; DMs <span id="dm-notify-badge" style="background:var(--blue-lt);color:#000;border-radius:8px;padding:0 5px;font-size:.68rem;margin-left:3px;"></span></button>
     <span id="round-status-badge" class="closed">Round Closed</span>
+    <button id="voice-join-btn" class="sb-btn" onclick="joinVoice()" style="display:none;border-color:var(--gold);color:var(--gold);">🎙 Join Voice</button>
+    <button id="voice-mute-btn" class="sb-btn" onclick="voiceToggleMute()" style="display:none;">🎤 Mute</button>
     <span id="conn-indicator"></span>
     <span id="conn-label">Disconnected</span>
   </div>
@@ -1248,6 +1251,7 @@
     if (gameState.active || gameState.session_active) {
       sessionStatus.textContent = 'Active';
       sessionStatus.className   = 'active';
+      _voiceCheckAvailable();
     } else {
       sessionStatus.textContent = 'Waiting';
       sessionStatus.className   = 'waiting';
@@ -2636,6 +2640,46 @@
     startPolling();
     startMapPoll();
   });
+</script>
+
+<script>
+// ── Voice chat (Daily.co) ─────────────────────────────────────────────────────
+let _voiceCall  = null;
+let _voiceMuted = false;
+let _voiceJoined = false;
+
+async function _voiceCheckAvailable() {
+  if (_voiceJoined) return;
+  try {
+    const r = await fetch('/voice/token');
+    const d = await r.json();
+    if (d.ok && d.room_name) {
+      document.getElementById('voice-join-btn').style.display = '';
+    }
+  } catch(e) {}
+}
+
+async function joinVoice() {
+  try {
+    const r = await fetch('/voice/token');
+    const d = await r.json();
+    if (!d.ok || !d.room_name) { alert('Voice is not active yet — wait for the GM to start it.'); return; }
+    if (_voiceCall) { await _voiceCall.destroy(); }
+    _voiceCall = window.DailyIframe.createCallObject({ audioSource: true, videoSource: false });
+    await _voiceCall.join({ url: d.room_url, token: d.token, startAudioOff: false });
+    _voiceJoined = true;
+    document.getElementById('voice-join-btn').style.display  = 'none';
+    document.getElementById('voice-mute-btn').style.display  = '';
+  } catch(e) { console.error('joinVoice:', e); alert('Could not join voice. Try again.'); }
+}
+
+function voiceToggleMute() {
+  if (!_voiceCall) return;
+  _voiceMuted = !_voiceMuted;
+  _voiceCall.setLocalAudio(!_voiceMuted);
+  const btn = document.getElementById('voice-mute-btn');
+  btn.textContent = _voiceMuted ? '🔇 Unmute' : '🎤 Mute';
+}
 </script>
 </body>
 </html>

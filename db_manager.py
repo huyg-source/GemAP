@@ -488,6 +488,13 @@ def _migrate(con):
     if table_exists("characters") and not has_column("characters", "user_id"):
         con.execute("ALTER TABLE characters ADD COLUMN user_id INTEGER REFERENCES users(id)")
 
+    # User activity tracking
+    if table_exists("users") and not has_column("users", "last_login"):
+        con.execute("ALTER TABLE users ADD COLUMN last_login TEXT DEFAULT NULL")
+    if table_exists("api_usage_log") and not has_column("api_usage_log", "user_id"):
+        con.execute("ALTER TABLE api_usage_log ADD COLUMN user_id INTEGER DEFAULT NULL REFERENCES users(id)")
+        con.execute("CREATE INDEX IF NOT EXISTS idx_usage_user ON api_usage_log(user_id)")
+
     # Magic items reference table
     con.execute("""
     CREATE TABLE IF NOT EXISTS magic_items (
@@ -2128,18 +2135,19 @@ def get_spell_with_override(spell_id: int, campaign_id: int) -> dict | None:
 # ── API Usage Logging ──────────────────────────────────────────────────────────
 
 def log_api_call(session_key: str, campaign_id: int, call_type: str,
-                 model: str, prompt_tokens: int, output_tokens: int):
+                 model: str, prompt_tokens: int, output_tokens: int,
+                 user_id: int = None):
     """Record a single AI API call with token counts."""
     total = prompt_tokens + output_tokens
     with _conn() as con:
         con.execute("""
         INSERT INTO api_usage_log
             (session_key, campaign_id, call_type, model,
-             prompt_tokens, output_tokens, total_tokens, called_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+             prompt_tokens, output_tokens, total_tokens, called_at, user_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (session_key or "", campaign_id or 0, call_type, model or "",
               prompt_tokens, output_tokens, total,
-              datetime.now().isoformat()))
+              datetime.now().isoformat(), user_id))
 
 
 def get_usage_by_session(campaign_id: int = None, limit: int = 50) -> list[dict]:
@@ -2566,6 +2574,15 @@ def update_user_subscription(
                    stripe_sub_id=COALESCE(?, stripe_sub_id)
                WHERE id=?""",
             (status, stripe_customer_id, stripe_sub_id, user_id),
+        )
+
+
+def touch_last_login(user_id: int):
+    """Stamp last_login with the current UTC timestamp."""
+    with _conn() as con:
+        con.execute(
+            "UPDATE users SET last_login=? WHERE id=?",
+            (datetime.now().isoformat(), user_id),
         )
 
 

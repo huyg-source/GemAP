@@ -76,9 +76,10 @@ def signup():
         else:
             pw_hash = generate_password_hash(password)
             user_id = db_manager.create_user(email, pw_hash)
+            db_manager.touch_last_login(user_id)
             row     = db_manager.get_user_by_id(user_id)
             login_user(User(row), remember=True)
-            return redirect(url_for("gm_index"))
+            return redirect(url_for("stripe_bp.checkout"))
 
     return render_template("signup.html", error=error)
 
@@ -96,6 +97,7 @@ def login():
 
         if row and check_password_hash(row["password_hash"], password):
             login_user(User(row), remember=True)
+            db_manager.touch_last_login(row["id"])
             next_url = request.args.get("next") or url_for("gm_index")
             return redirect(next_url)
         else:

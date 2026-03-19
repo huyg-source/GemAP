@@ -121,10 +121,12 @@ socketio = SocketIO(app, async_mode="eventlet", cors_allowed_origins=_cors_origi
 from auth import auth_bp, login_manager, is_pro
 from flask_login import current_user
 from stripe_routes import stripe_bp
+from voice_routes import voice_bp
 
 login_manager.init_app(app)
 app.register_blueprint(auth_bp)
 app.register_blueprint(stripe_bp)
+app.register_blueprint(voice_bp)
 
 # GM password — set env var DND_GM_PASSWORD to override default
 GM_PASSWORD = os.environ.get("DND_GM_PASSWORD", "dungeonmaster")
@@ -144,11 +146,15 @@ URL  = f"http://localhost:{PORT}/dm/"
 # ── Auth helpers ────────────────────────────────────────────────────────────────
 
 def gm_required(f):
-    """Decorator: allow GM password session OR a logged-in user account."""
+    """Decorator: allow GM password session OR a logged-in pro user account."""
     @functools.wraps(f)
     def decorated(*args, **kwargs):
-        if flask_session.get("gm_logged_in") or current_user.is_authenticated:
+        if flask_session.get("gm_logged_in"):
             return f(*args, **kwargs)
+        if current_user.is_authenticated:
+            if current_user.is_pro():
+                return f(*args, **kwargs)
+            return redirect(url_for("stripe_bp.checkout"))
         return redirect(url_for("gm_login"))
     return decorated
 
@@ -157,6 +163,7 @@ def _log_usage(call_type: str, response, model: str = ""):
     """Extract token counts from a Gemini response and write to usage log."""
     try:
         usage = response.usage_metadata
+        uid   = current_user.id if current_user.is_authenticated else None
         log_api_call(
             session_key   = state.get("session_key", ""),
             campaign_id   = state.get("campaign_id") or 0,
@@ -164,6 +171,7 @@ def _log_usage(call_type: str, response, model: str = ""):
             model         = model or state.get("model", ""),
             prompt_tokens = getattr(usage, "prompt_token_count",     0) or 0,
             output_tokens = getattr(usage, "candidates_token_count", 0) or 0,
+            user_id       = uid,
         )
     except Exception:
         pass
@@ -489,6 +497,7 @@ def _make_default_state() -> dict:
         "chronicle":              [],
         "pending_player_actions": [],
         "party_chat":             [],
+        "voice_room":             None,
     }
 
 
@@ -1518,7 +1527,8 @@ def portrait_suggest():
             c["portrait_path"] = filename
             break
     log_api_call(state.get("session_key",""), cid, "portrait_image",
-                 "imagen-4.0-generate-001", 0, 0)
+                 "imagen-4.0-generate-001", 0, 0,
+                 user_id=current_user.id if current_user.is_authenticated else None)
     return jsonify({"ok": True, "portrait_path": filename, "url": f"/portraits/{filename}"})
 
 
@@ -1621,7 +1631,8 @@ def mob_image_suggest():
         fh.write(img_bytes)
     set_mob_image(name, filename)
     log_api_call(state.get("session_key",""), state.get("campaign_id") or 0,
-                 "mob_image", "imagen-4.0-generate-001", 0, 0)
+                 "mob_image", "imagen-4.0-generate-001", 0, 0,
+                 user_id=current_user.id if current_user.is_authenticated else None)
     return jsonify({"ok": True, "image_path": filename, "url": f"/mob-images/{filename}"})
 
 
@@ -2286,6 +2297,17 @@ def factions_seed_world():
 @app.route("/end-session", methods=["POST"])
 def end_session():
     """Final save + clear server state so next page load shows the session picker."""
+    # Close the Daily.co voice room if one is active
+    room_name = state.get("voice_room")
+    if room_name:
+        try:
+            from voice_routes import DAILY_API_KEY, DAILY_BASE, _headers
+            if DAILY_API_KEY:
+                import requests as _req
+                _req.delete(f"{DAILY_BASE}/rooms/{room_name}", headers=_headers(), timeout=5)
+        except Exception:
+            pass
+
     save_session()
     state.update({
         "history":         [],
@@ -2300,6 +2322,7 @@ def end_session():
         "party_loot":      [],
         "game_state": {"gold": 0, "xp": 0, "game_date": "", "location": "", "characters": []},
         "chronicle":       [],
+        "voice_room":      None,
     })
     return jsonify({"ok": True})
 
