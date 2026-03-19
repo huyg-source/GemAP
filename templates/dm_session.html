@@ -4473,10 +4473,12 @@ function invUpdateSpellTracker(spells) {
   if (!el) return;
   const c  = (gameState.characters || []).find(x => x.name === invEditingName);
   if (!c) { el.innerHTML = ''; return; }
-  const cd = CWIZ_CLASSES[c.cls] || {};
+  const clsEntry = (c.classes && c.classes[0]) || {};
+  const clsName  = clsEntry.class || c.cls || '';
+  const cd = CWIZ_CLASSES[clsName] || {};
   if (!cd.spellcaster) { el.innerHTML = ''; return; }
 
-  const lvl  = c.level || 1;
+  const lvl  = clsEntry.level || c.level || 1;
   const mod  = s => Math.floor(((s || 10) - 10) / 2);
 
   // Cantrips
@@ -4494,12 +4496,12 @@ function invUpdateSpellTracker(spells) {
     trackerType = 'known';
     prepLimit   = cd.spellsKnown[lvl - 1] || cd.spellsKnown[0];
     limitNote   = `spells known at level ${lvl}`;
-  } else if (c.cls === 'Wizard') {
+  } else if (clsName === 'Wizard') {
     trackerType = 'wizard';
     const intMod = mod(c.int);
     prepLimit    = Math.max(1, intMod + lvl);
     limitNote    = `INT mod (${intMod}) + level (${lvl})`;
-  } else if (c.cls === 'Paladin') {
+  } else if (clsName === 'Paladin') {
     const chaMod = mod(c.cha);
     prepLimit    = Math.max(1, chaMod + Math.floor(lvl / 2));
     limitNote    = `CHA mod (${chaMod}) + ½ level (${Math.floor(lvl/2)})`;
