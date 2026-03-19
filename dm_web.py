@@ -70,7 +70,7 @@ from db_manager import (
     upsert_spell_reference, search_spells_reference, get_spell_reference,
     get_spell_with_override, delete_spell_reference, get_spellbook, add_to_spellbook,
     get_spell_override, set_spell_override, clear_spell_override,
-    remove_from_spellbook, set_spell_prepared, update_spellbook_notes,
+    remove_from_spellbook, set_spell_prepared, update_spellbook_notes, seed_spellbook_from_names,
     count_spells_reference, list_spell_sources, set_source_enabled,
     get_calendar_day, get_calendar_month, get_calendar_full, advance_date,
     upsert_npc, get_npc, get_npc_by_name, list_npcs, set_npc_attitude, delete_npc,
@@ -2446,6 +2446,12 @@ def player_setup(token):
         upsert_character(character, campaign_id)
     except Exception as e:
         return jsonify({"ok": False, "error": f"Could not save character: {e}"})
+
+    # Seed spellbook from wizard selections
+    spell_list   = character.get("spells", [])
+    cantrip_names = [s["name"] for s in spell_list if isinstance(s, dict) and s.get("level") == 0]
+    spell_names   = [s["name"] for s in spell_list if isinstance(s, dict) and s.get("level", 0) > 0]
+    seed_spellbook_from_names(campaign_id, char_name, spell_names, cantrip_names)
 
     # Link token to player + character
     update_player_token(token, char_name, player_id)

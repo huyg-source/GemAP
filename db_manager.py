@@ -1309,6 +1309,36 @@ def add_to_spellbook(campaign_id: int, char_name: str,
         return False
 
 
+def seed_spellbook_from_names(campaign_id: int, char_name: str,
+                              spell_names: list, cantrip_names: list):
+    """Populate character_spellbook from name lists (used after character creation).
+    Cantrips (level 0) are marked prepared=True. Spells are prepared=True for known-spell
+    classes; for prepared casters they start unprepared."""
+    if not spell_names and not cantrip_names:
+        return
+    with _conn() as con:
+        for name in cantrip_names:
+            row = con.execute(
+                "SELECT id FROM spells_reference WHERE name=? COLLATE NOCASE AND level=0 LIMIT 1",
+                (name,)
+            ).fetchone()
+            if row:
+                con.execute(
+                    "INSERT OR IGNORE INTO character_spellbook (campaign_id, char_name, spell_id, prepared) VALUES (?,?,?,1)",
+                    (campaign_id, char_name, row["id"])
+                )
+        for name in spell_names:
+            row = con.execute(
+                "SELECT id FROM spells_reference WHERE name=? COLLATE NOCASE LIMIT 1",
+                (name,)
+            ).fetchone()
+            if row:
+                con.execute(
+                    "INSERT OR IGNORE INTO character_spellbook (campaign_id, char_name, spell_id, prepared) VALUES (?,?,?,1)",
+                    (campaign_id, char_name, row["id"])
+                )
+
+
 def remove_from_spellbook(campaign_id: int, char_name: str, spell_id: int):
     with _conn() as con:
         con.execute("""
