@@ -632,6 +632,16 @@ def generate_sync_id(turn: int) -> str:
     return f"TURN-{turn:03d}-{datetime.now().strftime('%Y%m%d-%H%M')}"
 
 
+def _safe_int(val, default=0):
+    """Convert val to int, returning default on failure."""
+    if val is None:
+        return default
+    try:
+        return int(val)
+    except (TypeError, ValueError):
+        return default
+
+
 def parse_dm_response(raw: str) -> dict | None:
     cleaned = re.sub(r"```(?:json)?", "", raw).replace("```", "").strip()
     try:
@@ -1147,8 +1157,16 @@ def chat():
             upsert_character(_c, _cid)
     _rebuild_party_context()
 
-    rp_updates = _apply_rp_notes_updates(data)
-    faction_updates = _apply_faction_mentions(data)
+    try:
+        rp_updates = _apply_rp_notes_updates(data)
+    except Exception as e:
+        log.warning("rp_notes_updates failed: %s", e)
+        rp_updates = []
+    try:
+        faction_updates = _apply_faction_mentions(data)
+    except Exception as e:
+        log.warning("faction_mentions failed: %s", e)
+        faction_updates = []
 
     entry = {
         "sync_id":   sync_id,
@@ -1220,19 +1238,24 @@ def chat():
 
     # Process loot awards — append to session party loot pool
     new_loot = []
-    for award in data.get("loot_awards", []):
-        name = (award.get("name") or "").strip()
-        if not name:
-            continue
-        entry = {
-            "id":       str(uuid.uuid4())[:8],
-            "name":     name,
-            "qty":      int(award.get("qty") or 1),
-            "value_gp": int(award.get("value_gp") or 0),
-            "notes":    str(award.get("notes") or ""),
-        }
-        state["party_loot"].append(entry)
-        new_loot.append(entry)
+    for award in (data.get("loot_awards") or []):
+        try:
+            if not isinstance(award, dict):
+                continue
+            name = (award.get("name") or "").strip()
+            if not name:
+                continue
+            entry = {
+                "id":       str(uuid.uuid4())[:8],
+                "name":     name,
+                "qty":      _safe_int(award.get("qty"), 1) or 1,
+                "value_gp": _safe_int(award.get("value_gp"), 0),
+                "notes":    str(award.get("notes") or ""),
+            }
+            state["party_loot"].append(entry)
+            new_loot.append(entry)
+        except Exception as e:
+            log.warning("loot_awards entry skipped: %s", e)
     if new_loot:
         save_session()
 
