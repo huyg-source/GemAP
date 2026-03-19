@@ -4524,11 +4524,10 @@ function invUpdateSpellTracker(spells) {
   }
 
   if (trackerType === 'wizard') {
-    const bookCap   = 6 + 2 * (lvl - 1);
+    const bookMin   = 6 + 2 * (lvl - 1);
     const bookCount = nonCantrips.length;
-    const bookCls   = bookCount > bookCap ? 'over' : bookCount === bookCap ? 'ok' : '';
     const prepCls   = preparedCount > prepLimit ? 'over' : preparedCount === prepLimit ? 'ok' : '';
-    pills.push(`<span class="spell-tracker-pill ${bookCls}" title="Spellbook: 6 at level 1, +2 per level">Spellbook ${bookCount}/${bookCap}</span>`);
+    pills.push(`<span class="spell-tracker-pill" title="No cap — spellbook grows via copying scrolls &amp; other books. Min expected: ${bookMin} (6 base + 2/level)">Spellbook: ${bookCount} spell${bookCount !== 1 ? 's' : ''}</span>`);
     pills.push(`<span class="spell-tracker-pill ${prepCls}" title="Prepared: ${limitNote}">Prepared ${preparedCount}/${prepLimit}</span>`);
   } else if (trackerType === 'known') {
     const knownCls = nonCantrips.length > prepLimit ? 'over' : nonCantrips.length === prepLimit ? 'ok' : '';
