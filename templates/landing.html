@@ -170,6 +170,29 @@
       color: #fff;
       transform: translateY(-2px);
     }
+    .btn-returning {
+      padding: 14px 32px;
+      background: transparent;
+      color: var(--text-dim);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: border-color .2s, color .2s, transform .2s;
+    }
+    .btn-returning:hover {
+      border-color: var(--text-dim);
+      color: #fff;
+      transform: translateY(-2px);
+    }
+    .hero-ctas-hint {
+      margin-top: 14px;
+      font-size: .8rem;
+      color: var(--text-dim);
+      text-align: center;
+      opacity: .75;
+    }
     .hero-scroll-hint {
       position: absolute;
       bottom: 36px;
@@ -497,8 +520,9 @@
     </p>
     <div class="hero-ctas">
       <a class="btn-primary" href="/stripe/checkout">Start Your Adventure →</a>
-      <a class="btn-secondary" href="#features">See How It Works</a>
+      <a class="btn-returning" href="/auth/login">Welcome Back →</a>
     </div>
+    <p class="hero-ctas-hint">New here? Start your 3-day free trial. &nbsp;·&nbsp; Already have an account? Jump back in.</p>
   </div>
   <div class="hero-scroll-hint">Scroll</div>
 </section>
