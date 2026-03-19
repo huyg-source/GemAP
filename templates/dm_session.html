@@ -1306,21 +1306,8 @@
   .spy-from { font-weight:700; color:var(--accent); }
   .spy-to   { color:var(--text-dim); }
 
-  /* ── Voice panel ── */
-  #voice-panel {
-    position: fixed; bottom: 80px; right: 16px; z-index: 900;
-    background: var(--panel2); border: 1px solid var(--border); border-radius: 10px;
-    padding: 14px 16px; width: 220px; display: none;
-  }
-  #voice-panel.open { display: block; }
-  #voice-panel h4 { font-size: .8rem; color: var(--gold); margin-bottom: 10px; }
-  #voice-participants { font-size: .78rem; color: var(--text-dim); margin-bottom: 10px; min-height: 20px; }
-  #voice-participants span { display: block; padding: 2px 0; }
-  .voice-action-row { display: flex; gap: 8px; }
-  .voice-action-row button { flex: 1; padding: 6px; font-size: .75rem; border-radius: 5px; border: 1px solid var(--border); background: var(--panel); color: var(--text); cursor: pointer; }
-  #voice-mute-btn.muted { border-color: var(--accent); color: var(--accent); }
+  /* ── Voice ── */
 </style>
-<script src="https://unpkg.com/@daily-co/daily-js"></script>
 </head>
 <body>
 
@@ -1344,8 +1331,7 @@
     <button class="mode-btn" data-mode="combat"    onclick="setMode('combat')">&#9876; Combat</button>
   </div>
   <span id="tb-model">gemini-2.5-flash</span>
-  <button class="tb-btn" id="voice-toggle-btn" onclick="toggleVoicePanel()" title="Table Voice Chat" style="border-color:var(--gold);color:var(--gold);display:none;">🎙 Voice</button>
-  <button class="tb-btn" id="voice-start-btn" onclick="startVoice()" title="Start Table Voice">🎙 Start Voice</button>
+  <button class="tb-btn" id="jitsi-btn" onclick="openVoice()" title="Open Table Voice Room" style="border-color:var(--gold);color:var(--gold);display:none;">🎙 Voice</button>
   {% if current_user.is_authenticated %}
   <details id="acct-menu">
     <summary>&#x1F464; {{ current_user.email.split('@')[0] }}</summary>
@@ -3601,6 +3587,8 @@ function updateTopbar() {
   if (libLink) libLink.href = _activeCampaignId ? `/gm/library?campaign_id=${_activeCampaignId}` : '/gm/library';
   const btn = document.getElementById('end-session-btn');
   if (btn) btn.style.display = _activeCampaignName ? '' : 'none';
+  const jitsiBtn = document.getElementById('jitsi-btn');
+  if (jitsiBtn) jitsiBtn.style.display = _activeCampaignName ? '' : 'none';
 }
 
 // ── Voice input ───────────────────────────────────────────────────────────────
@@ -9750,73 +9738,13 @@ async function _cwCreate() {
   <div id="chron-modal-body"></div>
 </div>
 
-<!-- ── Voice Panel ── -->
-<div id="voice-panel">
-  <h4>🎙 Table Voice</h4>
-  <div id="voice-participants"><em style="color:var(--text-dim)">No one else connected</em></div>
-  <div class="voice-action-row">
-    <button id="voice-mute-btn" onclick="voiceToggleMute()">🎤 Mute</button>
-    <button onclick="stopVoice()" style="border-color:var(--accent);color:var(--accent);">✕ End</button>
-  </div>
-</div>
-
 <script>
-// ── Voice chat (Daily.co) ─────────────────────────────────────────────────────
-let _voiceCall = null;
-let _voiceMuted = false;
-
-async function startVoice() {
-  try {
-    const r = await fetch('/voice/start', { method: 'POST' });
-    const d = await r.json();
-    if (!d.ok) { alert('Voice error: ' + d.error); return; }
-    await _joinVoiceRoom(d.room_url, d.token, true);
-    document.getElementById('voice-start-btn').style.display = 'none';
-    document.getElementById('voice-toggle-btn').style.display = '';
-    document.getElementById('voice-panel').classList.add('open');
-  } catch(e) { console.error('startVoice:', e); }
+// ── Voice chat (Jitsi) ────────────────────────────────────────────────────────
+function _jitsiRoomName(sessionKey) {
+  return 'ForeverDM-' + (sessionKey || 'table').replace(/[^a-zA-Z0-9]/g, '-');
 }
-
-async function _joinVoiceRoom(roomUrl, token, startWithAudio) {
-  if (_voiceCall) { await _voiceCall.destroy(); _voiceCall = null; }
-  _voiceCall = window.DailyIframe.createCallObject({ audioSource: true, videoSource: false });
-  _voiceCall.on('participant-joined', _voiceUpdateParticipants);
-  _voiceCall.on('participant-left',   _voiceUpdateParticipants);
-  _voiceCall.on('participant-updated', _voiceUpdateParticipants);
-  await _voiceCall.join({ url: roomUrl, token, startAudioOff: false });
-}
-
-function _voiceUpdateParticipants() {
-  if (!_voiceCall) return;
-  const parts = Object.values(_voiceCall.participants())
-    .filter(p => !p.local)
-    .map(p => p.user_name || 'Unknown');
-  const el = document.getElementById('voice-participants');
-  el.innerHTML = parts.length
-    ? parts.map(n => `<span>🎤 ${n}</span>`).join('')
-    : '<em style="color:var(--text-dim)">No one else connected</em>';
-}
-
-function voiceToggleMute() {
-  if (!_voiceCall) return;
-  _voiceMuted = !_voiceMuted;
-  _voiceCall.setLocalAudio(!_voiceMuted);
-  const btn = document.getElementById('voice-mute-btn');
-  btn.textContent = _voiceMuted ? '🔇 Unmute' : '🎤 Mute';
-  btn.classList.toggle('muted', _voiceMuted);
-}
-
-function toggleVoicePanel() {
-  document.getElementById('voice-panel').classList.toggle('open');
-}
-
-async function stopVoice() {
-  if (_voiceCall) { await _voiceCall.destroy(); _voiceCall = null; }
-  await fetch('/voice/end', { method: 'POST' });
-  document.getElementById('voice-panel').classList.remove('open');
-  document.getElementById('voice-toggle-btn').style.display = 'none';
-  document.getElementById('voice-start-btn').style.display = '';
-  document.getElementById('voice-participants').innerHTML = '<em style="color:var(--text-dim)">No one else connected</em>';
+function openVoice() {
+  window.open('https://meet.jit.si/' + _jitsiRoomName(state.session_key || ''), '_blank');
 }
 </script>
 

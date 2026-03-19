@@ -121,12 +121,10 @@ socketio = SocketIO(app, async_mode="eventlet", cors_allowed_origins=_cors_origi
 from auth import auth_bp, login_manager, is_pro
 from flask_login import current_user
 from stripe_routes import stripe_bp
-from voice_routes import voice_bp
 
 login_manager.init_app(app)
 app.register_blueprint(auth_bp)
 app.register_blueprint(stripe_bp)
-app.register_blueprint(voice_bp)
 
 # GM password — set env var DND_GM_PASSWORD to override default
 GM_PASSWORD = os.environ.get("DND_GM_PASSWORD", "dungeonmaster")
@@ -497,7 +495,6 @@ def _make_default_state() -> dict:
         "chronicle":              [],
         "pending_player_actions": [],
         "party_chat":             [],
-        "voice_room":             None,
     }
 
 
@@ -2297,17 +2294,6 @@ def factions_seed_world():
 @app.route("/end-session", methods=["POST"])
 def end_session():
     """Final save + clear server state so next page load shows the session picker."""
-    # Close the Daily.co voice room if one is active
-    room_name = state.get("voice_room")
-    if room_name:
-        try:
-            from voice_routes import DAILY_API_KEY, DAILY_BASE, _headers
-            if DAILY_API_KEY:
-                import requests as _req
-                _req.delete(f"{DAILY_BASE}/rooms/{room_name}", headers=_headers(), timeout=5)
-        except Exception:
-            pass
-
     save_session()
     state.update({
         "history":         [],
@@ -2322,7 +2308,6 @@ def end_session():
         "party_loot":      [],
         "game_state": {"gold": 0, "xp": 0, "game_date": "", "location": "", "characters": []},
         "chronicle":       [],
-        "voice_room":      None,
     })
     return jsonify({"ok": True})
 
