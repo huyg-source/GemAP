@@ -1435,6 +1435,12 @@ def update_character():
     # Not found — append as new
     characters.append(updated)
     upsert_character(updated, cid)
+    # Seed spellbook when creating a brand-new character via the wizard
+    if not original_name:
+        spell_list    = updated.get("spells", [])
+        cantrip_names = [s["name"] for s in spell_list if isinstance(s, dict) and s.get("level") == 0]
+        spell_names   = [s["name"] for s in spell_list if isinstance(s, dict) and s.get("level", 0) > 0]
+        seed_spellbook_from_names(cid, updated.get("name", ""), spell_names, cantrip_names)
     _rebuild_party_context()
     save_session()
     return jsonify({"ok": True, "characters": characters})
