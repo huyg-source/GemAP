@@ -1390,9 +1390,19 @@ function _cwCalcHp(sc) {
   for (let l=2; l<=_cw.level; l++) hp += cd.avgHpPerLevel + cm;
   return Math.max(1, hp);
 }
+function _cwRacialWeaponProf() {
+  const sub = _cw.subrace || '';
+  if (_cw.race === 'Elf') {
+    if (sub === 'Dark Elf (Drow)') return 'rapiers, shortswords, hand crossbows';
+    return 'longswords, shortswords, shortbows, longbows'; // High Elf & Wood Elf
+  }
+  return '';
+}
+
 function _cwRenderReview() {
   const sc = _cwFinalScores(), hp = _cwCalcHp(sc), rd = CWIZ_RACES[_cw.race]||{}, cd = CWIZ_CLASSES[_cw.cls]||{};
   const bgD = CWIZ_BACKGROUNDS[_cw.background]||{skills:[]}, allSk = [...bgD.skills,..._cw.skillChoices];
+  const racialWeapons = _cwRacialWeaponProf();
   const feats = Object.values(_cw.asiChoices).filter(c=>c.type==='feat'&&c.feat).map(c=>c.feat.split('—')[0].trim());
   const raceStr = _cw.race + (_cw.subrace ? ` (${_cw.subrace})` : '');
   const langParts = [RACE_BASE_LANGS[_cw.race] || 'Common'];
@@ -1418,7 +1428,7 @@ function _cwRenderReview() {
         <div class="cwiz-rev-block"><h4>Proficiencies</h4>
           <div style="font-size:.76rem;color:var(--text-dim);line-height:1.6">
             <strong style="color:var(--text)">Armor:</strong> ${cd.armorProf||'None'}<br>
-            <strong style="color:var(--text)">Weapons:</strong> ${cd.weaponProf||'—'}<br>
+            <strong style="color:var(--text)">Weapons:</strong> ${[cd.weaponProf, racialWeapons].filter(Boolean).join('; ')||'—'}<br>
             <strong style="color:var(--text)">Saves:</strong> ${(cd.saves||[]).join(', ')||'—'}
           </div></div>
         <div class="cwiz-rev-block"><h4>Languages</h4><div style="font-size:.78rem;color:var(--blue-lt)">${langs}</div></div>
