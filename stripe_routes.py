@@ -41,6 +41,21 @@ stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
 stripe_bp = Blueprint("stripe_bp", __name__, url_prefix="/stripe")
 
 
+# ── Debug (remove after confirming config) ────────────────────────────────────
+
+@stripe_bp.route("/config-check")
+def config_check():
+    key = os.environ.get("STRIPE_SECRET_KEY", "")
+    price = os.environ.get("STRIPE_PRICE_ID", "")
+    whsec = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+    return jsonify({
+        "STRIPE_SECRET_KEY":     f"{key[:7]}...{key[-4:]}" if len(key) > 11 else ("SET" if key else "MISSING"),
+        "STRIPE_PRICE_ID":       f"{price[:8]}..." if price else "MISSING",
+        "STRIPE_WEBHOOK_SECRET": f"{whsec[:8]}..." if whsec else "MISSING",
+        "stripe_api_key_live":   bool(stripe.api_key),
+    })
+
+
 # ── Checkout ──────────────────────────────────────────────────────────────────
 
 @stripe_bp.route("/checkout", methods=["GET", "POST"])
