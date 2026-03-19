@@ -3214,7 +3214,13 @@ def _auto_seed_reference_data():
             log.warning("Mobs table is empty but mobs_seed.csv not found at %s", mobs_csv)
 
     # ── Spells ───────────────────────────────────────────────────────────────
-    if count_spells_reference() == 0:
+    import sqlite3 as _sqlite3
+    from db_manager import DB_PATH as _db_path
+    with _sqlite3.connect(_db_path) as _chk:
+        _has_cantrips = _chk.execute(
+            "SELECT 1 FROM spells_reference WHERE level=0 LIMIT 1"
+        ).fetchone()
+    if count_spells_reference() == 0 or not _has_cantrips:
         spells_csv = os.path.join(base, "Spells.csv")
         if os.path.exists(spells_csv):
             log.info("Auto-seeding spells from %s …", spells_csv)

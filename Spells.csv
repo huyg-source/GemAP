@@ -244,3 +244,30 @@ Level,Spellbook,Discovered,ClassRestrict,Prepare,Name,Ritual,Concentration,Save 
 9,,X,,,True Polymorph,,X,WIS,AON,"V,S,M",1 Action,30 Feet,1 Hour
 9,,,,,Weird,,X,WIS,AON,"V,S",1 Action,120 Feet,Up to 1 Minute
 9,,X,,,Wish,,,,,V,1 Action,Self,Instantaneous
+0,,,Sorcerer;Wizard,,Acid Splash,,,CON,,"V,S",1 Action,60 Feet,Instantaneous
+0,,,Bard;Sorcerer;Warlock;Wizard,,Blade Ward,,,,,"V,S",1 Action,Self,1 Round
+0,,,Sorcerer;Warlock;Wizard,,Chill Touch,,,,,"V,S",1 Action,120 Feet,1 Round
+0,,,Bard;Sorcerer;Wizard,,Dancing Lights,,,,X,"V,S,M",1 Action,120 Feet,Concentration up to 1 Minute
+0,,,Druid,,Druidcraft,,,,,"V,S",1 Action,30 Feet,Instantaneous
+0,,,Warlock,,Eldritch Blast,,,,,"V,S",1 Action,120 Feet,Instantaneous
+0,,,Sorcerer;Wizard,,Fire Bolt,,,,,"V,S",1 Action,120 Feet,Instantaneous
+0,,,Bard;Sorcerer;Warlock;Wizard,,Friends,,,,,X,"S,M",1 Action,Self,Concentration up to 1 Minute
+0,,,Cleric;Druid,,Guidance,,,,X,"V,S",1 Action,Touch,Concentration up to 1 Minute
+0,,,Bard;Cleric;Sorcerer;Wizard,,Light,,,,,"V,M",1 Action,Touch,1 Hour
+0,,,Bard;Sorcerer;Warlock;Wizard,,Mage Hand,,,,,"V,S",1 Action,30 Feet,1 Minute
+0,,,Bard;Cleric;Druid;Sorcerer;Wizard,,Mending,,,,,"V,S,M",1 Minute,Touch,Instantaneous
+0,,,Bard;Sorcerer;Wizard,,Message,,,,,"V,S,M",1 Action,120 Feet,1 Round
+0,,,Bard;Sorcerer;Warlock;Wizard,,Minor Illusion,,,,,"S,M",1 Action,30 Feet,1 Minute
+0,,,Druid;Sorcerer;Warlock;Wizard,,Poison Spray,,,CON,,"V,S",1 Action,10 Feet,Instantaneous
+0,,,Bard;Sorcerer;Warlock;Wizard,,Prestidigitation,,,,,"V,S",1 Action,10 Feet,1 Hour
+0,,,Druid,,Produce Flame,,,,,"V,S",1 Action,Self,10 Minutes
+0,,,Sorcerer;Wizard,,Ray of Frost,,,,,"V,S",1 Action,60 Feet,Instantaneous
+0,,,Cleric;Druid,,Resistance,,,,X,"V,S,M",1 Action,Touch,Concentration up to 1 Minute
+0,,,Cleric,,Sacred Flame,,,DEX,,"V,S",1 Action,60 Feet,Instantaneous
+0,,,Druid,,Shillelagh,,,,,"V,S,M",1 Bonus Action,Touch,1 Minute
+0,,,Sorcerer;Wizard,,Shocking Grasp,,,,,"V,S",1 Action,Touch,Instantaneous
+0,,,Cleric,,Spare the Dying,,,,,"V,S",1 Action,Touch,Instantaneous
+0,,,Cleric,,Thaumaturgy,,,,,V,1 Action,30 Feet,1 Minute
+0,,,Druid,,Thorn Whip,,,STR,,"V,S,M",1 Action,30 Feet,Instantaneous
+0,,,Bard;Sorcerer;Warlock;Wizard,,True Strike,,,,X,S,1 Action,30 Feet,Concentration up to 1 Round
+0,,,Bard,,Vicious Mockery,,,WIS,,V,1 Action,60 Feet,Instantaneous
