@@ -270,6 +270,14 @@ JSON STRUCTURE:
       ]
     }
   ],
+  "encounter_mobs": [
+    {
+      "name":       "<unique combatant name e.g. 'Goblin 1', 'Orc Warchief'>",
+      "hp":         <integer max HP — use accurate D&D 5e values>,
+      "ac":         <integer AC — use accurate D&D 5e values>,
+      "initiative": <integer 1-20, or 0 to auto-roll>
+    }
+  ],
   "combat_updates": [
     {
       "name":   "<exact combatant name as shown in initiative order>",
@@ -320,6 +328,15 @@ JSON STRUCTURE:
     }
   ]
 }
+
+ENCOUNTER MOBS RULES:
+- "encounter_mobs" must be populated on the VERY FIRST turn that session_mode switches to "combat" — it seeds the initiative tracker.
+- List ONLY enemy combatants (not the player characters).
+- Give each individual creature its own entry with a unique name: "Goblin 1", "Goblin 2", "Orc Warchief", etc.
+- Use accurate D&D 5e HP and AC values for the creature type (e.g. Goblin: hp 7, ac 15).
+- Set initiative to 0 to have the system auto-roll for that mob.
+- On ALL subsequent turns (combat already active, a COMBAT CONTEXT block is present), set "encounter_mobs" to [].
+- If the DM manually added mobs before combat started, still omit them here (they are already tracked).
 
 FACTION MENTION RULES:
 - Include any named faction or organization that is meaningfully referenced for the FIRST TIME this session.

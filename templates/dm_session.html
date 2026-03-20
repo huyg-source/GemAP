@@ -2437,6 +2437,27 @@ async function sendMessage(autoMsg, autoType = 'npc') {
     // Once combat is active, only the ✕ End button can stop it — ignore any non-combat
     // session_mode the AI returns mid-fight (it sometimes returns 'narrative' incorrectly).
     if (data.session_mode && data.session_mode !== gameState.sessionMode && !gameState.combatActive) {
+      // If combat is starting, seed mobCards from AI's encounter_mobs before _startCombat() reads them
+      if (data.session_mode === 'combat' && Array.isArray(data.encounter_mobs) && data.encounter_mobs.length) {
+        for (const mob of data.encounter_mobs) {
+          const mname = (mob.name || '').trim();
+          if (!mname) continue;
+          // Skip any name already in mobCards (user may have pre-added some manually)
+          if (mobCards.some(m => m.name === mname)) continue;
+          mobCards.push({
+            id: ++_mobIdSeq, name: mname,
+            hp: mob.hp || 10, max_hp: mob.hp || 10,
+            ac: mob.ac || 12, initiative: mob.initiative || 0,
+            status_ko: false, status_atk: false, weapon: '',
+            hp_formula: '', speed: '', challenge: '', size: '', mob_type: '',
+            melee_mod: '', ranged_mod: '',
+            attack1: '', attack1_range: '', attack1_dmg: '',
+            attack2: '', attack2_range: '', attack2_dmg: '',
+            attack3: '', attack3_range: '', attack3_dmg: '',
+            str: 10, dex: 10, con: 10, wis: 10, languages: '', image_path: '',
+          });
+        }
+      }
       setMode(data.session_mode);
     }
     if (gameState.combatActive) {
