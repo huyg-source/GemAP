@@ -1161,20 +1161,29 @@ def chat():
     )
 
     gs = data.get("game_state", {})
-    state["game_state"].update({
-        "gold":       gs.get("gold",       state["game_state"]["gold"]),
-        "xp":         gs.get("xp",         state["game_state"].get("xp", 0)),
-        "game_date":  data.get("game_date", state["game_state"]["game_date"]),
-        "location":   gs.get("location",   state["game_state"]["location"]),
-        "characters": _merge_ai_characters(gs.get("characters"), state["game_state"]["characters"]),
-    })
+    try:
+        state["game_state"].update({
+            "gold":       gs.get("gold",       state["game_state"]["gold"]),
+            "xp":         gs.get("xp",         state["game_state"].get("xp", 0)),
+            "game_date":  data.get("game_date", state["game_state"]["game_date"]),
+            "location":   gs.get("location",   state["game_state"]["location"]),
+            "characters": _merge_ai_characters(gs.get("characters"), state["game_state"]["characters"]),
+        })
+    except Exception as e:
+        log.exception("game_state merge failed: %s", e)
 
     # Persist AI-updated character fields (HP, AC, status, buffs/debuffs) back to characters table
     _cid = state.get("campaign_id") or 0
     for _c in state["game_state"]["characters"]:
         if _c.get("name"):
-            upsert_character(_c, _cid)
-    _rebuild_party_context()
+            try:
+                upsert_character(_c, _cid)
+            except Exception as e:
+                log.warning("upsert_character failed for '%s': %s", _c.get("name"), e)
+    try:
+        _rebuild_party_context()
+    except Exception as e:
+        log.warning("_rebuild_party_context failed: %s", e)
 
     try:
         rp_updates = _apply_rp_notes_updates(data)
@@ -1282,7 +1291,10 @@ def chat():
         except Exception as e:
             log.warning("loot_awards entry skipped: %s", e)
     if new_loot:
-        save_session()
+        try:
+            save_session()
+        except Exception as e:
+            log.exception("save_session (loot) failed: %s", e)
 
     # Broadcast map to players if AI updated it
     if data.get("map_layout"):
