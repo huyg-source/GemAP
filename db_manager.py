@@ -488,13 +488,6 @@ def _migrate(con):
     if table_exists("characters") and not has_column("characters", "user_id"):
         con.execute("ALTER TABLE characters ADD COLUMN user_id INTEGER REFERENCES users(id)")
 
-    # Assign unowned campaigns (user_id IS NULL) to the oldest user account so
-    # they don't disappear after the per-user filtering migration.
-    if table_exists("campaigns") and table_exists("users"):
-        oldest = con.execute("SELECT id FROM users ORDER BY id ASC LIMIT 1").fetchone()
-        if oldest:
-            con.execute("UPDATE campaigns SET user_id=? WHERE user_id IS NULL", (oldest[0],))
-
     # User activity tracking
     if table_exists("users") and not has_column("users", "last_login"):
         con.execute("ALTER TABLE users ADD COLUMN last_login TEXT DEFAULT NULL")
@@ -748,20 +741,43 @@ def get_campaign(campaign_id: int) -> dict | None:
 
 
 def list_campaigns(user_id: int = None) -> list[dict]:
-    """Return campaigns for the given user (or all if user_id is None)."""
+    """Return campaigns owned by user_id, or unclaimed campaigns if user_id is None."""
     with _conn() as con:
-        rows = con.execute("""
-            SELECT c.id, c.name, c.description, c.created_at,
-                   COUNT(s.session_key) AS session_count,
-                   MAX(s.last_saved)    AS last_played,
-                   MAX(s.turn)          AS max_turn
-            FROM campaigns c
-            LEFT JOIN sessions s ON s.campaign_id = c.id
-            WHERE c.user_id = ?
-            GROUP BY c.id
-            ORDER BY last_played DESC NULLS LAST
-        """, (user_id,)).fetchall()
+        if user_id is not None:
+            rows = con.execute("""
+                SELECT c.id, c.name, c.description, c.created_at,
+                       COUNT(s.session_key) AS session_count,
+                       MAX(s.last_saved)    AS last_played,
+                       MAX(s.turn)          AS max_turn
+                FROM campaigns c
+                LEFT JOIN sessions s ON s.campaign_id = c.id
+                WHERE c.user_id = ?
+                GROUP BY c.id
+                ORDER BY last_played DESC NULLS LAST
+            """, (user_id,)).fetchall()
+        else:
+            rows = con.execute("""
+                SELECT c.id, c.name, c.description, c.created_at,
+                       COUNT(s.session_key) AS session_count,
+                       MAX(s.last_saved)    AS last_played,
+                       MAX(s.turn)          AS max_turn
+                FROM campaigns c
+                LEFT JOIN sessions s ON s.campaign_id = c.id
+                WHERE c.user_id IS NULL
+                GROUP BY c.id
+                ORDER BY last_played DESC NULLS LAST
+            """).fetchall()
     return [dict(r) for r in rows]
+
+
+def claim_unclaimed_campaigns(user_id: int) -> int:
+    """Assign all campaigns with user_id IS NULL to the given user.
+    Returns the number of campaigns claimed."""
+    with _conn() as con:
+        cur = con.execute(
+            "UPDATE campaigns SET user_id=? WHERE user_id IS NULL", (user_id,)
+        )
+    return cur.rowcount
 
 
 def update_campaign(campaign_id: int, name: str, description: str):

@@ -57,7 +57,7 @@ _setup_logging()
 log = logging.getLogger("dnd")
 from db_manager import (
     init_db,
-    create_campaign, list_campaigns, get_campaign,
+    create_campaign, list_campaigns, claim_unclaimed_campaigns, get_campaign,
     update_from_session, append_session_entry, read_main_tab_characters,
     save_session as db_save_session,
     load_session as db_load_session,
@@ -953,7 +953,15 @@ def gm_index():
 @gm_required
 def get_campaigns():
     uid = current_user.id if current_user.is_authenticated else None
-    return jsonify(list_campaigns(uid))
+    campaigns = list_campaigns(uid)
+    # Auto-claim: if this is an authenticated user who has no campaigns yet
+    # but there are unclaimed (NULL user_id) campaigns in the DB, assign them.
+    # This handles the upgrade path where campaigns predate account creation.
+    if uid is not None and not campaigns:
+        claimed = claim_unclaimed_campaigns(uid)
+        if claimed:
+            campaigns = list_campaigns(uid)
+    return jsonify(campaigns)
 
 
 @app.route("/new-campaign", methods=["POST"])
