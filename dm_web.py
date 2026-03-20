@@ -231,7 +231,7 @@ JSON STRUCTURE:
 {
   "sync_id": "<copied from user message>",
   "game_date": "<in-world date>",
-  "session_mode": "<combat|roleplay|narrative — set to 'combat' when violence breaks out or initiative is called, 'roleplay' during NPC social encounters, 'narrative' for exploration/travel/story>",
+  "session_mode": "<combat|roleplay|narrative — IMPORTANT: if the current mode is already 'combat' (a COMBAT CONTEXT block is present), return 'combat' every single turn until ALL enemies are dead or combat explicitly ends. Never return 'narrative' or 'roleplay' mid-combat. Only switch to 'combat' when violence first breaks out or initiative is called; only switch away when the DM ends the encounter.>",
   "player_restatement": "<player input as clean third-person narrative prose>",
   "dm_response": "<full DM narrative response>",
   "game_state": {
@@ -399,6 +399,7 @@ RP NOTES UPDATE RULES:
 COMBAT_MODE_INSTRUCTIONS = """
 CURRENT MODE: COMBAT (Turn-Based D&D 5e)
 - Combat is in progress. Enforce strict D&D 5e turn-based rules.
+- ALWAYS return "session_mode": "combat" while combat is active. Do NOT return "narrative" or "roleplay" until the DM explicitly ends the encounter — even if a turn is uneventful or a mob is being added.
 - A COMBAT CONTEXT block will appear at the start of the user message showing the initiative order,
   the current round number, and which character has the ACTIVE TURN.
 - If the active character is marked NPC or Mob, you choose and narrate their action — do not wait for player input.

@@ -2395,10 +2395,13 @@ async function sendMessage(autoMsg, autoType = 'npc') {
       }
     }
 
-    // AI-driven mode switching: auto-start combat if AI set session_mode=combat
-    if (data.session_mode && data.session_mode !== gameState.sessionMode) {
+    // AI-driven mode switching: only allow AI to START combat or switch narrative/roleplay.
+    // Once combat is active, only the ✕ End button can stop it — ignore any non-combat
+    // session_mode the AI returns mid-fight (it sometimes returns 'narrative' incorrectly).
+    if (data.session_mode && data.session_mode !== gameState.sessionMode && !gameState.combatActive) {
       setMode(data.session_mode);
-    } else if (gameState.combatActive) {
+    }
+    if (gameState.combatActive) {
       // Auto-advance initiative turn after each AI response in combat
       advanceCombatTurn(1);
       // _maybeAutoNpcTurn is called inside advanceCombatTurn
