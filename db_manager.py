@@ -488,6 +488,13 @@ def _migrate(con):
     if table_exists("characters") and not has_column("characters", "user_id"):
         con.execute("ALTER TABLE characters ADD COLUMN user_id INTEGER REFERENCES users(id)")
 
+    # Assign unowned campaigns (user_id IS NULL) to the oldest user account so
+    # they don't disappear after the per-user filtering migration.
+    if table_exists("campaigns") and table_exists("users"):
+        oldest = con.execute("SELECT id FROM users ORDER BY id ASC LIMIT 1").fetchone()
+        if oldest:
+            con.execute("UPDATE campaigns SET user_id=? WHERE user_id IS NULL", (oldest[0],))
+
     # User activity tracking
     if table_exists("users") and not has_column("users", "last_login"):
         con.execute("ALTER TABLE users ADD COLUMN last_login TEXT DEFAULT NULL")
@@ -720,13 +727,13 @@ def seed_world_factions(campaign_id: int) -> int:
     return count
 
 
-def create_campaign(name: str, description: str = "") -> int:
+def create_campaign(name: str, description: str = "", user_id: int = None) -> int:
     """Create a new campaign, seed world factions, and return the campaign id."""
     with _conn() as con:
         cur = con.execute("""
-            INSERT INTO campaigns (name, description, created_at)
-            VALUES (?, ?, ?)
-        """, (name, description, datetime.now().isoformat()))
+            INSERT INTO campaigns (name, description, created_at, user_id)
+            VALUES (?, ?, ?, ?)
+        """, (name, description, datetime.now().isoformat(), user_id))
         cid = cur.lastrowid
     seed_world_factions(cid)
     return cid
@@ -740,8 +747,8 @@ def get_campaign(campaign_id: int) -> dict | None:
     return dict(row) if row else None
 
 
-def list_campaigns() -> list[dict]:
-    """Return all campaigns with session counts."""
+def list_campaigns(user_id: int = None) -> list[dict]:
+    """Return campaigns for the given user (or all if user_id is None)."""
     with _conn() as con:
         rows = con.execute("""
             SELECT c.id, c.name, c.description, c.created_at,
@@ -750,9 +757,10 @@ def list_campaigns() -> list[dict]:
                    MAX(s.turn)          AS max_turn
             FROM campaigns c
             LEFT JOIN sessions s ON s.campaign_id = c.id
+            WHERE c.user_id = ?
             GROUP BY c.id
             ORDER BY last_played DESC NULLS LAST
-        """).fetchall()
+        """, (user_id,)).fetchall()
     return [dict(r) for r in rows]
 
 

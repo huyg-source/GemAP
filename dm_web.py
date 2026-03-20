@@ -950,8 +950,10 @@ def gm_index():
 
 
 @app.route("/campaigns")
+@gm_required
 def get_campaigns():
-    return jsonify(list_campaigns())
+    uid = current_user.id if current_user.is_authenticated else None
+    return jsonify(list_campaigns(uid))
 
 
 @app.route("/new-campaign", methods=["POST"])
@@ -961,7 +963,8 @@ def new_campaign():
     if not name:
         return jsonify({"ok": False, "error": "Campaign name required"})
     try:
-        cid = create_campaign(name, description)
+        uid = current_user.id if current_user.is_authenticated else None
+        cid = create_campaign(name, description, user_id=uid)
         flask_session["gm_campaign_id"] = cid
         _thread_cid.id = cid
         state.update({
@@ -2348,7 +2351,8 @@ def factions_seed_world():
             cid = row.get("campaign_id")
     if cid is None:
         # Final fallback: use the first campaign in the DB
-        campaigns = list_campaigns()
+        _uid = current_user.id if current_user.is_authenticated else None
+        campaigns = list_campaigns(_uid)
         if campaigns:
             cid = campaigns[0]["id"]
     if cid is None:
