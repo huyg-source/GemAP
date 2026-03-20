@@ -3078,6 +3078,10 @@ function _rollInit() { return Math.floor(Math.random() * 20) + 1; }
 // Apply the combat mode visual state (buttons, panels, tracker) without touching combatOrder.
 // Used both by _startCombat (after building the order) and by session restore.
 function _applyCombatModeUI() {
+  // Sync session mode so mode buttons reflect combat state
+  gameState.sessionMode = 'combat';
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === 'combat'));
+  document.getElementById('msg-input').placeholder = 'Declare your action (or let the AI play NPCs)...';
   document.getElementById('encounter-btn').textContent = '✕ End';
   document.getElementById('encounter-btn').classList.add('active');
   document.getElementById('party-panel-title').classList.add('combat');
@@ -3468,7 +3472,18 @@ async function loadGameState() {
         gameState.combatTurnIdx = cui.combatTurnIdx || 0;
         gameState.combatRound   = cui.combatRound   || 1;
         gameState.combatActive  = true;
+        // Reconcile: any mob in mobCards not already in combatOrder gets inserted
+        for (const mob of mobCards) {
+          if (!gameState.combatOrder.some(e => e.name === mob.name)) {
+            const init = mob.initiative || _rollInit();
+            gameState.combatOrder.push({ name: mob.name, initiative: init, is_npc: true, type: 'mob' });
+          }
+        }
+        gameState.combatOrder.sort((a, b) => b.initiative - a.initiative);
         _applyCombatModeUI();
+      } else if (gs.combat_active) {
+        gameState.combatActive = true;
+        setMode('combat');
       } else {
         setMode(gameState.sessionMode);
       }
@@ -3629,9 +3644,17 @@ async function loadSessionFromModal(filename) {
         gameState.combatTurnIdx  = cui.combatTurnIdx  || 0;
         gameState.combatRound    = cui.combatRound    || 1;
         gameState.combatActive   = true;
-        // Apply combat UI directly without re-rolling initiative
+        // Reconcile: any mob in mobCards not already in combatOrder gets inserted
+        for (const mob of mobCards) {
+          if (!gameState.combatOrder.some(e => e.name === mob.name)) {
+            const init = mob.initiative || _rollInit();
+            gameState.combatOrder.push({ name: mob.name, initiative: init, is_npc: true, type: 'mob' });
+          }
+        }
+        gameState.combatOrder.sort((a, b) => b.initiative - a.initiative);
         _applyCombatModeUI();
       } else if (data.combat_active) {
+        gameState.combatActive = true;
         setMode('combat');
       } else {
         setMode(restoredMode);
