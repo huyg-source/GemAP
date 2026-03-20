@@ -97,6 +97,7 @@ from db_manager import (
     mark_messages_read,
     log_api_call, get_usage_by_session, get_usage_by_type, get_usage_totals,
     get_user_campaign_count, get_user_character_count,
+    get_user_by_id, get_user_by_email,
 )
 
 try:
@@ -962,6 +963,26 @@ def get_campaigns():
         if claimed:
             campaigns = list_campaigns(uid)
     return jsonify(campaigns)
+
+
+@app.route("/debug/campaign-ownership")
+def debug_campaign_ownership():
+    """Temporary debug: show campaign user_id assignments and current user info."""
+    import db_manager as _db
+    with _db._conn() as con:
+        campaigns = con.execute(
+            "SELECT id, name, user_id FROM campaigns ORDER BY id"
+        ).fetchall()
+        users = con.execute(
+            "SELECT id, email FROM users ORDER BY id"
+        ).fetchall()
+    return jsonify({
+        "current_user_id": current_user.id if current_user.is_authenticated else None,
+        "current_user_email": current_user.email if current_user.is_authenticated else None,
+        "gm_session": flask_session.get("gm_logged_in", False),
+        "campaigns": [{"id": r["id"], "name": r["name"], "user_id": r["user_id"]} for r in campaigns],
+        "users": [{"id": r["id"], "email": r["email"]} for r in users],
+    })
 
 
 @app.route("/new-campaign", methods=["POST"])
