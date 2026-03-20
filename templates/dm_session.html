@@ -7382,8 +7382,30 @@ function addEncounterMob() {
   document.getElementById('mob-ac-inp').value   = '';
   document.getElementById('mob-init-inp').value = '';
   document.getElementById('mob-name-dd').innerHTML = '';
+  // Always close the form after adding so there's clear feedback
+  document.getElementById('add-mob-form-area').style.display = 'none';
   renderMobCards();
   updateMobsPlaceholder();
+
+  // If combat is active, inject this mob into the initiative order and refresh the tracker
+  if (gameState.combatActive) {
+    const effectiveInit = init || Math.floor(Math.random() * 20) + 1;
+    const newEntry = { name, initiative: effectiveInit, is_npc: true, type: 'mob' };
+    // Insert in descending initiative order
+    const idx = gameState.combatOrder.findIndex(e => e.initiative < effectiveInit);
+    if (idx === -1) {
+      gameState.combatOrder.push(newEntry);
+    } else {
+      gameState.combatOrder.splice(idx, 0, newEntry);
+      // Keep turn pointer on the same combatant after splice
+      if (idx <= gameState.combatTurnIdx) gameState.combatTurnIdx++;
+    }
+    renderCombatTracker();
+    broadcastCombatOrder();
+    drawBattleMap();
+    broadcastMapToPlayers();
+  }
+
   saveCombatUiState();
   // Auto-advance knowledge to 'seen' for any mob added to an encounter
   fetch('/monster-manual/advance-rank', {
