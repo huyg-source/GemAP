@@ -1180,7 +1180,10 @@ def chat():
     if not state["session_key"]:
         state["session_key"] = _new_session_key()
     # Auto-save everything to DB every turn
-    save_session()
+    try:
+        save_session()
+    except Exception as e:
+        log.exception("save_session failed on /chat turn: %s", e)
     cid = state["campaign_id"] or 0
 
     # Process NPC updates from AI response
@@ -1214,15 +1217,18 @@ def chat():
             npc_results.append(npc)
         except Exception as e:
             log.warning("NPC update failed for '%s': %s", name, e)
-    append_chronicle(
-        session_key=state["session_key"],
-        campaign_id=cid,
-        sync_id=sync_id,
-        game_date=data.get("game_date", ""),
-        player_text=data.get("player_restatement", user_input),
-        dm_text=data.get("dm_response", ""),
-        user_raw=user_input,
-    )
+    try:
+        append_chronicle(
+            session_key=state["session_key"],
+            campaign_id=cid,
+            sync_id=sync_id,
+            game_date=data.get("game_date", ""),
+            player_text=data.get("player_restatement", user_input),
+            dm_text=data.get("dm_response", ""),
+            user_raw=user_input,
+        )
+    except Exception as e:
+        log.exception("append_chronicle failed on /chat turn: %s", e)
 
     threading.Thread(
         target=_write_story_entry,
@@ -3285,6 +3291,15 @@ def _auto_seed_reference_data():
 
 
 _auto_seed_reference_data()
+
+
+@app.errorhandler(Exception)
+def handle_unhandled_exception(e):
+    """Return JSON instead of HTML for any unhandled exception, so the client
+    sees a parseable error rather than '<!doctype html>' crashing res.json()."""
+    log.exception("Unhandled exception: %s", e)
+    return jsonify({"ok": False, "error": f"Server error: {e}"}), 500
+
 
 if __name__ == "__main__":
     threading.Timer(1.5, open_in_chrome).start()
