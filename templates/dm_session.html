@@ -355,6 +355,30 @@
     border-bottom: 1px solid var(--border); padding-bottom: 2px; margin-top: 4px; flex-shrink: 0;
   }
 
+  /* Spellbook level filter */
+  .sb-filter-row { display: flex; align-items: center; gap: 6px; flex-shrink: 0; margin-bottom: 2px; }
+  .sb-filter-row label { font-size: .7rem; color: var(--text-dim); white-space: nowrap; }
+  .sb-filter-row select { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 3px 6px; border-radius: 4px; font-size: .78rem; }
+  .sb-filter-pill {
+    display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 10px;
+    border: 1px solid var(--border); background: transparent; color: var(--text-dim);
+    font-size: .7rem; cursor: pointer; white-space: nowrap;
+  }
+  .sb-filter-pill.active { border-color: var(--gold); color: var(--gold); background: #1a1200; }
+  /* Spell tooltip */
+  #spell-tooltip {
+    position: fixed; z-index: 9000; pointer-events: none;
+    background: #111720; border: 1px solid var(--gold);
+    border-radius: 6px; padding: 10px 13px; max-width: 310px; min-width: 200px;
+    box-shadow: 0 6px 24px rgba(0,0,0,.7); display: none; font-size: .8rem;
+  }
+  #spell-tooltip .stt-name  { font-weight: 700; color: var(--gold); font-size: .92rem; margin-bottom: 3px; }
+  #spell-tooltip .stt-meta  { color: var(--text-dim); font-size: .75rem; margin-bottom: 6px; line-height: 1.5; }
+  #spell-tooltip .stt-prop  { display: flex; gap: 4px; margin-bottom: 2px; }
+  #spell-tooltip .stt-prop-lbl { color: var(--text-dim); font-size: .72rem; min-width: 80px; flex-shrink: 0; }
+  #spell-tooltip .stt-prop-val { color: var(--text); font-size: .78rem; }
+  #spell-tooltip .stt-desc  { color: var(--text); font-size: .76rem; line-height: 1.5; margin-top: 7px; border-top: 1px solid var(--border); padding-top: 6px; max-height: 180px; overflow-y: auto; }
+
   /* card inventory btn */
   .card-header { display: flex; align-items: flex-start; justify-content: space-between; }
   .card-inv-btn {
@@ -1885,7 +1909,19 @@
     <!-- Tab: Spells -->
     <div class="inv-tab-pane" id="inv-pane-spells">
       <div id="inv-spell-tracker" style="flex-shrink:0;"></div>
-      <div class="spell-section-label" style="flex-shrink:0;margin-top:4px;">Spellbook — Known</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0;margin-top:4px;">
+        <div class="spell-section-label" style="margin:0;">Spellbook — Known</div>
+        <div class="sb-filter-row" style="margin:0;">
+          <label>Filter:</label>
+          <select id="inv-sb-lvl-filter" onchange="invSbFilterChanged()">
+            <option value="">All</option>
+            <option value="0">Cantrips</option>
+            <option value="1">1st</option><option value="2">2nd</option><option value="3">3rd</option>
+            <option value="4">4th</option><option value="5">5th</option><option value="6">6th</option>
+            <option value="7">7th</option><option value="8">8th</option><option value="9">9th</option>
+          </select>
+        </div>
+      </div>
       <div class="spellbook-wrap" id="inv-spellbook-list" style="flex:2;"></div>
       <div class="spell-section-label" style="margin-top:6px;flex-shrink:0;">Add from Reference</div>
       <div class="spell-search-row">
@@ -4007,6 +4043,8 @@ async function openInventory(charName) {
     return { name: i.name || '', qty: i.qty || 1, note: i.note || '', slot };
   });
   document.getElementById('inv-title').textContent = `${charName} — Inventory & Spells`;
+  document.getElementById('inv-sb-lvl-filter').value = '';  // reset level filter
+  _sbAllSpells = [];
   invSwitchTab('equipped');
   document.getElementById('inv-modal').classList.add('show');
 }
@@ -4014,6 +4052,7 @@ async function openInventory(charName) {
 function closeInventory() {
   document.getElementById('inv-modal').classList.remove('show');
   invEditingName = null;
+  hideSpellTooltip();
 }
 
 function renderEquipped() {
@@ -4521,6 +4560,8 @@ async function saveInventory() {
 // ── Spellbook tab ─────────────────────────────────────────────────────────────
 let _spellSearchTimeout = null;
 
+let _sbAllSpells = [];  // full spellbook cache for filter + tooltip
+
 async function invLoadSpellbook() {
   const cid  = _activeCampaignId || 0;
   const list = document.getElementById('inv-spellbook-list');
@@ -4528,11 +4569,19 @@ async function invLoadSpellbook() {
   try {
     const res   = await fetch(`/spells/book?campaign_id=${cid}&char_name=${encodeURIComponent(invEditingName)}`);
     const spells = await res.json();
+    _sbAllSpells = spells;
     renderSpellbook(spells);
     invUpdateSpellTracker(spells);
   } catch(e) {
     list.innerHTML = '<div class="inv-empty" style="color:var(--red-lt);">Failed to load spellbook.</div>';
   }
+}
+
+function invSbFilterChanged() {
+  const lvl = document.getElementById('inv-sb-lvl-filter').value;
+  const filtered = lvl === '' ? _sbAllSpells
+    : _sbAllSpells.filter(s => String(s.level) === lvl);
+  renderSpellbook(filtered);
 }
 
 function invUpdateSpellTracker(spells) {
@@ -5023,7 +5072,7 @@ function renderSpellbook(spells) {
   list.innerHTML = spells.map(sp => {
     const lvlLabel = sp.level === 0 ? 'Ctrp' : `Lv${sp.level}`;
     const prepCls  = sp.prepared ? 'on' : '';
-    return `<div class="spell-book-row ${sp.prepared ? 'prepared' : ''}">
+    return `<div class="spell-book-row ${sp.prepared ? 'prepared' : ''}" data-spell-id="${sp.spell_id}">
       <span class="sr-lvl">${lvlLabel}</span>
       <div><span class="sr-name">${esc(sp.name)}</span><br><span class="sr-school">${esc(sp.school)}</span></div>
       <span class="sr-school" style="font-size:.72rem;">${esc(sp.casting_time||'')}</span>
@@ -5033,6 +5082,61 @@ function renderSpellbook(spells) {
       <button class="inv-del-btn" onclick="invRemoveSpell(${sp.spell_id},this)">&#10005;</button>
     </div>`;
   }).join('');
+
+  // Attach tooltip listeners
+  list.querySelectorAll('.spell-book-row').forEach(row => {
+    const sid = parseInt(row.dataset.spellId);
+    const sp  = _sbAllSpells.find(s => s.spell_id === sid);
+    if (!sp) return;
+    row.addEventListener('mouseenter', e => showSpellTooltip(sp, e));
+    row.addEventListener('mousemove',  e => positionSpellTooltip(e));
+    row.addEventListener('mouseleave', hideSpellTooltip);
+  });
+}
+
+function showSpellTooltip(sp, e) {
+  const tt = document.getElementById('spell-tooltip');
+  document.getElementById('stt-name').textContent = sp.name;
+
+  const lvlSchool = sp.level === 0
+    ? `Cantrip — ${sp.school}`
+    : `${['1st','2nd','3rd','4th','5th','6th','7th','8th','9th'][sp.level-1]}-level ${sp.school}`;
+  const tags = [];
+  if (sp.ritual)        tags.push('Ritual');
+  if (sp.concentration) tags.push('Concentration');
+  document.getElementById('stt-meta').textContent = lvlSchool + (tags.length ? ` · ${tags.join(' · ')}` : '');
+
+  const props = [
+    ['Casting Time', sp.casting_time],
+    ['Range',        sp.spell_range],
+    ['Components',   sp.components],
+    ['Duration',     sp.duration],
+  ];
+  document.getElementById('stt-props').innerHTML = props
+    .filter(([, v]) => v)
+    .map(([l, v]) => `<div class="stt-prop"><span class="stt-prop-lbl">${l}</span><span class="stt-prop-val">${esc(v)}</span></div>`)
+    .join('');
+
+  document.getElementById('stt-desc').textContent = sp.description || '';
+  tt.style.display = 'block';
+  positionSpellTooltip(e);
+}
+
+function positionSpellTooltip(e) {
+  const tt = document.getElementById('spell-tooltip');
+  const pad = 14;
+  let x = e.clientX + pad;
+  let y = e.clientY + pad;
+  const w = tt.offsetWidth  || 310;
+  const h = tt.offsetHeight || 200;
+  if (x + w > window.innerWidth  - 8) x = e.clientX - w - pad;
+  if (y + h > window.innerHeight - 8) y = e.clientY - h - pad;
+  tt.style.left = x + 'px';
+  tt.style.top  = y + 'px';
+}
+
+function hideSpellTooltip() {
+  document.getElementById('spell-tooltip').style.display = 'none';
 }
 
 async function invTogglePrepared(spellId, btn) {
@@ -10376,6 +10480,14 @@ function openVoice() {
   window.open('https://meet.jit.si/' + _jitsiRoomName(state.session_key || ''), '_blank');
 }
 </script>
+
+<!-- Spell tooltip (shared, shown on hover over spellbook rows) -->
+<div id="spell-tooltip">
+  <div class="stt-name"  id="stt-name"></div>
+  <div class="stt-meta"  id="stt-meta"></div>
+  <div id="stt-props"></div>
+  <div class="stt-desc"  id="stt-desc"></div>
+</div>
 
 </body>
 </html>
