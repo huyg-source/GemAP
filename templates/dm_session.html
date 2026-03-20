@@ -1835,21 +1835,23 @@
             <div class="eq-slot" ondragover="eqDragOver(event)" ondragleave="eqDragLeave(event)" ondrop="eqDrop(event,'hands')">
               <div class="eq-slot-label">Hands</div><div class="eq-slot-item" id="eq-item-hands"></div>
             </div>
-            <!-- Row 5: Comp Pouch, Belt, Quiver -->
+            <!-- Row 5: Comp Pouch, Clothes, Quiver -->
             <div class="eq-slot" ondragover="eqDragOver(event)" ondragleave="eqDragLeave(event)" ondrop="eqDrop(event,'comp_pouch')">
               <div class="eq-slot-label">Comp Pouch</div><div class="eq-slot-item" id="eq-item-comp_pouch"></div>
             </div>
-            <div class="eq-slot" ondragover="eqDragOver(event)" ondragleave="eqDragLeave(event)" ondrop="eqDrop(event,'belt')">
-              <div class="eq-slot-label">Belt</div><div class="eq-slot-item" id="eq-item-belt"></div>
+            <div class="eq-slot" ondragover="eqDragOver(event)" ondragleave="eqDragLeave(event)" ondrop="eqDrop(event,'clothes')">
+              <div class="eq-slot-label">Clothes</div><div class="eq-slot-item" id="eq-item-clothes"></div>
             </div>
             <div class="eq-slot" ondragover="eqDragOver(event)" ondragleave="eqDragLeave(event)" ondrop="eqDrop(event,'quiver')">
               <div class="eq-slot-label">Quiver</div><div class="eq-slot-item" id="eq-item-quiver"></div>
             </div>
-            <!-- Row 6: Scroll Case, _, Pouch -->
+            <!-- Row 6: Scroll Case, Belt, Pouch -->
             <div class="eq-slot" ondragover="eqDragOver(event)" ondragleave="eqDragLeave(event)" ondrop="eqDrop(event,'scroll_case')">
               <div class="eq-slot-label">Scroll Case</div><div class="eq-slot-item" id="eq-item-scroll_case"></div>
             </div>
-            <div class="eq-slot-placeholder"></div>
+            <div class="eq-slot" ondragover="eqDragOver(event)" ondragleave="eqDragLeave(event)" ondrop="eqDrop(event,'belt')">
+              <div class="eq-slot-label">Belt</div><div class="eq-slot-item" id="eq-item-belt"></div>
+            </div>
             <div class="eq-slot" ondragover="eqDragOver(event)" ondragleave="eqDragLeave(event)" ondrop="eqDrop(event,'pouch')">
               <div class="eq-slot-label">Pouch</div><div class="eq-slot-item" id="eq-item-pouch"></div>
             </div>
@@ -3994,8 +3996,8 @@ const EQ_SLOTS = [
   'main_hand','armor','off_hand',
   'ring_right','cloak','ring_left',
   'arms','robe','hands',
-  'comp_pouch','belt','quiver',
-  'scroll_case','pouch',
+  'comp_pouch','clothes','quiver',
+  'scroll_case','belt','pouch',
   'boots',
   // legacy (data compat, no grid cell)
   'shirt','pants',
