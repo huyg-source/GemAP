@@ -3075,6 +3075,38 @@ function toggleEncounter() {
 
 function _rollInit() { return Math.floor(Math.random() * 20) + 1; }
 
+// After restoring combat state, make sure mobCards and combatOrder are in sync:
+// • Any mob card not in combatOrder gets inserted (forward reconcile)
+// • Any NPC combatOrder entry with no mob card gets a stub card (reverse reconcile)
+// This handles mid-combat session reloads where one side of the data was lost.
+function _reconcileCombatState() {
+  // Forward: mob cards → combatOrder
+  for (const mob of mobCards) {
+    if (!gameState.combatOrder.some(e => e.name === mob.name)) {
+      const init = mob.initiative || _rollInit();
+      gameState.combatOrder.push({ name: mob.name, initiative: init, is_npc: true, type: 'mob' });
+    }
+  }
+  // Reverse: combatOrder NPC entries → mob card stubs (so HP bars etc. show up)
+  for (const entry of gameState.combatOrder) {
+    if (entry.is_npc && !locationNpcs.some(n => n.name === entry.name) && !mobCards.some(m => m.name === entry.name)) {
+      mobCards.push({
+        id: ++_mobIdSeq, name: entry.name,
+        hp: 0, max_hp: 0, ac: 0, initiative: entry.initiative || 0,
+        status_ko: false, status_atk: false, weapon: '',
+        hp_formula: '', speed: '', challenge: '', size: '', mob_type: '',
+        melee_mod: '', ranged_mod: '',
+        attack1: '', attack1_range: '', attack1_dmg: '',
+        attack2: '', attack2_range: '', attack2_dmg: '',
+        attack3: '', attack3_range: '', attack3_dmg: '',
+        str: 10, dex: 10, con: 10, wis: 10, languages: '', image_path: '',
+      });
+    }
+  }
+  if (_mobIdSeq > 0) _mobIdSeq = Math.max(...mobCards.map(m => m.id || 0), _mobIdSeq);
+  gameState.combatOrder.sort((a, b) => b.initiative - a.initiative);
+}
+
 // Apply the combat mode visual state (buttons, panels, tracker) without touching combatOrder.
 // Used both by _startCombat (after building the order) and by session restore.
 function _applyCombatModeUI() {
@@ -3472,14 +3504,7 @@ async function loadGameState() {
         gameState.combatTurnIdx = cui.combatTurnIdx || 0;
         gameState.combatRound   = cui.combatRound   || 1;
         gameState.combatActive  = true;
-        // Reconcile: any mob in mobCards not already in combatOrder gets inserted
-        for (const mob of mobCards) {
-          if (!gameState.combatOrder.some(e => e.name === mob.name)) {
-            const init = mob.initiative || _rollInit();
-            gameState.combatOrder.push({ name: mob.name, initiative: init, is_npc: true, type: 'mob' });
-          }
-        }
-        gameState.combatOrder.sort((a, b) => b.initiative - a.initiative);
+        _reconcileCombatState();
         _applyCombatModeUI();
       } else if (gs.combat_active) {
         gameState.combatActive = true;
@@ -3644,14 +3669,7 @@ async function loadSessionFromModal(filename) {
         gameState.combatTurnIdx  = cui.combatTurnIdx  || 0;
         gameState.combatRound    = cui.combatRound    || 1;
         gameState.combatActive   = true;
-        // Reconcile: any mob in mobCards not already in combatOrder gets inserted
-        for (const mob of mobCards) {
-          if (!gameState.combatOrder.some(e => e.name === mob.name)) {
-            const init = mob.initiative || _rollInit();
-            gameState.combatOrder.push({ name: mob.name, initiative: init, is_npc: true, type: 'mob' });
-          }
-        }
-        gameState.combatOrder.sort((a, b) => b.initiative - a.initiative);
+        _reconcileCombatState();
         _applyCombatModeUI();
       } else if (data.combat_active) {
         gameState.combatActive = true;
