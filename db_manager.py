@@ -741,7 +741,8 @@ def get_campaign(campaign_id: int) -> dict | None:
 
 
 def list_campaigns(user_id: int = None) -> list[dict]:
-    """Return campaigns owned by user_id, or unclaimed campaigns if user_id is None."""
+    """Return campaigns for the given user.
+    user_id=None means GM-password (admin) flow — returns ALL campaigns."""
     with _conn() as con:
         if user_id is not None:
             rows = con.execute("""
@@ -756,6 +757,7 @@ def list_campaigns(user_id: int = None) -> list[dict]:
                 ORDER BY last_played DESC NULLS LAST
             """, (user_id,)).fetchall()
         else:
+            # GM-password / admin: show everything
             rows = con.execute("""
                 SELECT c.id, c.name, c.description, c.created_at,
                        COUNT(s.session_key) AS session_count,
@@ -763,7 +765,6 @@ def list_campaigns(user_id: int = None) -> list[dict]:
                        MAX(s.turn)          AS max_turn
                 FROM campaigns c
                 LEFT JOIN sessions s ON s.campaign_id = c.id
-                WHERE c.user_id IS NULL
                 GROUP BY c.id
                 ORDER BY last_played DESC NULLS LAST
             """).fetchall()
@@ -771,12 +772,16 @@ def list_campaigns(user_id: int = None) -> list[dict]:
 
 
 def claim_unclaimed_campaigns(user_id: int) -> int:
-    """Assign all campaigns with user_id IS NULL to the given user.
+    """Assign to user_id any campaigns that have no valid owner:
+    those with user_id IS NULL or pointing to a deleted/non-existent user.
     Returns the number of campaigns claimed."""
     with _conn() as con:
-        cur = con.execute(
-            "UPDATE campaigns SET user_id=? WHERE user_id IS NULL", (user_id,)
-        )
+        cur = con.execute("""
+            UPDATE campaigns
+            SET user_id = ?
+            WHERE user_id IS NULL
+               OR user_id NOT IN (SELECT id FROM users)
+        """, (user_id,))
     return cur.rowcount
 
 
