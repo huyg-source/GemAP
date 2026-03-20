@@ -1445,7 +1445,7 @@
     <div class="panel-title">Ledger</div>
     <div id="ledger">
       <div class="ledger-item">
-        <span class="ledger-label">Gold</span>
+        <span class="ledger-label">Party Pool</span>
         <span class="ledger-val" id="lv-gold">0 gp</span>
       </div>
       <div class="ledger-item">
@@ -2966,6 +2966,7 @@ function updateParty(characters) {
       { label: 'AC',    val: c.ac    || '—'   },
       { label: 'Spd',   val: c.speed || '—'   },
       { label: 'Init',  val: c.initiative || '—' },
+      { label: 'Gold',  val: (c.gold ?? 0) + ' gp' },
     ];
     if (c.ki_points) vitals.push({ label: 'Ki', val: c.ki_points });
 

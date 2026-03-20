@@ -216,7 +216,8 @@ RESPONSE FORMAT RULES — absolute, never broken:
 - No markdown, code fences, backticks, or prose outside the JSON.
 - No trailing commas. No comments inside JSON.
 - "buffs" and "debuffs" must always be JSON arrays — [] if empty.
-- "gold" and "xp" must always be integers — 0 if unknown.
+- "gold" (in game_state) is the PARTY SHARED POOL — gold found as group treasure (chests, enemy loot, quest rewards paid to the party). It is NOT individual character wallets. Individual character gold (starting gold, personal purchases) is tracked separately by the application and must NOT be placed here. Leave "gold" at 0 if no shared treasure has been found yet.
+- "xp" must always be an integer — 0 if unknown.
 - "hp", "max_hp", "ac", and "level" must always be integers — 0 if unknown.
 
 STATE PERSISTENCE RULES:
