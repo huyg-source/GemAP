@@ -965,6 +965,18 @@ def get_campaigns():
     return jsonify(campaigns)
 
 
+@app.route("/debug/fix-campaign-ownership", methods=["POST"])
+def debug_fix_campaign_ownership():
+    """One-time fix: reassign campaigns to correct owners."""
+    import db_manager as _db
+    with _db._conn() as con:
+        # john.huyg (id=2) owns Test(1), Solo(2), Backup(4)
+        con.execute("UPDATE campaigns SET user_id=2 WHERE id IN (1,2,4)")
+        # sophia.huyg (id=3) owns Beeland(3)
+        con.execute("UPDATE campaigns SET user_id=3 WHERE id=3")
+    return jsonify({"ok": True, "message": "Campaign ownership corrected"})
+
+
 @app.route("/debug/campaign-ownership")
 def debug_campaign_ownership():
     """Temporary debug: show campaign user_id assignments and current user info."""
