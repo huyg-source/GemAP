@@ -903,13 +903,17 @@
   #mob-name-dd .mi-option:hover { background: var(--panel3); }
   #mob-name-dd .mi-opt-meta { font-size: .65rem; color: var(--text-dim); }
 
-  /* ── Store modal ── */
-  #store-modal .modal-box { min-width: 680px; max-width: 940px; max-height: 88vh; overflow: hidden; }
-  .store-layout { display: flex; gap: 0; flex: 1; min-height: 0; }
-  .store-items-panel { flex: 2; overflow-y: auto; border-right: 1px solid var(--border); padding: 8px; }
+  /* ── Barter modal ── */
+  #store-modal .modal-box { min-width: 820px; max-width: 1120px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; }
+  .store-layout { display: flex; gap: 0; flex: 1; min-height: 0; overflow: hidden; }
+
+  /* Left — NPC wares */
+  .store-items-panel { flex: 2; overflow-y: auto; border-right: 1px solid var(--border); padding: 8px; display: flex; flex-direction: column; gap: 6px; }
   .store-items-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .store-panel-hdr { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .store-panel-label { font-size: .65rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-dim); }
   .store-item-card {
-    width: 140px; border: 1px solid var(--border); border-radius: 5px;
+    width: 138px; border: 1px solid var(--border); border-radius: 5px;
     background: var(--panel2); padding: 8px; cursor: grab; transition: border-color .15s, box-shadow .15s;
     display: flex; flex-direction: column; gap: 4px; user-select: none;
   }
@@ -921,32 +925,60 @@
   .sic-buy-btn {
     margin-top: auto; padding: 3px 0; font-size: .65rem; font-weight: 700;
     text-transform: uppercase; letter-spacing: .05em; border-radius: 3px; cursor: pointer;
-    border: 1px solid var(--gold); color: var(--gold); background: transparent;
-    transition: all .12s;
+    border: 1px solid var(--gold); color: var(--gold); background: transparent; transition: all .12s;
   }
   .sic-buy-btn:hover { background: var(--gold); color: #000; }
-  .store-cart-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-  .store-cart-header { padding: 8px 10px; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-dim); border-bottom: 1px solid var(--border); flex-shrink: 0; }
-  #store-cart-zone {
-    flex: 1; overflow-y: auto; padding: 6px;
-    border: 2px dashed transparent; transition: border-color .15s; border-radius: 4px; margin: 4px;
+  /* Add-item form */
+  #store-add-form { background: var(--panel2); border: 1px dashed var(--border); border-radius: 5px; padding: 8px; display: none; flex-direction: column; gap: 5px; flex-shrink: 0; }
+  #store-add-form.open { display: flex; }
+  .store-add-row { display: flex; gap: 5px; }
+  .store-add-btn { padding: 3px 8px; font-size: .68rem; font-weight: 700; border-radius: 3px; cursor: pointer; border: 1px solid var(--gold); color: var(--gold); background: transparent; white-space: nowrap; }
+  .store-add-btn:hover { background: var(--gold); color: #000; }
+  .store-add-btn.cancel { border-color: var(--border); color: var(--text-dim); }
+  .store-add-btn.cancel:hover { background: var(--border); color: var(--text); }
+
+  /* Middle — party goods */
+  .store-party-panel { flex: 2; overflow-y: auto; border-right: 1px solid var(--border); padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+  .store-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); flex-shrink: 0; margin-bottom: 4px; }
+  .store-tab { padding: 4px 12px; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; cursor: pointer; color: var(--text-dim); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .12s; }
+  .store-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+  .sell-item-row { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 3px; font-size: .75rem; cursor: grab; user-select: none; border: 1px solid transparent; transition: border-color .12s, background .12s; }
+  .sell-item-row:hover { background: var(--panel2); border-color: var(--border); }
+  .sell-item-row.dragging { opacity: .45; }
+  .sir-name { flex: 1; }
+  .sir-qty { color: var(--text-dim); font-size: .68rem; min-width: 24px; }
+  .sir-sell-btn { padding: 1px 6px; font-size: .62rem; border-radius: 3px; cursor: pointer; border: 1px solid #5a8a5a; color: #8aaa8a; background: transparent; white-space: nowrap; }
+  .sir-sell-btn:hover { background: #2a4a2a; }
+
+  /* Right — transaction */
+  .store-trade-panel { flex: 1.4; display: flex; flex-direction: column; overflow: hidden; min-width: 200px; }
+  .store-trade-section { font-size: .63rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-dim); padding: 6px 10px 4px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .trade-zone {
+    overflow-y: auto; padding: 4px 6px;
+    border: 2px dashed transparent; transition: border-color .15s; border-radius: 4px; margin: 3px;
   }
-  #store-cart-zone.dragover { border-color: var(--gold); background: #c8a02010; }
-  .cart-item-row { display: flex; align-items: center; gap: 5px; padding: 4px 6px; border-bottom: 1px solid var(--border); font-size: .75rem; }
-  .cart-item-row .ci-name { flex: 1; }
-  .cart-item-row .ci-price { color: var(--gold); font-weight: 700; font-size: .72rem; }
-  .cart-item-row .ci-remove { cursor: pointer; color: var(--red-lt); font-size: .85rem; line-height: 1; padding: 0 2px; }
-  #cart-empty-hint { color: var(--text-dim); font-size: .75rem; text-align: center; padding: 16px 8px; font-style: italic; }
-  .store-cart-footer { padding: 8px 10px; border-top: 1px solid var(--border); flex-shrink: 0; }
-  .store-cart-total-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-size: .8rem; }
-  .store-cart-total-row strong { color: var(--gold); font-size: .95rem; }
-  #store-buyer { width: 100%; margin-bottom: 6px; }
-  #store-purchase-btn {
-    width: 100%; padding: 5px 0; font-size: .75rem; font-weight: 700; text-transform: uppercase;
+  .trade-zone.dragover { border-color: var(--gold); background: #c8a02010; }
+  .trade-zone.sell-zone.dragover { border-color: #6aaa6a; background: #2a4a2a20; }
+  .trade-empty { color: var(--text-dim); font-size: .72rem; text-align: center; padding: 10px 6px; font-style: italic; }
+  .trade-item-row { display: flex; align-items: center; gap: 4px; padding: 3px 4px; border-bottom: 1px solid var(--border); font-size: .72rem; }
+  .trade-item-row .ti-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ti-price-input { width: 52px; background: var(--bg); border: 1px solid var(--border); border-radius: 3px; color: var(--gold); font-size: .72rem; padding: 1px 4px; text-align: right; }
+  .ti-price-input:focus { border-color: var(--gold); outline: none; }
+  .ti-gp { font-size: .62rem; color: var(--text-dim); }
+  .ti-remove { cursor: pointer; color: var(--red-lt); font-size: .82rem; padding: 0 2px; flex-shrink: 0; }
+  .store-net-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px 4px; font-size: .8rem; border-top: 1px solid var(--border); flex-shrink: 0; }
+  .store-net-row .net-label { color: var(--text-dim); font-size: .7rem; }
+  #store-net-gp { font-size: 1rem; font-weight: 700; }
+  .store-trade-footer { padding: 7px 10px 8px; flex-shrink: 0; display: flex; flex-direction: column; gap: 5px; }
+  #store-haggle-notes { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 3px; color: var(--text); font-size: .68rem; padding: 3px 6px; resize: none; height: 38px; font-family: inherit; }
+  #store-haggle-notes:focus { border-color: var(--gold); outline: none; }
+  #store-trader { width: 100%; }
+  #store-complete-btn {
+    width: 100%; padding: 6px 0; font-size: .75rem; font-weight: 700; text-transform: uppercase;
     letter-spacing: .06em; border-radius: 4px; cursor: pointer;
     background: var(--gold); color: #000; border: none; transition: opacity .15s;
   }
-  #store-purchase-btn:disabled { opacity: .4; cursor: not-allowed; }
+  #store-complete-btn:disabled { opacity: .4; cursor: not-allowed; }
 
   /* ── Loot modal ── */
   #loot-modal .modal-box { min-width: 680px; max-width: 900px; max-height: 88vh; overflow: hidden; }
@@ -1655,33 +1687,74 @@
 
 </div>
 
-<!-- ── Store / Transaction modal ── -->
+<!-- ── Barter / Trade modal ── -->
 <div class="modal-overlay" id="store-modal">
   <div class="modal-box">
-    <div class="modal-title"><span id="store-npc-name">Merchant</span>'s Wares</div>
+    <div class="modal-title">&#x2694; Barter &mdash; <span id="store-npc-name">Merchant</span></div>
     <div class="store-layout">
-      <!-- Items for sale -->
+
+      <!-- LEFT: NPC wares -->
       <div class="store-items-panel">
-        <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-dim);margin-bottom:8px;">Available — drag to cart or click Buy</div>
-        <div class="store-items-grid" id="store-items-grid"></div>
-        <div id="store-no-items" style="display:none;color:var(--text-dim);font-size:.8rem;font-style:italic;padding:20px;text-align:center;">No items currently available.</div>
-      </div>
-      <!-- Cart -->
-      <div class="store-cart-panel">
-        <div class="store-cart-header">&#x1F6D2; Cart</div>
-        <div id="store-cart-zone"
-             ondragover="cartDragOver(event)" ondragleave="cartDragLeave(event)" ondrop="cartDrop(event)">
-          <div id="cart-empty-hint">Drag items here or click Buy</div>
-          <div id="store-cart-items"></div>
+        <div class="store-panel-hdr">
+          <span class="store-panel-label">&#x1F4E6; Merchant's Goods — drag to Buy or click</span>
+          <button class="store-add-btn" onclick="storeToggleAddForm()" id="store-add-toggle-btn" title="Add a special item">+ Special Item</button>
         </div>
-        <div class="store-cart-footer">
-          <div class="store-cart-total-row">
-            Total: <strong><span id="store-cart-total">0</span> gp</strong>
+        <!-- DM add-item form -->
+        <div id="store-add-form">
+          <div class="store-add-row">
+            <input id="sa-name"  class="cs-input" placeholder="Item name" style="flex:2">
+            <input id="sa-price" class="cs-input" placeholder="gp" type="number" min="0" style="width:60px">
           </div>
-          <select class="cs-input" id="store-buyer" style="width:100%;margin-bottom:6px;"></select>
-          <button id="store-purchase-btn" onclick="completePurchase()">Purchase</button>
+          <input id="sa-desc" class="cs-input" placeholder="Description (optional)" style="width:100%">
+          <div class="store-add-row" style="justify-content:flex-end;gap:6px;">
+            <button class="store-add-btn cancel" onclick="storeToggleAddForm()">Cancel</button>
+            <button class="store-add-btn" onclick="storeAddSpecialItem()">Add to Shop</button>
+          </div>
+        </div>
+        <div class="store-items-grid" id="store-items-grid"></div>
+        <div id="store-no-items" style="display:none;color:var(--text-dim);font-size:.8rem;font-style:italic;padding:20px;text-align:center;">No items listed — add a Special Item above.</div>
+      </div>
+
+      <!-- MIDDLE: Party goods to sell -->
+      <div class="store-party-panel">
+        <div class="store-tabs">
+          <div class="store-tab active" id="stab-char" onclick="storeSetTab('char')">&#x1F9B8; Character Inv</div>
+          <div class="store-tab" id="stab-loot" onclick="storeSetTab('loot')">&#x1F48E; Party Loot</div>
+        </div>
+        <div id="store-char-tab">
+          <select class="cs-input" id="store-sell-char" style="width:100%;margin-bottom:6px;" onchange="renderSellPanel()"></select>
+          <div id="store-sell-items"></div>
+        </div>
+        <div id="store-loot-tab" style="display:none">
+          <div id="store-sell-loot"></div>
         </div>
       </div>
+
+      <!-- RIGHT: Transaction -->
+      <div class="store-trade-panel">
+        <div class="store-trade-section">&#x1F4B0; Buying from Merchant</div>
+        <div class="trade-zone" id="store-buy-zone" style="flex:1;min-height:60px;"
+             ondragover="tradeDragOver(event,'buy')" ondragleave="tradeDragLeave(event,'buy')" ondrop="tradeDrop(event,'buy')">
+          <div class="trade-empty" id="buy-empty-hint">Drag NPC items here or click Buy</div>
+          <div id="store-buy-list"></div>
+        </div>
+        <div class="store-trade-section" style="color:#8aaa8a;">&#x1F4E4; Selling to Merchant</div>
+        <div class="trade-zone sell-zone" id="store-sell-zone" style="flex:1;min-height:60px;"
+             ondragover="tradeDragOver(event,'sell')" ondragleave="tradeDragLeave(event,'sell')" ondrop="tradeDrop(event,'sell')">
+          <div class="trade-empty" id="sell-empty-hint">Drag your items here to sell</div>
+          <div id="store-sell-list"></div>
+        </div>
+        <div class="store-net-row">
+          <span class="net-label">Net Gold (you pay / receive)</span>
+          <span id="store-net-gp">0 gp</span>
+        </div>
+        <div class="store-trade-footer">
+          <textarea id="store-haggle-notes" placeholder="Haggle notes — e.g. 'NPC knocked 5 gp off the sword price'…"></textarea>
+          <select class="cs-input" id="store-trader"></select>
+          <button id="store-complete-btn" onclick="completeTrade()" disabled>Complete Trade</button>
+        </div>
+      </div>
+
     </div>
     <div class="modal-btn-row" style="padding:8px 0 0;">
       <button class="modal-btn secondary" onclick="closeStore()">Close</button>
@@ -2330,15 +2403,19 @@ let _mapDragOffset  = { x: 0, y: 0 };
 let _mapIsPanning   = false;
 let _mapPanStart    = null;
 
-// ── Store state ───────────────────────────────────────────────────────────────
-let _storeNpcId  = null;
-let _storeOffers = [];   // all active item offers from this NPC
-let storeCart    = [];   // [{offer_id, title, price_gp}]
+// ── Barter / Store state ──────────────────────────────────────────────────────
+let _storeNpcId   = null;
+let _storeOffers  = [];    // [{id, title, price_gp, description, _special}]  (loaded + DM-added)
+let _buyCart      = [];    // [{offer_id, title, price_gp}]   — buying from NPC
+let _sellQueue    = [];    // [{source:'char'|'loot', charName, itemIdx, lootId, name, qty, price_gp:0}]
+let _storeTab     = 'char'; // 'char' | 'loot'
+let storeCart     = _buyCart; // legacy alias
 
 // ── Party Loot ──────────────────────────────────────────────────────────────
 let partyLoot    = [];   // [{id, name, qty, value_gp, notes}] — session pool
 let lootAssign   = {};   // {charName: [{id, name, qty, value_gp}]}
-let _storeDragId = null; // offer index being dragged
+let _storeDragId  = null; // offer index being dragged (NPC → buy zone)
+let _storeSellDrag = null; // {source,charName,itemIdx,lootId,name,qty} being dragged
 
 // ── On load ───────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
@@ -7953,29 +8030,42 @@ async function distributeLoot() {
   appendSystemMsg(`Loot distributed to ${Object.keys(charItems).join(', ')}.`);
 }
 
-// ── Store / Transaction modal ─────────────────────────────────────────────────
+// ── Barter / Trade modal ──────────────────────────────────────────────────────
 
 async function openStoreModal(npcId) {
-  _storeNpcId = npcId;
-  storeCart   = [];
+  _storeNpcId  = npcId;
+  _buyCart     = [];
+  _sellQueue   = [];
   _storeOffers = [];
+  storeCart    = _buyCart;
+  _storeTab    = 'char';
+
   const npc = locationNpcs.find(n => n.id === npcId);
   document.getElementById('store-npc-name').textContent = npc ? npc.name : 'Merchant';
 
-  // Populate buyer select
-  const sel = document.getElementById('store-buyer');
-  sel.innerHTML = gameState.characters
-    .filter(c => !c.is_npc && c.char_group !== 'mob')
-    .map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`)
-    .join('');
+  // Trader selector (who's doing the deal — pays for buys, receives sell gold)
+  const traderSel = document.getElementById('store-trader');
+  const pcs = gameState.characters.filter(c => !c.is_npc && c.char_group !== 'mob');
+  traderSel.innerHTML = pcs.map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+
+  // Sell-char selector
+  const scSel = document.getElementById('store-sell-char');
+  scSel.innerHTML = pcs.map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+
+  // Reset tabs
+  storeSetTab('char');
+  document.getElementById('store-add-form').classList.remove('open');
 
   try {
     const res = await fetch(`/npcs/${npcId}/offers?status=active`);
     _storeOffers = (await res.json()).filter(o => o.offer_type === 'item');
   } catch(e) { _storeOffers = []; }
 
-  renderStoreItems();
-  renderStoreCart();
+  renderStoreNpcItems();
+  renderSellPanel();
+  renderLootForSale();
+  renderBuyList();
+  renderSellList();
   document.getElementById('store-modal').classList.add('show');
 }
 
@@ -7984,154 +8074,323 @@ function closeStore() {
   _storeNpcId = null;
 }
 
-function renderStoreItems() {
+// ── Tab switching ──────────────────────────────────────────────────────────────
+function storeSetTab(tab) {
+  _storeTab = tab;
+  document.getElementById('stab-char').classList.toggle('active', tab === 'char');
+  document.getElementById('stab-loot').classList.toggle('active', tab === 'loot');
+  document.getElementById('store-char-tab').style.display = tab === 'char' ? '' : 'none';
+  document.getElementById('store-loot-tab').style.display = tab === 'loot' ? '' : 'none';
+}
+
+// ── NPC wares ──────────────────────────────────────────────────────────────────
+function renderStoreNpcItems() {
   const grid = document.getElementById('store-items-grid');
   const none = document.getElementById('store-no-items');
-  if (!_storeOffers.length) {
-    grid.innerHTML = '';
-    none.style.display = '';
-    return;
-  }
+  if (!_storeOffers.length) { grid.innerHTML = ''; none.style.display = ''; return; }
   none.style.display = 'none';
   grid.innerHTML = _storeOffers.map((o, idx) => {
     const price = o.price_gp != null ? `${o.price_gp} gp` : 'Price TBD';
+    const badge = o._special ? '<span style="font-size:.55rem;color:#c8a020;font-weight:700;text-transform:uppercase;"> ★</span>' : '';
     return `<div class="store-item-card" draggable="true"
-        ondragstart="storeDragStart(event,${idx})"
-        ondragend="storeDragEnd(event)">
-      <div class="sic-name">${esc(o.title)}</div>
+        ondragstart="storeDragStart(event,${idx})" ondragend="storeDragEnd(event)">
+      <div class="sic-name">${esc(o.title)}${badge}</div>
       <div class="sic-price">${price}</div>
       ${o.description ? `<div class="sic-desc">${esc(o.description)}</div>` : ''}
-      <button class="sic-buy-btn" onclick="addToCart(${idx})">Buy</button>
+      <button class="sic-buy-btn" onclick="addToBuyCart(${idx})">Buy</button>
     </div>`;
   }).join('');
 }
 
-function renderStoreCart() {
-  const items = document.getElementById('store-cart-items');
-  const hint  = document.getElementById('cart-empty-hint');
-  const totalEl = document.getElementById('store-cart-total');
-  const btn = document.getElementById('store-purchase-btn');
+// ── DM special item form ───────────────────────────────────────────────────────
+function storeToggleAddForm() {
+  const f = document.getElementById('store-add-form');
+  f.classList.toggle('open');
+  if (f.classList.contains('open')) {
+    document.getElementById('sa-name').value = '';
+    document.getElementById('sa-price').value = '';
+    document.getElementById('sa-desc').value = '';
+    document.getElementById('sa-name').focus();
+  }
+}
 
-  if (!storeCart.length) {
-    hint.style.display  = '';
-    items.innerHTML     = '';
-    totalEl.textContent = '0';
-    btn.disabled        = true;
+function storeAddSpecialItem() {
+  const name  = document.getElementById('sa-name').value.trim();
+  const price = parseFloat(document.getElementById('sa-price').value) || 0;
+  const desc  = document.getElementById('sa-desc').value.trim();
+  if (!name) { document.getElementById('sa-name').focus(); return; }
+  _storeOffers.push({ id: `special_${Date.now()}`, title: name, price_gp: price, description: desc, offer_type: 'item', _special: true });
+  storeToggleAddForm();
+  renderStoreNpcItems();
+}
+
+// ── Party goods panels ─────────────────────────────────────────────────────────
+function renderSellPanel() {
+  const charName = document.getElementById('store-sell-char').value;
+  const char = gameState.characters.find(c => c.name === charName);
+  const el = document.getElementById('store-sell-items');
+  const items = (char && char.items) ? char.items.filter(it => it && it.name) : [];
+  if (!items.length) {
+    el.innerHTML = '<div style="color:var(--text-dim);font-size:.72rem;font-style:italic;padding:8px 4px">No items in inventory.</div>';
     return;
   }
-  hint.style.display = 'none';
-  btn.disabled       = false;
-  let total = 0;
-  items.innerHTML = storeCart.map((ci, i) => {
-    const price = ci.price_gp != null ? ci.price_gp : 0;
-    total += price;
-    const priceStr = ci.price_gp != null ? `${ci.price_gp} gp` : '—';
-    return `<div class="cart-item-row">
-      <span class="ci-name">${esc(ci.title)}</span>
-      <span class="ci-price">${priceStr}</span>
-      <span class="ci-remove" onclick="removeFromCart(${i})">✕</span>
+  el.innerHTML = items.map((it, idx) => {
+    const inQueue = _sellQueue.find(q => q.source === 'char' && q.charName === charName && q.itemIdx === idx);
+    if (inQueue) return ''; // already queued
+    return `<div class="sell-item-row" draggable="true"
+      ondragstart="sellDragStart(event,'char','${esc(charName)}',${idx},null,'${esc(it.name)}',${it.qty||1})"
+      ondragend="sellDragEnd(event)">
+      <span class="sir-name">${esc(it.name)}</span>
+      ${it.note ? `<span class="sir-qty" title="${esc(it.note)}" style="font-style:italic">${esc(it.note.substring(0,20))}</span>` : ''}
+      <span class="sir-qty">x${it.qty||1}</span>
+      <button class="sir-sell-btn" onclick="addToSellQueue('char','${esc(charName)}',${idx},null,'${esc(it.name)}',${it.qty||1})">Sell</button>
     </div>`;
   }).join('');
-  totalEl.textContent = total;
 }
 
-function addToCart(offerIdx) {
-  const o = _storeOffers[offerIdx];
-  if (!o) return;
-  // Don't add duplicates
-  if (storeCart.find(c => c.offer_id === o.id)) return;
-  storeCart.push({ offer_id: o.id, title: o.title, price_gp: o.price_gp });
-  renderStoreCart();
+function renderLootForSale() {
+  const el = document.getElementById('store-sell-loot');
+  const items = (partyLoot || []).filter(it => it && it.name);
+  if (!items.length) {
+    el.innerHTML = '<div style="color:var(--text-dim);font-size:.72rem;font-style:italic;padding:8px 4px">Party loot pool is empty.</div>';
+    return;
+  }
+  el.innerHTML = items.map(it => {
+    const inQueue = _sellQueue.find(q => q.source === 'loot' && q.lootId === it.id);
+    if (inQueue) return '';
+    return `<div class="sell-item-row" draggable="true"
+      ondragstart="sellDragStart(event,'loot',null,null,'${it.id}','${esc(it.name)}',${it.qty||1})"
+      ondragend="sellDragEnd(event)">
+      <span class="sir-name">${esc(it.name)}</span>
+      <span class="sir-qty">x${it.qty||1}</span>
+      <button class="sir-sell-btn" onclick="addToSellQueue('loot',null,null,'${it.id}','${esc(it.name)}',${it.qty||1})">Sell</button>
+    </div>`;
+  }).join('');
 }
 
-function removeFromCart(cartIdx) {
-  storeCart.splice(cartIdx, 1);
-  renderStoreCart();
+// ── Sell drag ──────────────────────────────────────────────────────────────────
+function sellDragStart(e, source, charName, itemIdx, lootId, name, qty) {
+  _storeSellDrag = { source, charName, itemIdx, lootId, name, qty };
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function sellDragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  _storeSellDrag = null;
 }
 
+// ── Buy drag ───────────────────────────────────────────────────────────────────
 function storeDragStart(e, offerIdx) {
   _storeDragId = offerIdx;
   e.currentTarget.classList.add('dragging');
   e.dataTransfer.effectAllowed = 'copy';
 }
-
 function storeDragEnd(e) {
   e.currentTarget.classList.remove('dragging');
   _storeDragId = null;
 }
 
-function cartDragOver(e) {
+// ── Trade zone drag handlers ───────────────────────────────────────────────────
+function tradeDragOver(e, zone) {
   e.preventDefault();
-  e.dataTransfer.dropEffect = 'copy';
-  document.getElementById('store-cart-zone').classList.add('dragover');
+  document.getElementById(zone === 'buy' ? 'store-buy-zone' : 'store-sell-zone').classList.add('dragover');
 }
-
-function cartDragLeave(e) {
-  document.getElementById('store-cart-zone').classList.remove('dragover');
+function tradeDragLeave(e, zone) {
+  document.getElementById(zone === 'buy' ? 'store-buy-zone' : 'store-sell-zone').classList.remove('dragover');
 }
-
-function cartDrop(e) {
+function tradeDrop(e, zone) {
   e.preventDefault();
-  document.getElementById('store-cart-zone').classList.remove('dragover');
-  if (_storeDragId !== null) addToCart(_storeDragId);
+  tradeDragLeave(e, zone);
+  if (zone === 'buy' && _storeDragId !== null) { addToBuyCart(_storeDragId); }
+  if (zone === 'sell' && _storeSellDrag)       { const d = _storeSellDrag; addToSellQueue(d.source, d.charName, d.itemIdx, d.lootId, d.name, d.qty); }
 }
 
-async function completePurchase() {
-  if (!storeCart.length) return;
-  const buyerName = document.getElementById('store-buyer').value;
-  if (!buyerName) { appendSystemMsg('Select a character to purchase for.'); return; }
+// ── Buy cart ───────────────────────────────────────────────────────────────────
+function addToBuyCart(offerIdx) {
+  const o = _storeOffers[offerIdx];
+  if (!o) return;
+  if (_buyCart.find(c => c.offer_id === o.id)) return; // no duplicates
+  _buyCart.push({ offer_id: o.id, title: o.title, price_gp: o.price_gp != null ? o.price_gp : 0, _special: o._special });
+  renderBuyList();
+  updateTradeNet();
+}
+function removeFromBuyCart(idx) {
+  _buyCart.splice(idx, 1);
+  renderBuyList();
+  updateTradeNet();
+}
+function renderBuyList() {
+  const list  = document.getElementById('store-buy-list');
+  const empty = document.getElementById('buy-empty-hint');
+  empty.style.display = _buyCart.length ? 'none' : '';
+  list.innerHTML = _buyCart.map((ci, i) => `
+    <div class="trade-item-row">
+      <span class="ti-name" title="${esc(ci.title)}">${esc(ci.title)}</span>
+      <input class="ti-price-input" type="number" min="0" value="${ci.price_gp}"
+             oninput="_buyCart[${i}].price_gp=Math.max(0,+this.value||0);updateTradeNet()" title="Haggle price">
+      <span class="ti-gp">gp</span>
+      <span class="ti-remove" onclick="removeFromBuyCart(${i})">✕</span>
+    </div>`).join('');
+  updateCompleteBtn();
+}
 
-  let totalCost = storeCart.reduce((s, c) => s + (c.price_gp || 0), 0);
-  const buyer = gameState.characters.find(c => c.name === buyerName);
+// ── Sell queue ─────────────────────────────────────────────────────────────────
+function addToSellQueue(source, charName, itemIdx, lootId, name, qty) {
+  if (source === 'char' && _sellQueue.find(q => q.source === 'char' && q.charName === charName && q.itemIdx === itemIdx)) return;
+  if (source === 'loot' && _sellQueue.find(q => q.source === 'loot' && q.lootId === lootId)) return;
+  _sellQueue.push({ source, charName, itemIdx: itemIdx !== null ? itemIdx : undefined, lootId: lootId || undefined, name, qty: qty || 1, price_gp: 0 });
+  renderSellList();
+  renderSellPanel();
+  renderLootForSale();
+  updateTradeNet();
+}
+function removeFromSellQueue(idx) {
+  _sellQueue.splice(idx, 1);
+  renderSellList();
+  renderSellPanel();
+  renderLootForSale();
+  updateTradeNet();
+}
+function renderSellList() {
+  const list  = document.getElementById('store-sell-list');
+  const empty = document.getElementById('sell-empty-hint');
+  empty.style.display = _sellQueue.length ? 'none' : '';
+  list.innerHTML = _sellQueue.map((sq, i) => `
+    <div class="trade-item-row">
+      <span class="ti-name" title="${esc(sq.name)}">${esc(sq.name)} <span style="color:var(--text-dim);font-size:.62rem">x${sq.qty}</span></span>
+      <input class="ti-price-input" type="number" min="0" value="${sq.price_gp}"
+             oninput="_sellQueue[${i}].price_gp=Math.max(0,+this.value||0);updateTradeNet()" title="What the NPC pays">
+      <span class="ti-gp">gp</span>
+      <span class="ti-remove" onclick="removeFromSellQueue(${i})">✕</span>
+    </div>`).join('');
+  updateCompleteBtn();
+}
 
-  // Check gold (use party gold if character gold is 0, else character gold)
-  const availGold = (buyer && buyer.gold > 0) ? buyer.gold : gameState.gold;
-  if (totalCost > 0 && availGold < totalCost) {
-    appendSystemMsg(`Not enough gold! Need ${totalCost} gp, have ${availGold} gp.`);
-    return;
-  }
+// ── Net gold & button state ────────────────────────────────────────────────────
+function updateTradeNet() {
+  const pays     = _buyCart.reduce((s, c)  => s + (c.price_gp  || 0), 0);
+  const receives = _sellQueue.reduce((s, q) => s + (q.price_gp || 0), 0);
+  const net = pays - receives; // positive = party pays; negative = party receives
+  const el = document.getElementById('store-net-gp');
+  if (net > 0)       { el.textContent = `-${net} gp`; el.style.color = '#e07070'; }
+  else if (net < 0)  { el.textContent = `+${Math.abs(net)} gp`; el.style.color = '#6aaa6a'; }
+  else               { el.textContent = '0 gp (even trade)'; el.style.color = 'var(--text-dim)'; }
+  updateCompleteBtn();
+}
+function updateCompleteBtn() {
+  document.getElementById('store-complete-btn').disabled = !_buyCart.length && !_sellQueue.length;
+}
 
-  const purchased = [];
-  for (const ci of storeCart) {
-    try {
-      const res  = await fetch(`/npcs/offers/${ci.offer_id}/purchase`, {
-        method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}'
-      });
-      const data = await res.json();
-      if (data.ok) purchased.push(data.item);
-    } catch(e) { /* skip failed */ }
-  }
+// ── Complete trade ─────────────────────────────────────────────────────────────
+async function completeTrade() {
+  const traderName = document.getElementById('store-trader').value;
+  if (!traderName) { appendSystemMsg('Select a character for this trade.'); return; }
+  const trader = gameState.characters.find(c => c.name === traderName);
+  if (!trader) return;
 
-  if (!purchased.length) { appendSystemMsg('Purchase failed — items may no longer be available.'); return; }
+  const buyCost    = _buyCart.reduce((s, c)  => s + (c.price_gp  || 0), 0);
+  const sellGains  = _sellQueue.reduce((s, q) => s + (q.price_gp || 0), 0);
+  const netCost    = buyCost - sellGains; // positive = party owes; negative = party gains
 
-  // Deduct gold (from character if they have it, else from party)
-  if (totalCost > 0) {
-    if (buyer && buyer.gold >= totalCost) {
-      buyer.gold -= totalCost;
-    } else {
-      gameState.gold = Math.max(0, gameState.gold - totalCost);
+  // Gold check for net payment
+  if (netCost > 0) {
+    const avail = (trader.gold || 0) > 0 ? trader.gold : gameState.gold;
+    if (avail < netCost) {
+      appendSystemMsg(`Not enough gold! Need ${netCost} gp net, have ${avail} gp.`);
+      return;
     }
   }
 
-  // Add items to buyer's inventory
-  if (buyer) {
-    buyer.items = buyer.items || [];
-    for (const item of purchased) buyer.items.push(item);
-    // Save character
-    await fetch('/update-character', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ original_name: buyerName, character: buyer })
-    });
+  const msgs = [];
+
+  // ── Process buys ──
+  if (_buyCart.length) {
+    trader.items = trader.items || [];
+    for (const ci of _buyCart) {
+      if (!ci._special) {
+        // Registered offer — mark purchased via API
+        try {
+          const res  = await fetch(`/npcs/offers/${ci.offer_id}/purchase`, {
+            method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}'
+          });
+          const data = await res.json();
+          if (data.ok) trader.items.push(data.item);
+        } catch(e) { /* skip */ }
+      } else {
+        // DM special item — just add directly
+        trader.items.push({ name: ci.title, qty: 1, note: 'From merchant' });
+      }
+    }
+    msgs.push(`Bought: ${_buyCart.map(c => c.title).join(', ')} (${buyCost} gp)`);
   }
 
-  appendSystemMsg(`${buyerName} purchased: ${purchased.map(i=>i.name).join(', ')} (${totalCost} gp)`);
-  // Remove purchased offers from the store display
-  const purchasedNames = new Set(purchased.map(p => p.name));
-  _storeOffers = _storeOffers.filter(o => !purchasedNames.has(o.title));
-  storeCart    = [];
-  renderStoreItems();
-  renderStoreCart();
+  // ── Process sells ──
+  for (const sq of _sellQueue) {
+    if (sq.source === 'char') {
+      const seller = gameState.characters.find(c => c.name === sq.charName);
+      if (seller && seller.items) {
+        seller.items.splice(sq.itemIdx, 1);
+        await fetch('/update-character', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ original_name: sq.charName, character: seller })
+        });
+      }
+    } else if (sq.source === 'loot') {
+      partyLoot = (partyLoot || []).filter(p => p.id !== sq.lootId);
+      await fetch('/save-party-loot', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ campaign_id: _activeCampaignId || state?.campaign_id || 0, loot: partyLoot })
+      });
+    }
+  }
+  if (_sellQueue.length) msgs.push(`Sold: ${_sellQueue.map(q => q.name).join(', ')} (+${sellGains} gp)`);
+
+  // ── Apply net gold ──
+  if (netCost > 0) {
+    if ((trader.gold || 0) >= netCost) trader.gold = (trader.gold || 0) - netCost;
+    else gameState.gold = Math.max(0, (gameState.gold || 0) - netCost);
+  } else if (netCost < 0) {
+    trader.gold = (trader.gold || 0) + Math.abs(netCost);
+  }
+
+  // ── Save trader ──
+  await fetch('/update-character', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ original_name: traderName, character: trader })
+  });
+
+  const haggle = document.getElementById('store-haggle-notes').value.trim();
+  const summary = `Trade with ${document.getElementById('store-npc-name').textContent}: ${msgs.join(' | ')}${haggle ? ' — ' + haggle : ''}`;
+  appendSystemMsg(summary);
+
+  // Remove purchased NPC offers from display
+  const boughtIds = new Set(_buyCart.filter(c => !c._special).map(c => c.offer_id));
+  _storeOffers = _storeOffers.filter(o => !boughtIds.has(o.id));
+
+  _buyCart.length   = 0;
+  _sellQueue.length = 0;
+  document.getElementById('store-haggle-notes').value = '';
+
+  renderStoreNpcItems();
+  renderSellPanel();
+  renderLootForSale();
+  renderBuyList();
+  renderSellList();
+  updateTradeNet();
+  updateParty(gameState.characters);
+  renderLootPool();
 }
+
+// Legacy alias so any old onclick="completePurchase()" still works
+function completePurchase() { completeTrade(); }
+// Legacy aliases
+function addToCart(idx) { addToBuyCart(idx); }
+function removeFromCart(idx) { removeFromBuyCart(idx); }
+function cartDragOver(e) { tradeDragOver(e,'buy'); }
+function cartDragLeave(e) { tradeDragLeave(e,'buy'); }
+function cartDrop(e) { tradeDrop(e,'buy'); }
+function renderStoreItems() { renderStoreNpcItems(); }
+function renderStoreCart() { renderBuyList(); }
 
 // ── Util ──────────────────────────────────────────────────────────────────────
 function esc(str) {
