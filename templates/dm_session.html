@@ -1664,17 +1664,14 @@
     <div class="loot-layout">
       <!-- Loot pool (left) -->
       <div class="loot-pool-panel">
-        <div class="pool-label">Unassigned loot — click Assign to give to a character</div>
+        <div class="pool-label">Select a character, then click Give to assign each item</div>
         <div id="loot-pool-list">
           <div id="loot-pool-empty" style="color:var(--text-dim);font-size:.8rem;font-style:italic;padding:20px;text-align:center;">No loot in the pool.</div>
         </div>
       </div>
-      <!-- Assignment (right) -->
-      <div class="loot-assign-panel">
-        <div class="loot-assign-header">&#x1F9D9; Assign to Characters</div>
-        <div class="loot-assign-body" id="loot-assign-body">
-          <div style="color:var(--text-dim);font-size:.75rem;font-style:italic;padding:12px 4px;">Select items from the left, then distribute.</div>
-        </div>
+      <!-- Assignment (right) — kept for JS references, hidden -->
+      <div class="loot-assign-panel" style="display:none">
+        <div class="loot-assign-body" id="loot-assign-body"></div>
         <div class="loot-assign-footer">
           <button id="loot-distribute-btn" onclick="distributeLoot()" disabled>Give to Characters</button>
         </div>
@@ -7736,7 +7733,7 @@ function renderLootPool() {
       <span class="li-val">${valStr}</span>
       <span class="li-note" title="${esc(item.notes)}">${esc(item.notes)}</span>
       <select class="cs-input" id="loot-sel-${esc(item.id)}" style="font-size:.65rem;padding:2px 4px;width:90px;">${opts}</select>
-      <button class="li-assign-btn" onclick="assignLootItem('${esc(item.id)}')">Assign</button>
+      <button class="li-assign-btn" onclick="assignLootItem('${esc(item.id)}')">Give</button>
     </div>`;
   }).join('');
 }
@@ -7757,14 +7754,8 @@ function assignLootItem(itemId) {
   if (!lootAssign[charName]) lootAssign[charName] = [];
   lootAssign[charName].push({ id: item.id, name: item.name, qty: item.qty, value_gp: item.value_gp });
 
-  // Grey out the assigned row in the pool
-  const row = document.getElementById(`loot-row-${itemId}`);
-  if (row) {
-    row.style.opacity = '0.4';
-    row.querySelector('.li-assign-btn').textContent = '✓';
-  }
-
   renderLootAssign();
+  distributeLoot();
 }
 
 function renderLootAssign() {
