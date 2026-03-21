@@ -1396,8 +1396,11 @@
   .lu-pill:hover { border-color: var(--blue); color: var(--text); }
   .lu-pill.selected { border-color: var(--blue); background: #1a2a40; color: var(--blue-lt); }
   /* Level-Up button on character cards */
-  .card-lu-btn { background: transparent; border: 1px solid #2a5a2a; color: #6aaa6a; border-radius: 3px; font-size: .65rem; padding: 1px 6px; cursor: pointer; line-height: 1.5; white-space: nowrap; flex-shrink: 0; margin-left: 4px; }
-  .card-lu-btn:hover { border-color: var(--green); color: var(--green); }
+  .card-lu-btn { background: transparent; border: 1px solid #555; color: #888; border-radius: 3px; font-size: .65rem; padding: 1px 6px; cursor: pointer; line-height: 1.5; white-space: nowrap; flex-shrink: 0; margin-left: 4px; }
+  .card-lu-btn:hover { border-color: #888; color: #aaa; }
+  .card-lu-btn.lu-ready { border-color: #2a5a2a; color: #6aaa6a; animation: lu-pulse 2s ease-in-out infinite; }
+  .card-lu-btn.lu-ready:hover { border-color: var(--green); color: var(--green); }
+  @keyframes lu-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(106,170,106,0)} 50%{box-shadow:0 0 5px 2px rgba(106,170,106,.35)} }
   .card-ss-btn { background: transparent; border: 1px solid #3a4a7a; color: #7a9aee; border-radius: 3px; font-size: .65rem; padding: 1px 6px; cursor: pointer; line-height: 1.5; white-space: nowrap; flex-shrink: 0; margin-left: 4px; }
   .card-ss-btn:hover { border-color: #7a9aee; color: #aac0ff; }
   /* Spell Slots Modal */
@@ -3071,7 +3074,7 @@ function updateParty(characters) {
         </div>
         <button class="card-inv-btn" title="Open Inventory &amp; Spells">&#9775; Inv</button>
         ${!isNpc && (CWIZ_CLASSES[c.class || (c.classes&&c.classes[0]&&c.classes[0].class)||'']||{}).spellcaster ? `<button class="card-ss-btn" title="Spell Slots">&#10022; Slots</button>` : ''}
-        ${!isNpc ? `<button class="card-lu-btn" title="Level Up this character">&#8679; Lvl</button>` : ''}
+        ${!isNpc ? (()=>{ const nextLvl = totalLevel + 1; const xpNeeded = XP_THRESHOLDS[Math.min(nextLvl, 20)] || 0; const ready = totalLevel < 20 && (c.xp || 0) >= xpNeeded; return `<button class="card-lu-btn${ready?' lu-ready':''}" title="${ready ? 'Level up available! ('+((c.xp||0).toLocaleString())+' / '+xpNeeded.toLocaleString()+' XP)' : 'Level Up ('+(c.xp||0).toLocaleString()+' / '+xpNeeded.toLocaleString()+' XP needed)'}">&#8679; Lvl</button>`; })() : ''}
       </div>
       ${c.status ? `<div class="char-status">${esc(c.status)}</div>` : ''}
       <div class="hp-bar-wrap"><div class="hp-bar${barClass}" style="width:${pct}%"></div></div>
@@ -9029,6 +9032,10 @@ const CWIZ_CLASSES = {
     subclasses:['School of Evocation','School of Abjuration','School of Conjuration','School of Divination','School of Enchantment','School of Illusion','School of Necromancy','School of Transmutation','Bladesinging','Order of Scribes','War Magic','Chronurgy Magic','Graviturgy Magic'],
   },
 };
+
+// D&D 5e XP thresholds to reach each level (index = level being reached)
+const XP_THRESHOLDS = [0, 0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000,
+  85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000];
 
 // D&D 5e spell slot tables [level 0..20], each entry = array of slots per spell level (index 0 = 1st-level slots)
 const SPELL_SLOT_TABLE = {
