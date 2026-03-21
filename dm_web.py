@@ -242,7 +242,7 @@ JSON STRUCTURE:
     "location": "<current location>",
     "characters": [
       {
-        "name":    "<name>",
+        "name":    "<name — EXISTING PARTY MEMBERS ONLY. Never add NPCs, enemies, or new characters here>",
         "class":   "<class>",
         "level":   <integer>,
         "hp":      <integer>,
@@ -684,8 +684,7 @@ def _merge_ai_characters(ai_chars: list, current_chars: list) -> list:
         if key in current_by_name:
             idx = current_by_name[key]
             result[idx] = {**result[idx], **ai_c}  # current fields as base, AI fields on top
-        else:
-            result.append(ai_c)
+        # else: ignore — AI must not add new characters to the party
     return result
 
 
