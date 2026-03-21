@@ -7566,6 +7566,7 @@ function renderLocationNpcCards() {
         ${weapSpan}
         <span class="mob-sbadge msb-ko ${koActive}"  onclick="locNpcToggleStatus(${n.id},'status_ko')" title="Incapacitated / Dead — 0 HP, unable to act. Click to toggle.">💀 KO</span>
         <span class="mob-sbadge msb-atk ${atkActive}" onclick="locNpcToggleStatus(${n.id},'status_atk')" title="Currently attacking this turn. Click to toggle.">⚔ ATK</span>
+        <span class="mob-sbadge" style="border-color:#5a7a5a;color:#8aaa8a;" onclick="openStoreModal(${n.id})" title="Open barter window">⚖ Barter</span>
       </div>
     </div>`;
   }
