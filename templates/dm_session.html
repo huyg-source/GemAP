@@ -1411,18 +1411,23 @@
   .ss-panel-label { font-size: .68rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
   .ss-level-row { margin-bottom: 12px; }
   .ss-level-label { font-size: .7rem; color: var(--text-dim); margin-bottom: 5px; }
-  .ss-circles { display: flex; gap: 6px; flex-wrap: wrap; }
-  .ss-circle { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #7a9aee; cursor: pointer; transition: background .15s, border-color .15s; flex-shrink: 0; }
-  .ss-circle.used { background: #3a3a5a; border-color: #555; }
-  .ss-circle:hover:not(.used) { background: rgba(122,154,238,.25); }
+  .ss-slots-wrap { display: flex; gap: 6px; flex-wrap: wrap; }
+  .ss-slot { min-width: 64px; max-width: 120px; height: 28px; border-radius: 14px; border: 2px solid #7a9aee; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 0 8px; transition: background .15s, border-color .15s; flex-shrink: 0; box-sizing: border-box; }
+  .ss-slot.occupied { background: #2a3a6a; border-color: #9ab0ee; }
+  .ss-slot:not(.occupied):hover { background: rgba(122,154,238,.18); }
+  .ss-slot.drag-over { background: rgba(122,154,238,.35); border-color: #c0d0ff; }
+  .ss-slot-name { font-size: .62rem; color: #c0d0ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80px; }
+  .ss-slot-x { font-size: .6rem; color: #8899cc; flex-shrink: 0; }
+  .ss-slot-empty { font-size: .9rem; color: #556; line-height: 1; }
   .ss-rest-row { display: flex; gap: 8px; margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border); }
   .ss-rest-btn { flex: 1; padding: 5px 0; font-size: .72rem; font-weight: 600; border-radius: 4px; cursor: pointer; border: 1px solid; background: transparent; }
   .ss-rest-btn.short { border-color: #5a7a8a; color: #8abbe8; }
   .ss-rest-btn.long  { border-color: #2a5a2a; color: #6aaa6a; }
   .ss-rest-btn.short:hover { background: rgba(90,122,138,.2); }
   .ss-rest-btn.long:hover  { background: rgba(42,90,42,.2); }
-  .ss-spell-item { font-size: .72rem; padding: 3px 5px; border-radius: 3px; margin-bottom: 2px; display: flex; gap: 5px; align-items: baseline; }
-  .ss-spell-item:hover { background: rgba(255,255,255,.04); }
+  .ss-spell-item { font-size: .72rem; padding: 3px 5px; border-radius: 3px; margin-bottom: 2px; display: flex; gap: 5px; align-items: baseline; cursor: grab; user-select: none; }
+  .ss-spell-item:hover { background: rgba(255,255,255,.07); }
+  .ss-spell-item:active { cursor: grabbing; }
   .ss-spell-lvl { font-size: .6rem; color: var(--text-dim); min-width: 28px; flex-shrink: 0; }
 
   /* ── Voice ── */
@@ -9090,6 +9095,7 @@ const SPELL_SLOT_TABLE = {
 const SS_ORDINALS = ['Cantrip','1st','2nd','3rd','4th','5th','6th','7th','8th','9th'];
 
 let _ssCharName = '';
+let _ssDragSpell = null; // spell name being dragged
 
 function _ssGetSlotInfo(char) {
   const cls = (char.classes && char.classes[0] && char.classes[0].class) || char.class || '';
@@ -9107,31 +9113,70 @@ function _ssGetSlotInfo(char) {
   return slots.length ? { warlock: false, slots } : null;
 }
 
+// Get slot array for a level — migrates old numeric format
+function _ssGetLevelArr(char, slotLevel, max) {
+  const raw = (char.spell_slots_used || {})[slotLevel];
+  if (Array.isArray(raw)) return raw.slice(0, max).concat(Array(Math.max(0, max - raw.length)).fill(null));
+  // old numeric format: first N are 'used' with no spell name
+  const usedCount = typeof raw === 'number' ? Math.min(raw, max) : 0;
+  return Array.from({length: max}, (_, i) => i < usedCount ? '(used)' : null);
+}
+
 function _ssRenderSlots(char) {
   const body = document.getElementById('ss-slots-body');
   const info = _ssGetSlotInfo(char);
   if (!info) { body.innerHTML = '<div style="color:var(--text-dim);font-size:.8rem">No spell slots at this level.</div>'; return; }
-  const used = char.spell_slots_used || {};
+
+  const renderLevel = (slotLevel, max, label, sublabel) => {
+    const arr = _ssGetLevelArr(char, slotLevel, max);
+    const free = arr.filter(s => s === null).length;
+    return `<div class="ss-level-row">
+      <div class="ss-level-label">${label}&nbsp;<span style="color:#7a9aee;font-size:.65rem">${free}/${max} free</span>${sublabel ? `&nbsp;<span style="font-size:.62rem;color:var(--text-dim)">${sublabel}</span>` : ''}</div>
+      <div class="ss-slots-wrap">${arr.map((spell, i) => {
+        const occ = spell !== null;
+        const spellLabel = occ ? esc(spell === '(used)' ? 'Used' : spell) : '';
+        return `<div class="ss-slot${occ ? ' occupied' : ''}"
+          data-lvl="${slotLevel}" data-idx="${i}"
+          ondragover="event.preventDefault();this.classList.add('drag-over')"
+          ondragleave="this.classList.remove('drag-over')"
+          ondrop="ssDrop(event,${slotLevel},${i})"
+          onclick="occ&&ssClearSlot(${slotLevel},${i})"
+          title="${occ ? 'Click to free this slot' : 'Drag a spell here'}">
+          ${occ ? `<span class="ss-slot-name">${spellLabel}</span><span class="ss-slot-x">✕</span>` : '<span class="ss-slot-empty">○</span>'}
+        </div>`;
+      }).join('')}</div></div>`;
+  };
+
   let html = '';
   if (info.warlock) {
-    const u = used[info.slotLevel] || 0;
-    html += `<div class="ss-level-row">
-      <div class="ss-level-label">Pact Magic &mdash; ${SS_ORDINALS[info.slotLevel]} level &nbsp;<span style="font-size:.65rem;color:var(--text-dim)">(Short Rest)</span></div>
-      <div class="ss-circles">${Array.from({length:info.count},(_,i)=>
-        `<div class="ss-circle${i<u?' used':''}" onclick="ssToggleSlot(${info.slotLevel},${i})" title="${i<u?'Restore':'Use'} slot"></div>`
-      ).join('')}</div></div>`;
+    html = renderLevel(info.slotLevel, info.count,
+      `Pact Magic — ${SS_ORDINALS[info.slotLevel]} level`, '(Short Rest)');
   } else {
     info.slots.forEach((max, idx) => {
       if (!max) return;
-      const sl = idx + 1, u = used[sl] || 0;
-      html += `<div class="ss-level-row">
-        <div class="ss-level-label">${SS_ORDINALS[sl]} level &nbsp;<span style="color:#7a9aee;font-size:.65rem">${max - u} / ${max} remaining</span></div>
-        <div class="ss-circles">${Array.from({length:max},(_,i)=>
-          `<div class="ss-circle${i<u?' used':''}" onclick="ssToggleSlot(${sl},${i})" title="${i<u?'Restore':'Use'} slot"></div>`
-        ).join('')}</div></div>`;
+      html += renderLevel(idx + 1, max, SS_ORDINALS[idx + 1] + ' level', '');
     });
   }
   body.innerHTML = html;
+}
+
+function _ssRenderSpells(spells) {
+  const listEl = document.getElementById('ss-spells-list');
+  if (!spells || !spells.length) {
+    listEl.innerHTML = '<div style="color:var(--text-dim);font-size:.72rem;font-style:italic">No spells in spellbook.</div>';
+    return;
+  }
+  const prepared = spells.filter(s => s.prepared && (s.level||0) > 0).sort((a,b) => (a.level||0)-(b.level||0));
+  const cantrips  = spells.filter(s => (s.level||0) === 0);
+  const row = s => `<div class="ss-spell-item" draggable="true"
+    ondragstart="_ssDragSpell=event.dataTransfer.setData('text/plain','${esc(s.name)}'),_ssDragSpell='${esc(s.name)}'"
+    title="Drag into a slot to mark it used">
+    <span class="ss-spell-lvl">${SS_ORDINALS[s.level||0]}</span>${esc(s.name)}
+  </div>`;
+  listEl.innerHTML =
+    (cantrips.length  ? '<div class="ss-panel-label" style="margin-top:4px">Cantrips</div>' + cantrips.map(row).join('') : '') +
+    (prepared.length  ? '<div class="ss-panel-label" style="margin-top:8px">Spells</div>'   + prepared.map(row).join('') : '') +
+    (!prepared.length && !cantrips.length ? '<div style="color:var(--text-dim);font-size:.72rem;font-style:italic">No prepared spells.</div>' : '');
 }
 
 async function openSpellSlots(charName) {
@@ -9140,46 +9185,49 @@ async function openSpellSlots(charName) {
   const char = (gameState.characters || []).find(c => c.name === charName);
   if (!char) return;
   _ssRenderSlots(char);
-  // Fetch prepared spells
-  const cid = _activeCampaignId || 0;
-  const listEl = document.getElementById('ss-spells-list');
-  try {
-    const res = await fetch(`/spells/book?campaign_id=${cid}&char_name=${encodeURIComponent(charName)}`);
-    const spells = await res.json();
-    const prepared = spells.filter(s => s.prepared && (s.level || 0) > 0).sort((a,b) => (a.level||0)-(b.level||0));
-    const cantrips = spells.filter(s => (s.level || 0) === 0);
-    if (!spells.length) {
-      listEl.innerHTML = '<div style="color:var(--text-dim);font-size:.72rem;font-style:italic">No spells in spellbook.</div>';
-    } else {
-      const rows = r => r.map(s => `<div class="ss-spell-item"><span class="ss-spell-lvl">${SS_ORDINALS[s.level||0]}</span>${esc(s.name)}</div>`).join('');
-      listEl.innerHTML = (cantrips.length ? '<div class="ss-panel-label" style="margin-top:4px">Cantrips</div>' + rows(cantrips) : '')
-        + (prepared.length ? '<div class="ss-panel-label" style="margin-top:8px">Spells</div>' + rows(prepared) : '');
-    }
-  } catch(e) {
-    listEl.innerHTML = '<div style="color:var(--text-dim);font-size:.72rem">Could not load spells.</div>';
-  }
+  document.getElementById('ss-spells-list').innerHTML = '<div style="color:var(--text-dim);font-size:.72rem">Loading…</div>';
   document.getElementById('spell-slots-modal').classList.add('show');
+  try {
+    const res = await fetch(`/spells/book?campaign_id=${_activeCampaignId||0}&char_name=${encodeURIComponent(charName)}`);
+    _ssRenderSpells(await res.json());
+  } catch(e) {
+    document.getElementById('ss-spells-list').innerHTML = '<div style="color:var(--text-dim);font-size:.72rem">Could not load spells.</div>';
+  }
 }
 
 function closeSpellSlots() {
   document.getElementById('spell-slots-modal').classList.remove('show');
 }
 
-async function ssToggleSlot(slotLevel, slotIndex) {
+function ssDrop(event, slotLevel, slotIdx) {
+  event.preventDefault();
+  event.currentTarget.classList.remove('drag-over');
+  const spellName = event.dataTransfer.getData('text/plain') || _ssDragSpell;
+  if (!spellName) return;
   const char = (gameState.characters || []).find(c => c.name === _ssCharName);
   if (!char) return;
-  if (!char.spell_slots_used) char.spell_slots_used = {};
   const info = _ssGetSlotInfo(char);
-  const max = info ? (info.warlock ? info.count : (info.slots[slotLevel - 1] || 0)) : 0;
-  const cur = char.spell_slots_used[slotLevel] || 0;
-  char.spell_slots_used[slotLevel] = slotIndex < cur ? Math.max(0, cur - 1) : Math.min(max, cur + 1);
+  const max = info ? (info.warlock ? info.count : (info.slots[slotLevel-1]||0)) : 0;
+  if (!char.spell_slots_used) char.spell_slots_used = {};
+  const arr = _ssGetLevelArr(char, slotLevel, max);
+  if (arr[slotIdx] !== null) return; // slot already occupied
+  arr[slotIdx] = spellName;
+  char.spell_slots_used[slotLevel] = arr;
   _ssRenderSlots(char);
-  try {
-    await fetch('/update-character', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ original_name: char.name, character: char }),
-    });
-  } catch(e) { console.warn('[slots] save failed:', e); }
+  _ssSave(char);
+}
+
+function ssClearSlot(slotLevel, slotIdx) {
+  const char = (gameState.characters || []).find(c => c.name === _ssCharName);
+  if (!char) return;
+  const info = _ssGetSlotInfo(char);
+  const max = info ? (info.warlock ? info.count : (info.slots[slotLevel-1]||0)) : 0;
+  if (!char.spell_slots_used) char.spell_slots_used = {};
+  const arr = _ssGetLevelArr(char, slotLevel, max);
+  arr[slotIdx] = null;
+  char.spell_slots_used[slotLevel] = arr;
+  _ssRenderSlots(char);
+  _ssSave(char);
 }
 
 async function ssShortRest() {
@@ -9189,17 +9237,11 @@ async function ssShortRest() {
   if (info && info.warlock) {
     char.spell_slots_used = {};
     appendSystemMsg(_ssCharName + ' takes a short rest — Pact Magic slots restored.');
+    _ssRenderSlots(char);
+    _ssSave(char);
   } else {
     appendSystemMsg(_ssCharName + ' takes a short rest. Spell slots unchanged (Long Rest restores them).');
-    return;
   }
-  _ssRenderSlots(char);
-  try {
-    await fetch('/update-character', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ original_name: char.name, character: char }),
-    });
-  } catch(e) { console.warn('[slots] save failed:', e); }
 }
 
 async function ssLongRest() {
@@ -9208,6 +9250,10 @@ async function ssLongRest() {
   char.spell_slots_used = {};
   _ssRenderSlots(char);
   appendSystemMsg(_ssCharName + ' takes a long rest — all spell slots restored.');
+  _ssSave(char);
+}
+
+async function _ssSave(char) {
   try {
     await fetch('/update-character', {
       method:'POST', headers:{'Content-Type':'application/json'},
