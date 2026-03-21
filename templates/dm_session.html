@@ -8693,7 +8693,7 @@ const CWIZ_CLASSES = {
     },
     asiLevels:[4,8,12,16,19],
     subclassLevel:3, subclassLabel:'Primal Path',
-    subclasses:['Path of the Berserker','Path of the Totem Warrior','Path of the Battlerager','Path of the Storm Herald','Path of the Zealot'],
+    subclasses:['Path of the Berserker','Path of the Totem Warrior','Path of the Battlerager','Path of the Storm Herald','Path of the Zealot','Path of the Ancestral Guardian','Path of the Beast','Path of Wild Magic'],
   },
   'Bard': {
     hitDie:8, avgHpPerLevel:5, saves:['DEX','CHA'],
@@ -8718,7 +8718,7 @@ const CWIZ_CLASSES = {
     },
     asiLevels:[4,8,12,16,19],
     subclassLevel:3, subclassLabel:'Bard College',
-    subclasses:['College of Lore','College of Valor','College of Glamour','College of Swords','College of Whispers'],
+    subclasses:['College of Lore','College of Valor','College of Glamour','College of Swords','College of Whispers','College of Eloquence','College of Creation','College of Spirits'],
   },
   'Cleric': {
     hitDie:8, avgHpPerLevel:5, saves:['WIS','CHA'],
@@ -8741,7 +8741,7 @@ const CWIZ_CLASSES = {
     },
     asiLevels:[4,8,12,16,19],
     subclassLevel:1, subclassLabel:'Divine Domain',
-    subclasses:['Life Domain','Light Domain','Nature Domain','Tempest Domain','Trickery Domain','War Domain','Knowledge Domain'],
+    subclasses:['Life Domain','Light Domain','Nature Domain','Tempest Domain','Trickery Domain','War Domain','Knowledge Domain','Death Domain','Arcana Domain','Forge Domain','Grave Domain','Order Domain','Peace Domain','Twilight Domain'],
   },
   'Druid': {
     hitDie:8, avgHpPerLevel:5, saves:['INT','WIS'],
@@ -8765,7 +8765,7 @@ const CWIZ_CLASSES = {
     },
     asiLevels:[4,8,12,16,19],
     subclassLevel:2, subclassLabel:'Druid Circle',
-    subclasses:['Circle of the Land','Circle of the Moon','Circle of Dreams','Circle of the Shepherd','Circle of Spores'],
+    subclasses:['Circle of the Land','Circle of the Moon','Circle of Dreams','Circle of the Shepherd','Circle of Spores','Circle of Stars','Circle of Wildfire'],
   },
   'Fighter': {
     hitDie:10, avgHpPerLevel:6, saves:['STR','CON'],
@@ -8785,7 +8785,7 @@ const CWIZ_CLASSES = {
     },
     asiLevels:[4,6,8,12,14,16,19],
     subclassLevel:3, subclassLabel:'Martial Archetype', fightingStyleLevel:1,
-    subclasses:['Champion','Battle Master','Eldritch Knight'],
+    subclasses:['Champion','Battle Master','Eldritch Knight','Arcane Archer','Cavalier','Samurai','Banneret (Purple Dragon Knight)','Echo Knight','Psi Warrior','Rune Knight'],
     fightingStyles:[
       'Archery — +2 bonus to ranged attack rolls',
       'Defense — +1 AC while wearing armor',
@@ -8816,7 +8816,7 @@ const CWIZ_CLASSES = {
     },
     asiLevels:[4,8,12,16,19],
     subclassLevel:3, subclassLabel:'Monastic Tradition',
-    subclasses:['Way of the Open Hand','Way of Shadow','Way of the Four Elements','Way of the Drunken Master','Way of the Kensei','Way of the Sun Soul'],
+    subclasses:['Way of the Open Hand','Way of Shadow','Way of the Four Elements','Way of the Drunken Master','Way of the Kensei','Way of the Sun Soul','Way of the Long Death','Way of Mercy','Way of the Astral Self'],
   },
   'Paladin': {
     hitDie:10, avgHpPerLevel:6, saves:['WIS','CHA'],
@@ -8839,7 +8839,7 @@ const CWIZ_CLASSES = {
     },
     asiLevels:[4,8,12,16,19],
     subclassLevel:3, subclassLabel:'Sacred Oath', fightingStyleLevel:2,
-    subclasses:['Oath of Devotion','Oath of the Ancients','Oath of Vengeance','Oath of Conquest','Oath of Redemption','Oathbreaker'],
+    subclasses:['Oath of Devotion','Oath of the Ancients','Oath of Vengeance','Oath of Conquest','Oath of Redemption','Oathbreaker','Oath of the Crown','Oath of Glory','Oath of the Watchers'],
     fightingStyles:[
       'Defense — +1 AC while wearing armor',
       'Dueling — +2 damage with one-handed weapon (no other weapons)',
@@ -8868,7 +8868,7 @@ const CWIZ_CLASSES = {
     },
     asiLevels:[4,8,12,16,19],
     subclassLevel:3, subclassLabel:'Ranger Archetype', fightingStyleLevel:2,
-    subclasses:['Hunter','Beast Master','Gloom Stalker','Horizon Walker','Monster Slayer'],
+    subclasses:['Hunter','Beast Master','Gloom Stalker','Horizon Walker','Monster Slayer','Fey Wanderer','Swarmkeeper'],
     fightingStyles:[
       'Archery — +2 bonus to ranged attack rolls',
       'Defense — +1 AC while wearing armor',
@@ -8898,7 +8898,7 @@ const CWIZ_CLASSES = {
     },
     asiLevels:[4,8,10,12,16,19],
     subclassLevel:3, subclassLabel:'Roguish Archetype',
-    subclasses:['Thief','Assassin','Arcane Trickster','Inquisitive','Mastermind','Scout','Swashbuckler'],
+    subclasses:['Thief','Assassin','Arcane Trickster','Inquisitive','Mastermind','Scout','Swashbuckler','Phantom','Soulknife'],
   },
   'Sorcerer': {
     hitDie:6, avgHpPerLevel:4, saves:['CON','CHA'],
@@ -8917,7 +8917,7 @@ const CWIZ_CLASSES = {
     },
     asiLevels:[4,8,12,16,19],
     subclassLevel:1, subclassLabel:'Sorcerous Origin',
-    subclasses:['Draconic Bloodline','Wild Magic','Divine Soul','Shadow Magic','Storm Sorcery'],
+    subclasses:['Draconic Bloodline','Wild Magic','Divine Soul','Shadow Magic','Storm Sorcery','Aberrant Mind','Clockwork Soul'],
   },
   'Warlock': {
     hitDie:8, avgHpPerLevel:5, saves:['WIS','CHA'],
@@ -8936,7 +8936,7 @@ const CWIZ_CLASSES = {
     },
     asiLevels:[4,8,12,16,19],
     subclassLevel:1, subclassLabel:'Otherworldly Patron',
-    subclasses:['The Fiend','The Great Old One','The Archfey','The Hexblade','The Undying','The Celestial'],
+    subclasses:['The Fiend','The Great Old One','The Archfey','The Hexblade','The Undying','The Celestial','The Fathomless','The Genie'],
   },
   'Wizard': {
     hitDie:6, avgHpPerLevel:4, saves:['INT','WIS'],
@@ -8955,7 +8955,7 @@ const CWIZ_CLASSES = {
     },
     asiLevels:[4,8,12,16,19],
     subclassLevel:2, subclassLabel:'Arcane Tradition',
-    subclasses:['School of Evocation','School of Abjuration','School of Conjuration','School of Divination','School of Enchantment','School of Illusion','School of Necromancy','School of Transmutation'],
+    subclasses:['School of Evocation','School of Abjuration','School of Conjuration','School of Divination','School of Enchantment','School of Illusion','School of Necromancy','School of Transmutation','Bladesinging','Order of Scribes','War Magic','Chronurgy Magic','Graviturgy Magic'],
   },
 };
 
