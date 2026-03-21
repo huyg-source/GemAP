@@ -1416,6 +1416,7 @@
   .ss-slot.occupied { background: #2a3a6a; border-color: #9ab0ee; }
   .ss-slot:not(.occupied):hover { background: rgba(122,154,238,.18); }
   .ss-slot.drag-over { background: rgba(122,154,238,.35); border-color: #c0d0ff; }
+  .ss-slot.drag-reject { background: rgba(180,60,60,.35); border-color: #e07070; transition: background .1s, border-color .1s; }
   .ss-slot-name { font-size: .62rem; color: #c0d0ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80px; }
   .ss-slot-x { font-size: .6rem; color: #8899cc; flex-shrink: 0; }
   .ss-slot-empty { font-size: .9rem; color: #556; line-height: 1; }
@@ -9169,7 +9170,7 @@ function _ssRenderSpells(spells) {
   const prepared = spells.filter(s => s.prepared && (s.level||0) > 0).sort((a,b) => (a.level||0)-(b.level||0));
   const cantrips  = spells.filter(s => (s.level||0) === 0);
   const row = s => `<div class="ss-spell-item" draggable="true"
-    ondragstart="_ssDragSpell=event.dataTransfer.setData('text/plain','${esc(s.name)}'),_ssDragSpell='${esc(s.name)}'"
+    ondragstart="_ssDragSpell=event.dataTransfer.setData('text/plain','${esc(s.name)}|${s.level||0}'),_ssDragSpell='${esc(s.name)}|${s.level||0}'"
     title="Drag into a slot to mark it used">
     <span class="ss-spell-lvl">${SS_ORDINALS[s.level||0]}</span>${esc(s.name)}
   </div>`;
@@ -9202,8 +9203,17 @@ function closeSpellSlots() {
 function ssDrop(event, slotLevel, slotIdx) {
   event.preventDefault();
   event.currentTarget.classList.remove('drag-over');
-  const spellName = event.dataTransfer.getData('text/plain') || _ssDragSpell;
-  if (!spellName) return;
+  const raw = event.dataTransfer.getData('text/plain') || _ssDragSpell;
+  if (!raw) return;
+  const parts = raw.split('|');
+  const spellName = parts[0];
+  const spellLevel = parseInt(parts[1] || '0', 10);
+  // Block drops where spell level exceeds slot level (upcasting is fine)
+  if (spellLevel > slotLevel) {
+    event.currentTarget.classList.add('drag-reject');
+    setTimeout(() => event.currentTarget.classList.remove('drag-reject'), 600);
+    return;
+  }
   const char = (gameState.characters || []).find(c => c.name === _ssCharName);
   if (!char) return;
   const info = _ssGetSlotInfo(char);
