@@ -7738,24 +7738,54 @@ function renderLootPool() {
   }).join('');
 }
 
-function assignLootItem(itemId) {
+async function assignLootItem(itemId) {
   const item = partyLoot.find(i => i.id === itemId);
-  if (!item) return;
-  const sel = document.getElementById(`loot-sel-${itemId}`);
+  if (!item) { console.error('[loot] item not found:', itemId); return; }
+  const sel = document.getElementById('loot-sel-' + itemId);
   const charName = sel ? sel.value : '';
   if (!charName) { appendSystemMsg('Select a character first.'); return; }
 
-  // Remove any prior assignment of this item to another character
-  for (const name of Object.keys(lootAssign)) {
-    lootAssign[name] = lootAssign[name].filter(a => a.id !== itemId);
-    if (!lootAssign[name].length) delete lootAssign[name];
+  const char = gameState.characters.find(c => c.name === charName);
+  if (!char) { appendSystemMsg('Character not found: ' + charName); return; }
+
+  // Apply directly — gold or inventory item
+  const _isGold = n => /^(gold(\s+(pieces?|coins?|gp))?|gp|\d+\s*gp|coin\s*pouch|pouch\s+of\s+gold|gold\s+pouch)$/i.test((n||'').trim());
+  if (_isGold(item.name)) {
+    const gpAmount = item.value_gp > 0 ? item.value_gp : item.qty;
+    char.gold = (char.gold || 0) + gpAmount;
+  } else {
+    const inv = Array.isArray(char.items) ? char.items : [];
+    const existing = inv.find(e => e.name === item.name);
+    if (existing) { existing.qty = (existing.qty || 1) + item.qty; }
+    else { inv.push({ name: item.name, qty: item.qty, note: item.value_gp > 0 ? item.value_gp + ' gp ea' : '', slot: 'inventory' }); }
+    char.items = inv;
   }
 
-  if (!lootAssign[charName]) lootAssign[charName] = [];
-  lootAssign[charName].push({ id: item.id, name: item.name, qty: item.qty, value_gp: item.value_gp });
+  // Remove from pool
+  partyLoot = partyLoot.filter(p => p.id !== itemId);
 
-  renderLootAssign();
-  distributeLoot();
+  // Grey out row immediately, then re-render
+  const row = document.getElementById('loot-row-' + itemId);
+  if (row) row.style.display = 'none';
+
+  // Save character and pool
+  try {
+    await fetch('/update-character', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ original_name: charName, character: char }),
+    });
+  } catch(e) { console.warn('[loot] update-character failed:', e); }
+  try {
+    await fetch('/save-party-loot', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ party_loot: partyLoot }),
+    });
+  } catch(e) { console.warn('[loot] save-party-loot failed:', e); }
+
+  updateLootBadge();
+  renderLootPool();
+  updateParty(gameState.characters);
+  appendSystemMsg(item.name + ' given to ' + charName + '.');
 }
 
 function renderLootAssign() {
