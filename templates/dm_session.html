@@ -380,7 +380,7 @@
   #spell-tooltip .stt-desc  { color: var(--text); font-size: .76rem; line-height: 1.5; margin-top: 7px; border-top: 1px solid var(--border); padding-top: 6px; max-height: 180px; overflow-y: auto; }
 
   /* card inventory btn */
-  .card-header { display: flex; align-items: flex-start; justify-content: space-between; }
+  .card-header { display: flex; flex-direction: column; gap: 0; }
   .card-inv-btn {
     background: transparent; border: 1px solid var(--border); color: var(--text-dim);
     border-radius: 3px; font-size: .65rem; padding: 1px 6px; cursor: pointer;
@@ -3066,15 +3066,19 @@ function updateParty(characters) {
       ? `<img class="char-portrait-thumb" src="/portraits/${esc(c.portrait_path)}" alt="">`
       : '';
     card.innerHTML = `
-      <div class="card-header" style="display:flex;align-items:flex-start;gap:8px;">
-        ${portraitThumb}
-        <div style="flex:1;min-width:0;">
-          <div class="char-name">${esc(c.name)}${c.nickname ? ' <span style="color:var(--gold);font-size:.8rem;font-weight:400;">('+esc(c.nickname)+')</span>' : ''}${initBadge}${npcBadge}${c.group ? ' <span style="color:var(--text-dim);font-weight:400;font-size:.75rem;">· ' + esc(c.group) + '</span>' : ''}</div>
-          <div class="char-meta">${esc(metaParts)}</div>
+      <div class="card-header">
+        <div style="display:flex;align-items:center;gap:6px;min-width:0;">
+          ${portraitThumb}
+          <div class="char-name" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(c.name)}${c.nickname ? ' <span style="color:var(--gold);font-size:.8rem;font-weight:400;">('+esc(c.nickname)+')</span>' : ''}${initBadge}${npcBadge}${c.group ? ' <span style="color:var(--text-dim);font-weight:400;font-size:.75rem;">· ' + esc(c.group) + '</span>' : ''}</div>
         </div>
-        <button class="card-inv-btn" title="Open Inventory &amp; Spells">&#9775; Inv</button>
-        ${!isNpc && (CWIZ_CLASSES[c.class || (c.classes&&c.classes[0]&&c.classes[0].class)||'']||{}).spellcaster ? `<button class="card-ss-btn" title="Spell Slots">&#10022; Slots</button>` : ''}
-        ${!isNpc ? (()=>{ const nextLvl = totalLevel + 1; const xpNeeded = XP_THRESHOLDS[Math.min(nextLvl, 20)] || 0; const ready = totalLevel < 20 && (c.xp || 0) >= xpNeeded; return `<button class="card-lu-btn${ready?' lu-ready':''}" title="${ready ? 'Level up available! ('+((c.xp||0).toLocaleString())+' / '+xpNeeded.toLocaleString()+' XP)' : 'Level Up ('+(c.xp||0).toLocaleString()+' / '+xpNeeded.toLocaleString()+' XP needed)'}">&#8679; Lvl</button>`; })() : ''}
+        ${!isNpc ? `<div style="display:flex;gap:4px;margin-top:4px;">
+          <button class="card-inv-btn" title="Open Inventory &amp; Spells">&#9775; Inv</button>
+          ${(CWIZ_CLASSES[c.class || (c.classes&&c.classes[0]&&c.classes[0].class)||'']||{}).spellcaster ? `<button class="card-ss-btn" title="Spell Slots">&#10022; Slots</button>` : ''}
+          ${(()=>{ const nextLvl = totalLevel + 1; const xpNeeded = XP_THRESHOLDS[Math.min(nextLvl, 20)] || 0; const ready = totalLevel < 20 && (c.xp || 0) >= xpNeeded; return `<button class="card-lu-btn${ready?' lu-ready':''}" title="${ready ? 'Level up available! ('+((c.xp||0).toLocaleString())+' / '+xpNeeded.toLocaleString()+' XP)' : 'Level Up ('+(c.xp||0).toLocaleString()+' / '+xpNeeded.toLocaleString()+' XP needed)'}">&#8679; Lvl</button>`; })()}
+        </div>` : `<div style="display:flex;gap:4px;margin-top:4px;">
+          <button class="card-inv-btn" title="Open Inventory &amp; Spells">&#9775; Inv</button>
+        </div>`}
+        <div class="char-meta" style="margin-top:3px;">${esc(metaParts)}</div>
       </div>
       ${c.status ? `<div class="char-status">${esc(c.status)}</div>` : ''}
       <div class="hp-bar-wrap"><div class="hp-bar${barClass}" style="width:${pct}%"></div></div>
