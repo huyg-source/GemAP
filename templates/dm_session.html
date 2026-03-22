@@ -8141,13 +8141,17 @@ function renderSellPanel() {
   el.innerHTML = items.map((it, idx) => {
     const inQueue = _sellQueue.find(q => q.source === 'char' && q.charName === charName && q.itemIdx === idx);
     if (inQueue) return ''; // already queued
+    const val = it.value_gp || 0;
+    const sellVal = Math.floor(val * (it.qty||1) / 2);
+    const valLabel = val ? `<span class="sir-qty" style="color:var(--gold)" title="Half market value (${val} gp ea)">${sellVal} gp</span>` : '';
     return `<div class="sell-item-row" draggable="true"
-      ondragstart="sellDragStart(event,'char','${esc(charName)}',${idx},null,'${esc(it.name)}',${it.qty||1})"
+      ondragstart="sellDragStart(event,'char','${esc(charName)}',${idx},null,'${esc(it.name)}',${it.qty||1},${val})"
       ondragend="sellDragEnd(event)">
       <span class="sir-name">${esc(it.name)}</span>
       ${it.note ? `<span class="sir-qty" title="${esc(it.note)}" style="font-style:italic">${esc(it.note.substring(0,20))}</span>` : ''}
       <span class="sir-qty">x${it.qty||1}</span>
-      <button class="sir-sell-btn" onclick="addToSellQueue('char','${esc(charName)}',${idx},null,'${esc(it.name)}',${it.qty||1})">Sell</button>
+      ${valLabel}
+      <button class="sir-sell-btn" onclick="addToSellQueue('char','${esc(charName)}',${idx},null,'${esc(it.name)}',${it.qty||1},${val})">Sell</button>
     </div>`;
   }).join('');
 }
@@ -8325,11 +8329,11 @@ async function completeTrade() {
             method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}'
           });
           const data = await res.json();
-          if (data.ok) trader.items.push(data.item);
+          if (data.ok) trader.items.push({ ...data.item, value_gp: ci.price_gp || 0 });
         } catch(e) { /* skip */ }
       } else {
         // DM special item — just add directly
-        trader.items.push({ name: ci.title, qty: 1, note: 'From merchant' });
+        trader.items.push({ name: ci.title, qty: 1, note: 'From merchant', value_gp: ci.price_gp || 0 });
       }
     }
     msgs.push(`Bought: ${_buyCart.map(c => c.title).join(', ')} (${buyCost} gp)`);
