@@ -1037,14 +1037,14 @@ def list_sessions():
 
 
 @app.route("/sessions/<session_key>", methods=["DELETE"])
-@login_required
+@gm_required
 def delete_session_route(session_key):
     ok = db_delete_session(session_key)
     return jsonify({"ok": ok})
 
 
 @app.route("/campaigns/<int:campaign_id>", methods=["DELETE"])
-@login_required
+@gm_required
 def delete_campaign_route(campaign_id):
     # Verify ownership — user may only delete their own campaigns
     uid = current_user.id if current_user.is_authenticated else None
