@@ -1188,11 +1188,11 @@
   .modal-title { font-family: 'Roboto Condensed', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--red-lt); }
   .session-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
   .del-confirm-btn {
-    background: transparent; border: 1px solid transparent; color: var(--text-dim);
-    font-size: .75rem; cursor: pointer; padding: 1px 5px; border-radius: 3px;
-    line-height: 1; transition: color .12s, border-color .12s;
+    background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+    font-size: .75rem; cursor: pointer; padding: 2px 7px; border-radius: 3px;
+    line-height: 1; transition: color .12s, border-color .12s, background .12s;
   }
-  .del-confirm-btn:hover { color: var(--red-lt); border-color: var(--red-lt); }
+  .del-confirm-btn:hover { color: #fff; background: var(--red-lt); border-color: var(--red-lt); }
   .del-confirm-row { display: flex; }
   .sess-item {
     background: var(--panel2); border: 1px solid var(--border); border-radius: 5px;
@@ -3751,19 +3751,27 @@ async function createCampaign() {
 async function confirmDeleteCampaign(campaignId) {
   try {
     const res = await fetch(`/campaigns/${campaignId}`, { method: 'DELETE' });
+    if (!res.ok && res.status !== 200) {
+      alert(`Delete failed (HTTP ${res.status}). Try refreshing and logging in again.`);
+      return;
+    }
     const data = await res.json();
     if (data.ok) { await loadCampaigns(); }
     else { alert('Delete failed: ' + (data.error || 'unknown error')); }
-  } catch(e) { alert('Network error.'); }
+  } catch(e) { alert('Network error: ' + e.message); }
 }
 
 async function confirmDeleteSession(sessionKey, campaignId) {
   try {
     const res = await fetch(`/sessions/${encodeURIComponent(sessionKey)}`, { method: 'DELETE' });
+    if (!res.ok && res.status !== 200) {
+      alert(`Delete failed (HTTP ${res.status}). Try refreshing and logging in again.`);
+      return;
+    }
     const data = await res.json();
     if (data.ok) { await showSessionStep(campaignId, _activeCampaignName); }
     else { alert('Delete failed: ' + (data.error || 'unknown error')); }
-  } catch(e) { alert('Network error.'); }
+  } catch(e) { alert('Network error: ' + e.message); }
 }
 
 async function showSessionStep(campaignId, campaignName) {
