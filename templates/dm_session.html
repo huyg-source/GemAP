@@ -1187,6 +1187,13 @@
   }
   .modal-title { font-family: 'Roboto Condensed', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--red-lt); }
   .session-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+  .del-confirm-btn {
+    background: transparent; border: 1px solid transparent; color: var(--text-dim);
+    font-size: .75rem; cursor: pointer; padding: 1px 5px; border-radius: 3px;
+    line-height: 1; transition: color .12s, border-color .12s;
+  }
+  .del-confirm-btn:hover { color: var(--red-lt); border-color: var(--red-lt); }
+  .del-confirm-row { display: flex; }
   .sess-item {
     background: var(--panel2); border: 1px solid var(--border); border-radius: 5px;
     padding: 10px 14px; cursor: pointer; transition: border-color .15s;
@@ -3694,9 +3701,21 @@ async function loadCampaigns() {
     campaigns.forEach(c => {
       const item = document.createElement('div');
       item.className = 'sess-item';
-      item.innerHTML = `<div class="sess-name">${esc(c.name)}</div>
+      item.style.cssText = 'position:relative;';
+      item.innerHTML = `
+        <div class="sess-name">${esc(c.name)}</div>
         <div class="sess-meta">${c.session_count} session${c.session_count !== 1 ? 's' : ''} &nbsp;·&nbsp; ${esc(c.last_played ? c.last_played.slice(0,16).replace('T',' ') : 'never played')}</div>
-        ${c.description ? `<div class="sess-meta" style="font-style:italic;">${esc(c.description)}</div>` : ''}`;
+        ${c.description ? `<div class="sess-meta" style="font-style:italic;">${esc(c.description)}</div>` : ''}
+        <button class="del-confirm-btn" data-id="${c.id}" data-name="${esc(c.name)}" title="Delete campaign" style="position:absolute;top:8px;right:8px;">&#x2715;</button>
+        <div class="del-confirm-row" style="display:none;margin-top:6px;padding-top:6px;border-top:1px solid var(--border);gap:6px;align-items:center;">
+          <span style="font-size:.72rem;color:var(--red-lt);flex:1;">Delete <strong>${esc(c.name)}</strong> and all its sessions?</span>
+          <button class="modal-btn secondary" style="padding:2px 8px;font-size:.7rem;" onclick="event.stopPropagation();this.closest('.del-confirm-row').style.display='none'">Cancel</button>
+          <button class="modal-btn" style="padding:2px 8px;font-size:.7rem;background:var(--red-lt);border-color:var(--red-lt);color:#000;" onclick="event.stopPropagation();confirmDeleteCampaign(${c.id})">Delete</button>
+        </div>`;
+      item.querySelector('.del-confirm-btn').addEventListener('click', e => {
+        e.stopPropagation();
+        item.querySelector('.del-confirm-row').style.display = 'flex';
+      });
       item.onclick = () => showSessionStep(c.id, c.name);
       list.appendChild(item);
     });
@@ -3729,6 +3748,24 @@ async function createCampaign() {
   } catch(e) { alert('Network error.'); }
 }
 
+async function confirmDeleteCampaign(campaignId) {
+  try {
+    const res = await fetch(`/campaigns/${campaignId}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.ok) { await loadCampaigns(); }
+    else { alert('Delete failed: ' + (data.error || 'unknown error')); }
+  } catch(e) { alert('Network error.'); }
+}
+
+async function confirmDeleteSession(sessionKey, campaignId) {
+  try {
+    const res = await fetch(`/sessions/${encodeURIComponent(sessionKey)}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.ok) { await showSessionStep(campaignId, _activeCampaignName); }
+    else { alert('Delete failed: ' + (data.error || 'unknown error')); }
+  } catch(e) { alert('Network error.'); }
+}
+
 async function showSessionStep(campaignId, campaignName) {
   _activeCampaignId   = campaignId;
   _activeCampaignName = campaignName;
@@ -3749,9 +3786,22 @@ async function showSessionStep(campaignId, campaignName) {
     sessions.forEach(s => {
       const item = document.createElement('div');
       item.className = 'sess-item';
-      item.innerHTML = `<div class="sess-name">${esc(s.name || s.filename)}</div>
+      item.style.cssText = 'position:relative;';
+      const label = esc(s.name || s.filename);
+      item.innerHTML = `
+        <div class="sess-name">${label}</div>
         <div class="sess-meta">Turn ${s.turn} &nbsp;·&nbsp; ${esc(s.last_saved)} &nbsp;·&nbsp; ${esc(s.location || '—')}</div>
-        ${s.game_date ? `<div class="sess-meta" style="font-style:italic;">${esc(s.game_date)}</div>` : ''}`;
+        ${s.game_date ? `<div class="sess-meta" style="font-style:italic;">${esc(s.game_date)}</div>` : ''}
+        <button class="del-confirm-btn" title="Delete session" style="position:absolute;top:8px;right:8px;">&#x2715;</button>
+        <div class="del-confirm-row" style="display:none;margin-top:6px;padding-top:6px;border-top:1px solid var(--border);gap:6px;align-items:center;">
+          <span style="font-size:.72rem;color:var(--red-lt);flex:1;">Delete session <strong>${label}</strong>?</span>
+          <button class="modal-btn secondary" style="padding:2px 8px;font-size:.7rem;" onclick="event.stopPropagation();this.closest('.del-confirm-row').style.display='none'">Cancel</button>
+          <button class="modal-btn" style="padding:2px 8px;font-size:.7rem;background:var(--red-lt);border-color:var(--red-lt);color:#000;" onclick="event.stopPropagation();confirmDeleteSession('${s.filename.replace(/'/g,"\\'")}',${_activeCampaignId})">Delete</button>
+        </div>`;
+      item.querySelector('.del-confirm-btn').addEventListener('click', e => {
+        e.stopPropagation();
+        item.querySelector('.del-confirm-row').style.display = 'flex';
+      });
       item.onclick = () => loadSessionFromModal(s.filename);
       list.appendChild(item);
     });

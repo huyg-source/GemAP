@@ -58,10 +58,12 @@ log = logging.getLogger("dnd")
 from db_manager import (
     init_db,
     create_campaign, list_campaigns, claim_unclaimed_campaigns, get_campaign,
+    delete_campaign as db_delete_campaign,
     update_from_session, append_session_entry, read_main_tab_characters,
     save_session as db_save_session,
     load_session as db_load_session,
     list_sessions as db_list_sessions,
+    delete_session as db_delete_session,
     read_chronicle as db_read_chronicle,
     append_chronicle, append_story,
     upsert_character, read_all_characters,
@@ -1032,6 +1034,25 @@ def list_sessions():
         "location":   r["location"],
         "game_date":  r["game_date"],
     } for r in rows])
+
+
+@app.route("/sessions/<session_key>", methods=["DELETE"])
+@login_required
+def delete_session_route(session_key):
+    ok = db_delete_session(session_key)
+    return jsonify({"ok": ok})
+
+
+@app.route("/campaigns/<int:campaign_id>", methods=["DELETE"])
+@login_required
+def delete_campaign_route(campaign_id):
+    # Verify ownership — user may only delete their own campaigns
+    uid = current_user.id if current_user.is_authenticated else None
+    campaigns = list_campaigns(uid)
+    if not any(c["id"] == campaign_id for c in campaigns):
+        return jsonify({"ok": False, "error": "Not found or not yours"}), 403
+    ok = db_delete_campaign(campaign_id)
+    return jsonify({"ok": ok})
 
 
 @app.route("/load-session", methods=["POST"])

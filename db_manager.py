@@ -1046,6 +1046,19 @@ def rename_session(session_key: str, name: str):
                     (name, session_key))
 
 
+def delete_session(session_key: str) -> bool:
+    with _conn() as con:
+        cur = con.execute("DELETE FROM sessions WHERE session_key=?", (session_key,))
+    return cur.rowcount > 0
+
+
+def delete_campaign(campaign_id: int) -> bool:
+    """Delete campaign and all related data (cascades via FK)."""
+    with _conn() as con:
+        cur = con.execute("DELETE FROM campaigns WHERE id=?", (campaign_id,))
+    return cur.rowcount > 0
+
+
 # ── Chronicle ──────────────────────────────────────────────────────────────────
 
 def append_chronicle(session_key: str, campaign_id: int, sync_id: str,
