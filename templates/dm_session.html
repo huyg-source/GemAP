@@ -5550,7 +5550,10 @@ function renderNpcDetail(npc) {
       }).join('')
     : '';
 
-  body.innerHTML = notesHtml + (offersHtml || '<div class="inv-empty">No active offers or quests.</div>');
+  const barterBtn = `<div style="margin-bottom:10px;">
+    <button class="modal-btn" style="padding:5px 16px;font-size:.75rem;" onclick="closeNpcRoster();openStoreModal(${npc.id})">&#x2696; Open Barter Window</button>
+  </div>`;
+  body.innerHTML = barterBtn + notesHtml + (offersHtml || '<div class="inv-empty">No active offers or quests.</div>');
 }
 
 async function npcResolveOffer(offerId, status) {
