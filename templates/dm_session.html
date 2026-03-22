@@ -8163,7 +8163,8 @@ function renderLootForSale() {
     const inQueue = _sellQueue.find(q => q.source === 'loot' && q.lootId === it.id);
     if (inQueue) return '';
     const val = it.value_gp || 0;
-    const valLabel = val ? `<span class="sir-qty" style="color:var(--gold)">${val} gp</span>` : '';
+    const sellVal = Math.floor(val * (it.qty || 1) / 2);
+    const valLabel = val ? `<span class="sir-qty" style="color:var(--gold)" title="Half market value (${val} gp ea)">${sellVal} gp</span>` : '';
     return `<div class="sell-item-row" draggable="true"
       ondragstart="sellDragStart(event,'loot',null,null,'${it.id}','${esc(it.name)}',${it.qty||1},${val})"
       ondragend="sellDragEnd(event)">
@@ -8245,7 +8246,10 @@ function renderBuyList() {
 function addToSellQueue(source, charName, itemIdx, lootId, name, qty, value_gp) {
   if (source === 'char' && _sellQueue.find(q => q.source === 'char' && q.charName === charName && q.itemIdx === itemIdx)) return;
   if (source === 'loot' && _sellQueue.find(q => q.source === 'loot' && q.lootId === lootId)) return;
-  _sellQueue.push({ source, charName, itemIdx: itemIdx !== null ? itemIdx : undefined, lootId: lootId || undefined, name, qty: qty || 1, price_gp: value_gp || 0 });
+  const n = qty || 1;
+  // Default to half market value × qty (standard D&D sell rate); DM can edit to haggle up
+  const defaultPrice = Math.floor((value_gp || 0) * n / 2);
+  _sellQueue.push({ source, charName, itemIdx: itemIdx !== null ? itemIdx : undefined, lootId: lootId || undefined, name, qty: n, price_gp: defaultPrice });
   renderSellList();
   renderSellPanel();
   renderLootForSale();
