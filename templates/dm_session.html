@@ -7569,7 +7569,7 @@ function renderLocationNpcCards() {
         ${weapSpan}
         <span class="mob-sbadge msb-ko ${koActive}"  onclick="locNpcToggleStatus(${n.id},'status_ko')" title="Incapacitated / Dead — 0 HP, unable to act. Click to toggle.">💀 KO</span>
         <span class="mob-sbadge msb-atk ${atkActive}" onclick="locNpcToggleStatus(${n.id},'status_atk')" title="Currently attacking this turn. Click to toggle.">⚔ ATK</span>
-        <span class="mob-sbadge" style="border-color:#5a7a5a;color:#8aaa8a;" onclick="openStoreModal(${n.id})" title="Open barter window">⚖ Barter</span>
+        <button class="sir-sell-btn" style="padding:2px 8px;font-size:.62rem;" onclick="openStoreModal(${n.id})" title="Open barter window">⚖ Barter</button>
       </div>
     </div>`;
   }
@@ -8162,19 +8162,22 @@ function renderLootForSale() {
   el.innerHTML = items.map(it => {
     const inQueue = _sellQueue.find(q => q.source === 'loot' && q.lootId === it.id);
     if (inQueue) return '';
+    const val = it.value_gp || 0;
+    const valLabel = val ? `<span class="sir-qty" style="color:var(--gold)">${val} gp</span>` : '';
     return `<div class="sell-item-row" draggable="true"
-      ondragstart="sellDragStart(event,'loot',null,null,'${it.id}','${esc(it.name)}',${it.qty||1})"
+      ondragstart="sellDragStart(event,'loot',null,null,'${it.id}','${esc(it.name)}',${it.qty||1},${val})"
       ondragend="sellDragEnd(event)">
       <span class="sir-name">${esc(it.name)}</span>
       <span class="sir-qty">x${it.qty||1}</span>
-      <button class="sir-sell-btn" onclick="addToSellQueue('loot',null,null,'${it.id}','${esc(it.name)}',${it.qty||1})">Sell</button>
+      ${valLabel}
+      <button class="sir-sell-btn" onclick="addToSellQueue('loot',null,null,'${it.id}','${esc(it.name)}',${it.qty||1},${val})">Sell</button>
     </div>`;
   }).join('');
 }
 
 // ── Sell drag ──────────────────────────────────────────────────────────────────
-function sellDragStart(e, source, charName, itemIdx, lootId, name, qty) {
-  _storeSellDrag = { source, charName, itemIdx, lootId, name, qty };
+function sellDragStart(e, source, charName, itemIdx, lootId, name, qty, value_gp) {
+  _storeSellDrag = { source, charName, itemIdx, lootId, name, qty, value_gp: value_gp || 0 };
   e.currentTarget.classList.add('dragging');
   e.dataTransfer.effectAllowed = 'move';
 }
@@ -8206,7 +8209,7 @@ function tradeDrop(e, zone) {
   e.preventDefault();
   tradeDragLeave(e, zone);
   if (zone === 'buy' && _storeDragId !== null) { addToBuyCart(_storeDragId); }
-  if (zone === 'sell' && _storeSellDrag)       { const d = _storeSellDrag; addToSellQueue(d.source, d.charName, d.itemIdx, d.lootId, d.name, d.qty); }
+  if (zone === 'sell' && _storeSellDrag)       { const d = _storeSellDrag; addToSellQueue(d.source, d.charName, d.itemIdx, d.lootId, d.name, d.qty, d.value_gp); }
 }
 
 // ── Buy cart ───────────────────────────────────────────────────────────────────
@@ -8239,10 +8242,10 @@ function renderBuyList() {
 }
 
 // ── Sell queue ─────────────────────────────────────────────────────────────────
-function addToSellQueue(source, charName, itemIdx, lootId, name, qty) {
+function addToSellQueue(source, charName, itemIdx, lootId, name, qty, value_gp) {
   if (source === 'char' && _sellQueue.find(q => q.source === 'char' && q.charName === charName && q.itemIdx === itemIdx)) return;
   if (source === 'loot' && _sellQueue.find(q => q.source === 'loot' && q.lootId === lootId)) return;
-  _sellQueue.push({ source, charName, itemIdx: itemIdx !== null ? itemIdx : undefined, lootId: lootId || undefined, name, qty: qty || 1, price_gp: 0 });
+  _sellQueue.push({ source, charName, itemIdx: itemIdx !== null ? itemIdx : undefined, lootId: lootId || undefined, name, qty: qty || 1, price_gp: value_gp || 0 });
   renderSellList();
   renderSellPanel();
   renderLootForSale();
