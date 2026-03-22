@@ -8036,6 +8036,24 @@ async function distributeLoot() {
 
 // ── Barter / Trade modal ──────────────────────────────────────────────────────
 
+// Maps NPC npc_type values → mundane_items store_type filter
+const NPC_STORE_TYPE_MAP = {
+  store_owner:  'general',
+  merchant:     'general',
+  trader:       'general',
+  blacksmith:   'blacksmith',
+  armorer:      'armorer',
+  weaponsmith:  'weaponsmith',
+  fletcher:     'fletcher',
+  outfitter:    'outfitter',
+  alchemist:    'alchemist',
+  scribe:       'scribe',
+  clothier:     'clothier',
+  innkeeper:    'innkeeper',
+  jeweler:      'jeweler',
+  other:        'general',
+};
+
 async function openStoreModal(npcId) {
   _storeNpcId  = npcId;
   _buyCart     = [];
@@ -8044,26 +8062,47 @@ async function openStoreModal(npcId) {
   storeCart    = _buyCart;
   _storeTab    = 'char';
 
-  const npc = locationNpcs.find(n => n.id === npcId);
+  // Look up NPC from either location panel or full roster
+  const npc = locationNpcs.find(n => n.id === npcId) || _npcs.find(n => n.id === npcId);
   document.getElementById('store-npc-name').textContent = npc ? npc.name : 'Merchant';
 
-  // Trader selector (who's doing the deal — pays for buys, receives sell gold)
-  const traderSel = document.getElementById('store-trader');
+  // Trader selector
   const pcs = gameState.characters.filter(c => !c.is_npc && c.char_group !== 'mob');
-  traderSel.innerHTML = pcs.map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+  document.getElementById('store-trader').innerHTML    = pcs.map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+  document.getElementById('store-sell-char').innerHTML = pcs.map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
 
-  // Sell-char selector
-  const scSel = document.getElementById('store-sell-char');
-  scSel.innerHTML = pcs.map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
-
-  // Reset tabs
   storeSetTab('char');
   document.getElementById('store-add-form').classList.remove('open');
 
+  // 1. Load any specific offers the DM has set on this NPC
   try {
     const res = await fetch(`/npcs/${npcId}/offers?status=active`);
     _storeOffers = (await res.json()).filter(o => o.offer_type === 'item');
   } catch(e) { _storeOffers = []; }
+
+  // 2. Auto-load default stock from mundane_items based on NPC type
+  const npcType  = (npc && npc.npc_type) ? npc.npc_type.toLowerCase().replace(/\s/g,'_') : '';
+  const storeType = NPC_STORE_TYPE_MAP[npcType] || (npc && npc.is_store ? 'general' : null);
+  if (storeType) {
+    try {
+      const res   = await fetch(`/mundane-items/search?store_type=${encodeURIComponent(storeType)}&limit=40`);
+      const stock = await res.json();
+      // Add as _stock items — shown in the grid but not DB-persisted offers
+      const existingNames = new Set(_storeOffers.map(o => o.title.toLowerCase()));
+      for (const item of stock) {
+        if (!existingNames.has(item.name.toLowerCase())) {
+          _storeOffers.push({
+            id:          `stock_${item.id}`,
+            title:       item.name,
+            price_gp:    item.cost_gp || 0,
+            description: [item.subcategory, item.properties, item.damage ? `Dmg: ${item.damage} ${item.damage_type}` : '', item.armor_class ? `AC: ${item.armor_class}` : ''].filter(Boolean).join(' · '),
+            offer_type:  'item',
+            _stock:      true,
+          });
+        }
+      }
+    } catch(e) { /* no stock — still works */ }
+  }
 
   renderStoreNpcItems();
   renderSellPanel();
@@ -8095,7 +8134,8 @@ function renderStoreNpcItems() {
   none.style.display = 'none';
   grid.innerHTML = _storeOffers.map((o, idx) => {
     const price = o.price_gp != null ? `${o.price_gp} gp` : 'Price TBD';
-    const badge = o._special ? '<span style="font-size:.55rem;color:#c8a020;font-weight:700;text-transform:uppercase;"> ★</span>' : '';
+    const badge = o._special ? ' <span style="font-size:.55rem;color:#c8a020;font-weight:700;">★ Special</span>'
+                : o._stock   ? '' : ' <span style="font-size:.55rem;color:#7a9aee;font-weight:700;">✦ Offer</span>';
     return `<div class="store-item-card" draggable="true"
         ondragstart="storeDragStart(event,${idx})" ondragend="storeDragEnd(event)">
       <div class="sic-name">${esc(o.title)}${badge}</div>
@@ -8322,7 +8362,7 @@ async function completeTrade() {
   if (_buyCart.length) {
     trader.items = trader.items || [];
     for (const ci of _buyCart) {
-      if (!ci._special) {
+      if (!ci._special && !ci._stock) {
         // Registered offer — mark purchased via API
         try {
           const res  = await fetch(`/npcs/offers/${ci.offer_id}/purchase`, {
@@ -8332,8 +8372,8 @@ async function completeTrade() {
           if (data.ok) trader.items.push({ ...data.item, value_gp: ci.price_gp || 0 });
         } catch(e) { /* skip */ }
       } else {
-        // DM special item — just add directly
-        trader.items.push({ name: ci.title, qty: 1, note: 'From merchant', value_gp: ci.price_gp || 0 });
+        // Stock item or DM special — add directly, no offer record needed
+        trader.items.push({ name: ci.title, qty: 1, note: ci._special ? 'Special item' : '', value_gp: ci.price_gp || 0 });
       }
     }
     msgs.push(`Bought: ${_buyCart.map(c => c.title).join(', ')} (${buyCost} gp)`);
