@@ -8239,7 +8239,7 @@ function renderSellPanel() {
   el.innerHTML = items.map((it, idx) => {
     const inQueue = _sellQueue.find(q => q.source === 'char' && q.charName === charName && q.itemIdx === idx);
     if (inQueue) return ''; // already queued
-    const val = it.value_gp || 0;
+    const val = it.value_gp || it.cost_gp || 0;
     const sellVal = Math.floor(val * (it.qty||1) / 2);
     const valLabel = val ? `<span class="sir-qty" style="color:var(--gold)" title="Half market value (${val} gp ea)">${sellVal} gp</span>` : '';
     return `<div class="sell-item-row" draggable="true"
@@ -10607,22 +10607,28 @@ function cwizToggleLang(lang) {
 }
 
 function _cwStartingEquipList() {
+  // Build a cost lookup from BASIC_GEAR (case-insensitive)
+  const gearCost = {};
+  BASIC_GEAR.forEach(g => { gearCost[g.name.toLowerCase()] = g.cost; });
+
+  const lookup = name => gearCost[name.toLowerCase()] || 0;
+
   const entries = CLASS_STARTING_EQUIP[_cw.cls] || [];
   const items = [];
   entries.forEach((entry, idx) => {
     const name = typeof entry === 'string' ? entry : _cw.equipChoices[idx];
     if (!name) return;
     if (PACKS[name]) {
-      items.push({name, quantity:1, cost_gp:0});
-      PACKS[name].forEach(i => items.push({name:i, quantity:1, cost_gp:0}));
+      items.push({name, quantity:1, value_gp:0}); // pack containers have no individual resale
+      PACKS[name].forEach(i => items.push({name:i, quantity:1, value_gp: lookup(i)}));
     } else {
-      items.push({name, quantity:1, cost_gp:0});
+      items.push({name, quantity:1, value_gp: lookup(name)});
     }
   });
   // Background items
   const bgD = CWIZ_BACKGROUNDS[_cw.background] || {};
-  (bgD.items || []).forEach(name => items.push({name, quantity:1, cost_gp:0}));
-  if (_cw.bgToolChoice) items.push({name: _cw.bgToolChoice, quantity:1, cost_gp:0});
+  (bgD.items || []).forEach(name => items.push({name, quantity:1, value_gp: lookup(name)}));
+  if (_cw.bgToolChoice) items.push({name: _cw.bgToolChoice, quantity:1, value_gp: lookup(_cw.bgToolChoice)});
   return items;
 }
 
@@ -11041,8 +11047,8 @@ async function _cwCreate() {
     profession: _cw.background,
     notes:     notes,
     classes:   [{class: _cw.cls, level: _cw.level, subclass: _cw.subclass || ''}],
-    gold:   _cw.goldTotal,
-    items:  [..._cwStartingEquipList(), ..._cw.cart.map(it => ({name: it.name, quantity: 1, cost_gp: it.cost}))],
+    gold:   _cw.goldTotal - _cw.cart.reduce((s,i) => s + i.cost, 0),
+    items:  [..._cwStartingEquipList(), ..._cw.cart.map(it => ({name: it.name, quantity: 1, value_gp: it.cost}))],
     spells: [...allCantrips.map(n=>({name:n,level:0})), ..._cw.spells.map(n=>({name:n,level:1}))],
     buffs: [], debuffs: [],
   };
